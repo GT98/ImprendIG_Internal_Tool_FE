@@ -1,0 +1,28 @@
+<div class="date-nav">
+  <span class="date-nav-month">{{ monthLabel() }}</span>
+
+  <button class="date-nav-arrow" (click)="prevWeek()" aria-label="Settimana precedente">
+    <app-icon name="chevronL" [size]="16" [stroke]="2.5" />
+  </button>
+
+  @for (day of days(); track day.date.getTime()) {
+    <button
+      class="date-nav-day"
+      [class.is-today]="day.isToday"
+      [class.is-selected]="day.isSelected"
+      (click)="selectDay(day.date)"
+      [attr.aria-pressed]="day.isSelected"
+      [attr.aria-label]="day.abbr + ' ' + day.num"
+    >
+      <span class="day-abbr">{{ day.abbr }}</span>
+      <span class="day-num">{{ day.num }}</span>
+      @if (day.isToday) {
+        <span class="today-dot" aria-hidden="true"></span>
+      }
+    </button>
+  }
+
+  <button class="date-nav-arrow" (click)="nextWeek()" aria-label="Settimana successiva">
+    <app-icon name="chevron" [size]="16" [stroke]="2.5" />
+  </button>
+</div>

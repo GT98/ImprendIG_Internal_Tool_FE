@@ -1,0 +1,135 @@
+<div class="app-shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">I</div>
+      <div class="brand-name">IMPREN<span>DIG</span></div>
+    </div>
+    <div class="nav-label">Menu</div>
+    @for (n of nav; track n.path) {
+      <a
+        class="nav-item"
+        routerLinkActive="active"
+        [routerLink]="n.path"
+        [routerLinkActiveOptions]="{ exact: false }"
+        [attr.aria-current]="null"
+      >
+        <app-icon [name]="n.icon" [size]="18" />
+        {{ n.label }}
+        @if (n.path === 'chiamate' && state.todoCount() > 0) {
+          <span class="badge-num">{{ state.todoCount() }}</span>
+        }
+      </a>
+    }
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-card">
+      <div class="user-row">
+        <app-avatar [seller]="state.currentUser()" [size]="36" />
+        <div class="user-meta">
+          <span class="user-name">{{ state.currentUser().name }}</span>
+          <span class="user-role">{{ state.currentUser().role }}</span>
+        </div>
+        <button class="icon-btn" title="Esci" aria-label="Esci">
+          <app-icon name="logout" [size]="17" />
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="topbar">
+      <span class="topbar-title">{{ currentPageLabel() }}</span>
+      <div class="topbar-spacer"></div>
+
+      <!-- Role switch -->
+      <div class="role-switch" role="group" aria-label="Modalità">
+        <button
+          [class.active]="state.role() === 'venditore'"
+          (click)="state.role.set('venditore')"
+        >Venditore</button>
+        <button
+          [class.active]="state.role() === 'admin'"
+          (click)="state.role.set('admin')"
+        >Admin</button>
+      </div>
+
+      <!-- Seller/Team selector -->
+      @if (state.isAdmin()) {
+        <label class="seller-select" aria-label="Filtro team">
+          <app-icon name="users" [size]="16" />
+          {{ state.teamFilter() === 'team' ? 'Tutto il team' : (state.sellersById()[state.teamFilter()]?.name ?? '').split(' ')[0] }}
+          <app-icon name="chevronD" [size]="15" />
+          <select
+            [value]="state.teamFilter()"
+            (change)="state.teamFilter.set($any($event.target).value)"
+            aria-label="Filtra team"
+          >
+            <option value="team">Tutto il team</option>
+            @for (s of sellers; track s.id) {
+              <option [value]="s.id">{{ s.name }}</option>
+            }
+          </select>
+        </label>
+      } @else {
+        <label class="seller-select" aria-label="Seleziona venditore">
+          <app-avatar [seller]="state.sellersById()[state.sellerId()]" [size]="22" />
+          {{ (state.sellersById()[state.sellerId()]?.name ?? '').split(' ')[0] }}
+          <app-icon name="chevronD" [size]="15" />
+          <select
+            [value]="state.sellerId()"
+            (change)="state.sellerId.set($any($event.target).value)"
+            aria-label="Venditore"
+          >
+            @for (s of sellers; track s.id) {
+              <option [value]="s.id">{{ s.name }}</option>
+            }
+          </select>
+        </label>
+      }
+
+      <!-- Bell -->
+      <button class="icon-btn bell-wrap" aria-label="Notifiche">
+        <app-icon name="bell" [size]="18" />
+        <span class="bell-dot" aria-hidden="true"></span>
+      </button>
+
+      <!-- Layout toggle (chiamate) -->
+      @if (currentPageLabel() === 'Chiamate') {
+        <div class="role-switch" role="group" aria-label="Vista">
+          <button [class.active]="state.layout() === 'lista'"  (click)="state.layout.set('lista')">Lista</button>
+          <button [class.active]="state.layout() === 'kanban'" (click)="state.layout.set('kanban')">Kanban</button>
+          <button [class.active]="state.layout() === 'agenda'" (click)="state.layout.set('agenda')">Agenda</button>
+        </div>
+      }
+
+      <!-- Chart toggle (provvigioni) -->
+      @if (currentPageLabel() === 'Provvigioni') {
+        <div class="role-switch" role="group" aria-label="Tipo grafico">
+          <button [class.active]="state.chartType() === 'barre'"  (click)="state.chartType.set('barre')">Barre</button>
+          <button [class.active]="state.chartType() === 'area'"   (click)="state.chartType.set('area')">Area</button>
+          <button [class.active]="state.chartType() === 'donut'"  (click)="state.chartType.set('donut')">Donut</button>
+        </div>
+      }
+    </header>
+
+    <main class="content" id="main-content">
+      <router-outlet />
+    </main>
+  </div>
+
+  <!-- MOBILE NAV -->
+  <nav class="mobile-nav" aria-label="Navigazione principale">
+    @for (n of nav; track n.path) {
+      <a
+        routerLinkActive="active"
+        [routerLink]="n.path"
+        [routerLinkActiveOptions]="{ exact: false }"
+        [attr.aria-label]="n.label"
+      >
+        <app-icon [name]="n.icon" [size]="21" />
+        {{ n.label }}
+      </a>
+    }
+  </nav>
+</div>

@@ -1,0 +1,18 @@
+<div class="toast-container" role="status" aria-live="polite" aria-atomic="false">
+  @for (toast of svc.toasts(); track toast.id) {
+    <div class="toast" [attr.data-type]="toast.type" role="alert">
+      <span class="toast-icon">
+        @switch (toast.type) {
+          @case ('success') { <app-icon name="check"         [size]="17" [stroke]="2.5" /> }
+          @case ('error')   { <app-icon name="x"             [size]="17" [stroke]="2.5" /> }
+          @case ('warning') { <app-icon name="alertTriangle" [size]="17" [stroke]="2.5" /> }
+        }
+      </span>
+      <span class="toast-message">{{ toast.message }}</span>
+      <button class="toast-close" (click)="svc.dismiss(toast.id)" aria-label="Chiudi notifica">
+        <app-icon name="x" [size]="15" />
+      </button>
+      <div class="toast-progress"></div>
+    </div>
+  }
+</div>

@@ -1,0 +1,232 @@
+<div class="page">
+  <!-- header -->
+  <div class="page-head">
+    <div>
+      <h1>Dashboard <span class="muted-pill">admin</span></h1>
+      <p class="page-sub">Panoramica organizzazione</p>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="empty"><span>Caricamento dati…</span></div>
+  } @else {
+
+    <!-- ── KPI row ──────────────────────────────────────────── -->
+    <div class="kpi-grid">
+      <app-stat-card
+        icon="phone"
+        label="Lead totali"
+        [value]="callsByCategory().total"
+        [sub]="callsByCategory().daFare + ' in corso'"
+      />
+      <app-stat-card
+        icon="target"
+        label="Tasso conversione"
+        [value]="conversionRate() + '%'"
+        [sub]="sales().length + ' deal chiusi'"
+        [accent]="true"
+      />
+      <app-stat-card
+        icon="euro"
+        label="MRR totale"
+        [value]="eurFmt(mrrTotal())"
+        [sub]="sales().length + ' clienti attivi'"
+      />
+      <app-stat-card
+        icon="check"
+        label="Incassato questo mese"
+        [value]="eurFmt(incassatoMese())"
+        [trend]="8"
+      />
+    </div>
+
+    <!-- ── Calls + Payments ─────────────────────────────────── -->
+    <div class="section-grid">
+
+      <!-- Esiti chiamate -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Esiti chiamate</div>
+          <span class="card-sub">{{ callsByCategory().total }} totali</span>
+        </div>
+
+        <div class="calls-donut-wrap">
+          <app-donut-chart
+            [slices]="callDonutSlices()"
+            [size]="144"
+            [label]="callsByCategory().total + ''"
+            sub="lead"
+          />
+          <div class="calls-legend">
+            <div class="cl-row">
+              <span class="cl-dot" style="background:#10b981"></span>
+              <span class="cl-label">Effettuate</span>
+              <span class="cl-val">{{ callsByCategory().fatta }}</span>
+              <span class="cl-pct">{{ callPct(callsByCategory().fatta) }}</span>
+            </div>
+            <div class="cl-row">
+              <span class="cl-dot" style="background:#f59e0b"></span>
+              <span class="cl-label">In corso</span>
+              <span class="cl-val">{{ callsByCategory().daFare }}</span>
+              <span class="cl-pct">{{ callPct(callsByCategory().daFare) }}</span>
+            </div>
+            <div class="cl-row">
+              <span class="cl-dot" style="background:#ef4444"></span>
+              <span class="cl-label">No show</span>
+              <span class="cl-val">{{ callsByCategory().noShow }}</span>
+              <span class="cl-pct">{{ callPct(callsByCategory().noShow) }}</span>
+            </div>
+          </div>
+        </div>
+
+        @if (callsByOutcome().length > 0) {
+          <div class="outcome-list">
+            @for (o of callsByOutcome(); track o.label) {
+              <div class="outcome-row">
+                <span class="outcome-label">{{ o.label }}</span>
+                <div class="outcome-bar-wrap">
+                  <div class="outcome-bar-fill" [style.width]="callOutcomeBarWidth(o.count)"></div>
+                </div>
+                <span class="outcome-count">{{ o.count }}</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Situazione pagamenti -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Situazione pagamenti</div>
+          <span class="card-sub">{{ installmentStats().total }} rate totali</span>
+        </div>
+
+        <div class="pay-stats">
+          <!-- Pagati -->
+          <div class="pay-stat-row">
+            <div class="pay-stat-head">
+              <span class="pay-dot" style="background:#10b981"></span>
+              <span class="pay-stat-label">Pagati</span>
+              <span class="pay-stat-count">{{ installmentStats().paidCount }} rate</span>
+              <span class="pay-stat-val">{{ eurFmt(installmentStats().paidAmount) }}</span>
+            </div>
+            <div class="pay-bar-wrap">
+              <div class="pay-bar-fill" style="background:#10b981" [style.width]="payBarWidth(installmentStats().paidAmount)"></div>
+            </div>
+          </div>
+
+          <!-- In attesa -->
+          <div class="pay-stat-row">
+            <div class="pay-stat-head">
+              <span class="pay-dot" style="background:#f59e0b"></span>
+              <span class="pay-stat-label">In attesa</span>
+              <span class="pay-stat-count">{{ installmentStats().draftCount }} rate</span>
+              <span class="pay-stat-val">{{ eurFmt(installmentStats().draftAmount) }}</span>
+            </div>
+            <div class="pay-bar-wrap">
+              <div class="pay-bar-fill" style="background:#f59e0b" [style.width]="payBarWidth(installmentStats().draftAmount)"></div>
+            </div>
+          </div>
+
+          <!-- Falliti -->
+          <div class="pay-stat-row">
+            <div class="pay-stat-head">
+              <span class="pay-dot" style="background:#ef4444"></span>
+              <span class="pay-stat-label">Falliti</span>
+              <span class="pay-stat-count">{{ installmentStats().failedCount }} rate</span>
+              <span class="pay-stat-val">{{ eurFmt(installmentStats().failedAmount) }}</span>
+            </div>
+            <div class="pay-bar-wrap">
+              <div class="pay-bar-fill" style="background:#ef4444" [style.width]="payBarWidth(installmentStats().failedAmount)"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pay-totals">
+          <span>Totale atteso: <strong>{{ eurFmt(installmentStats().totalAmount) }}</strong></span>
+          <span>Incasso effettivo: <strong>{{ eurFmt(installmentStats().paidAmount) }}</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Team performance ─────────────────────────────────── -->
+    @if (teamStats().length > 0) {
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Performance team</div>
+          <span class="card-sub">{{ teamStats().length }} venditori</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="team-table">
+            <thead>
+              <tr>
+                <th>Venditore</th>
+                <th class="r">Lead</th>
+                <th class="r">Effettuate</th>
+                <th class="r">Tasso</th>
+                <th class="r">Deal chiusi</th>
+                <th class="r">Valore deal</th>
+                <th class="r">Commissioni</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (s of teamStats(); track s.seller.id) {
+                <tr>
+                  <td>
+                    <div class="team-seller">
+                      <app-avatar [seller]="s.seller" [size]="32" />
+                      <span>{{ s.seller.name }}</span>
+                    </div>
+                  </td>
+                  <td class="r mono">{{ s.leads }}</td>
+                  <td class="r mono">{{ s.fatte }}</td>
+                  <td class="r">
+                    <span class="team-rate" [class]="conversionClass(s.sales, s.fatte)">
+                      {{ conversionLabel(s.sales, s.fatte) }}
+                    </span>
+                  </td>
+                  <td class="r mono strong">{{ s.sales }}</td>
+                  <td class="r mono">{{ eurFmt(s.dealValue) }}</td>
+                  <td class="r mono strong" style="color:var(--accent)">{{ eurFmt(s.commission) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+
+    <!-- ── Recent deals ─────────────────────────────────────── -->
+    @if (recentDeals().length > 0) {
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Ultimi deal</div>
+          <span class="card-sub">{{ sales().length }} totali</span>
+        </div>
+        <div class="deals-list">
+          @for (sale of recentDeals(); track sale.id) {
+            <div class="deal-row">
+              <div>
+                <div class="deal-client">
+                  {{ (sale.customer?.name ? sale.customer.name + ' ' : '') + (sale.customer?.surname ?? '') || '—' }}
+                </div>
+                <div class="deal-plan">{{ sale.pricePlan?.name ?? '—' }}</div>
+              </div>
+              <app-status-badge [status]="payStatus(sale)" kind="pay" />
+              <span class="deal-mono">{{ eurFmt(+(sale.pricePlan?.totalAmount ?? 0)) }}</span>
+              <div style="display:flex;align-items:center;gap:6px">
+                @if (sale.seller) {
+                  <span style="font-size:12px;color:var(--ink-3)">
+                    {{ (sale.seller.name ?? '') + (sale.seller.lastName ? ' ' + sale.seller.lastName : '') }}
+                  </span>
+                }
+              </div>
+              <span class="deal-date">{{ fmtDate(sale.createdAt) }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+  }
+</div>

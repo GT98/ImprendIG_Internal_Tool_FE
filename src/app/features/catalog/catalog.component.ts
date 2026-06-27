@@ -1,0 +1,518 @@
+import { Component, computed, inject, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { AuthService } from '../../auth/auth.service';
+import { CatalogApiService, CatalogPricePlan } from '../../catalog/catalog-api.service';
+import { ToastService } from '../../shared/toast.service';
+import { IconComponent } from '../../shared/icon.component';
+import { eur as eurFmt } from '../../utils';
+import {TitleCasePipe} from '@angular/common';
+
+interface ClientGroup {
+  key: string;
+  clientName: string;
+  client: { id: number; name: string } | null;
+  services: import('../../catalog/catalog-api.service').CatalogService[];
+}
+
+interface EditState {
+  id: number;
+  name: string;
+  basePrice: string;
+  installmentCount: string;
+  installmentAmount: string;
+  totalAmount: string;
+  stripePaymentLink: string;
+}
+
+interface GenerateModal {
+  planId: number;
+  planName: string;
+  hasStripePrice: boolean;
+}
+
+function tomorrow(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().split('T')[0];
+}
+
+@Component({
+  selector: 'app-catalog',
+  imports: [IconComponent, TitleCasePipe],
+  styleUrl: './catalog.component.css',
+  template: `
+    <!-- Filter bar -->
+    <div class="cat-filter" role="group" aria-label="Filtra per cliente">
+      <button
+        class="cat-chip"
+        [class.active]="selectedClientId() === null"
+        (click)="selectedClientId.set(null)"
+      >
+        Tutti
+      </button>
+      @for (c of clientsResource.value() ?? []; track c.id) {
+        <button
+          class="cat-chip"
+          [class.active]="selectedClientId() === c.id"
+          (click)="selectedClientId.set(c.id)"
+        >
+          {{ c.name | titlecase }}
+        </button>
+      }
+    </div>
+
+    <!-- Loading / empty states -->
+    @if (catalogResource.isLoading()) {
+      <div class="cat-empty"><span>Caricamento…</span></div>
+    } @else if ((catalogResource.value() ?? []).length === 0) {
+      <div class="cat-empty">
+        <app-icon name="grid" [size]="32" />
+        <span>Nessun servizio trovato</span>
+      </div>
+    } @else {
+      <!-- Grouped by client -->
+      @for (group of groupedServices(); track group.key) {
+        <div class="client-group">
+          <!-- Client section header -->
+          <div class="client-group-header">
+            <span class="client-group-name">{{ group.clientName }}</span>
+            <span class="client-group-count">{{ group.services.length }} {{ group.services.length === 1 ? 'servizio' : 'servizi' }}</span>
+            <span class="client-group-line" aria-hidden="true"></span>
+          </div>
+
+          <!-- Services for this client -->
+          <div class="client-group-services">
+            @for (svc of group.services; track svc.id) {
+              <div class="svc-card">
+                <!-- Service header -->
+                <div class="svc-header">
+                  <span class="svc-name">{{ svc.name }}</span>
+                  @if (svc.isActive) {
+                    <span class="svc-badge active" aria-label="Attivo">Attivo</span>
+                  } @else {
+                    <span class="svc-badge" aria-label="Non attivo">Non attivo</span>
+                  }
+                </div>
+
+                <!-- Variants -->
+                @if ((svc.variants ?? []).length === 0) {
+                  <p class="cat-muted">Nessuna variante</p>
+                }
+                @for (variant of svc.variants ?? []; track variant.id) {
+                  <div class="variant-block">
+                    <div class="variant-name">{{ variant.name }}</div>
+
+                    @if ((variant.pricePlans ?? []).length === 0) {
+                      <p class="cat-muted cat-muted-sm">Nessun piano</p>
+                    }
+                    @for (plan of variant.pricePlans ?? []; track plan.id) {
+                      <div class="plan-row">
+                        <div class="plan-info">
+                          <span class="plan-name">{{ plan.name }}</span>
+                          <span class="plan-price">
+                            @if (plan.installmentCount && plan.installmentAmount) {
+                              {{ plan.installmentCount }} rate da {{ eur(plan.installmentAmount) }}
+                              @if (plan.totalAmount) { · Tot. {{ eur(plan.totalAmount) }} }
+                            } @else if (plan.basePrice) {
+                              {{ eur(plan.basePrice) }} una tantum
+                            } @else {
+                              —
+                            }
+                          </span>
+                        </div>
+
+                        <div class="plan-actions">
+                          <button
+                            class="btn-link"
+                            [disabled]="!plan.stripePaymentLink"
+                            [attr.aria-label]="'Copia link per ' + plan.name"
+                            (click)="copyLink(plan)"
+                          >
+                            <app-icon name="copy" [size]="15" />
+                            Copia link
+                          </button>
+
+                          <button
+                            class="btn-generate"
+                            [attr.aria-label]="'Genera link per ' + plan.name"
+                            (click)="openGenerateModal(plan)"
+                          >
+                            <app-icon name="zap" [size]="15" />
+                            Genera link con prova gratuita
+                          </button>
+
+                          @if (isAdmin()) {
+                            <button
+                              class="btn-edit"
+                              [attr.aria-label]="'Modifica ' + plan.name"
+                              [attr.aria-expanded]="editState()?.id === plan.id"
+                              (click)="toggleEdit(plan)"
+                            >
+                              <app-icon name="edit" [size]="15" />
+                              Modifica
+                            </button>
+                          }
+                        </div>
+                      </div>
+
+                      @if (isAdmin() && editState()?.id === plan.id) {
+                        <div class="edit-panel" role="form" [attr.aria-label]="'Modifica ' + plan.name">
+                          <div class="edit-grid">
+                            <label class="edit-field">
+                              <span>Nome</span>
+                              <input
+                                type="text"
+                                [value]="editState()!.name"
+                                (input)="patchEdit('name', $any($event.target).value)"
+                                placeholder="Nome piano"
+                              />
+                            </label>
+                            <label class="edit-field">
+                              <span>Prezzo base (€)</span>
+                              <input
+                                type="number" min="0"
+                                [value]="editState()!.basePrice"
+                                (input)="patchEdit('basePrice', $any($event.target).value)"
+                                placeholder="0"
+                              />
+                            </label>
+                            <label class="edit-field">
+                              <span>N. rate</span>
+                              <input
+                                type="number" min="0"
+                                [value]="editState()!.installmentCount"
+                                (input)="patchEdit('installmentCount', $any($event.target).value)"
+                                placeholder="0"
+                              />
+                            </label>
+                            <label class="edit-field">
+                              <span>Importo rata (€)</span>
+                              <input
+                                type="number" min="0"
+                                [value]="editState()!.installmentAmount"
+                                (input)="patchEdit('installmentAmount', $any($event.target).value)"
+                                placeholder="0"
+                              />
+                            </label>
+                            <label class="edit-field">
+                              <span>Totale (€)</span>
+                              <input
+                                type="number" min="0"
+                                [value]="editState()!.totalAmount"
+                                (input)="patchEdit('totalAmount', $any($event.target).value)"
+                                placeholder="0"
+                              />
+                            </label>
+                            <label class="edit-field edit-field-wide">
+                              <span>Stripe Payment Link</span>
+                              <input
+                                type="url"
+                                [value]="editState()!.stripePaymentLink"
+                                (input)="patchEdit('stripePaymentLink', $any($event.target).value)"
+                                placeholder="https://buy.stripe.com/…"
+                              />
+                            </label>
+                          </div>
+                          <div class="edit-footer">
+                            <button class="btn-save" [disabled]="saving()" (click)="savePlan()">
+                              {{ saving() ? 'Salvataggio…' : 'Salva' }}
+                            </button>
+                            <button class="btn-cancel" (click)="editState.set(null)">Annulla</button>
+                          </div>
+                        </div>
+                      }
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+    }
+
+    <!-- ── Generate link modal ──────────────────────────────────── -->
+    @if (generateModal()) {
+      <div
+        class="modal-overlay"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-label]="'Genera link per ' + generateModal()!.planName"
+        (click)="closeGenerateModal()"
+        (keydown.escape)="closeGenerateModal()"
+      >
+        <div class="modal" (click)="$event.stopPropagation()">
+
+          <!-- Modal header -->
+          <div class="modal-head">
+            <div class="modal-title-wrap">
+              <div class="modal-icon"><app-icon name="zap" [size]="18" /></div>
+              <div>
+                <h2 class="modal-title">Genera link checkout</h2>
+                <p class="modal-sub">{{ generateModal()!.planName }}</p>
+              </div>
+            </div>
+            <button class="icon-btn" aria-label="Chiudi" (click)="closeGenerateModal()">
+              <app-icon name="x" [size]="20" />
+            </button>
+          </div>
+
+          @if (!generateModal()!.hasStripePrice) {
+            <!-- No stripePriceId configured -->
+            <div class="modal-warning">
+              <app-icon name="alertTriangle" [size]="18" />
+              <span>Questo piano non ha uno <strong>Stripe Price ID</strong> configurato. Aggiungilo prima di generare il link.</span>
+            </div>
+          } @else if (generatedUrl()) {
+            <!-- Generated URL result -->
+            <div class="modal-result">
+              <p class="modal-result-label">Link generato con successo</p>
+              <div class="modal-url-box">
+                <span class="modal-url-text">{{ generatedUrl() }}</span>
+              </div>
+              <div class="modal-result-actions">
+                <button class="btn-save" (click)="copyGeneratedUrl()">
+                  <app-icon name="copy" [size]="15" />
+                  {{ urlCopied() ? 'Copiato!' : 'Copia link' }}
+                </button>
+                <button class="btn-cancel" (click)="resetGenerate()">Genera un altro</button>
+              </div>
+            </div>
+          } @else {
+            <!-- Form -->
+            <div class="modal-body">
+              <label class="modal-field">
+                <span class="modal-label">Data fine prova gratuita</span>
+                <input
+                  type="date"
+                  class="modal-date-input"
+                  [min]="minDate"
+                  [value]="trialDate()"
+                  (input)="trialDate.set($any($event.target).value)"
+                  aria-label="Data fine prova gratuita"
+                />
+              </label>
+
+              @if (isAdmin()) {
+                <label class="modal-field">
+                  <span class="modal-label">ID Venditore</span>
+                  <input
+                    type="number"
+                    class="modal-date-input"
+                    min="1"
+                    placeholder="es. 3"
+                    [value]="sellerIdOverride()"
+                    (input)="sellerIdOverride.set($any($event.target).value)"
+                    aria-label="ID Venditore"
+                  />
+                </label>
+              }
+            </div>
+
+            <div class="modal-footer">
+              <button
+                class="btn-save"
+                [disabled]="generating() || !trialDate() || !resolvedSellerId()"
+                (click)="generateLink()"
+              >
+                @if (generating()) {
+                  Generazione…
+                } @else {
+                  <app-icon name="zap" [size]="15" />
+                  Genera link
+                }
+              </button>
+              <button class="btn-cancel" (click)="closeGenerateModal()">Annulla</button>
+              @if (isAdmin() && !resolvedSellerId()) {
+                <span class="modal-hint">Inserisci l'ID venditore per procedere</span>
+              }
+            </div>
+          }
+
+        </div>
+      </div>
+    }
+  `,
+})
+export class CatalogComponent {
+  private readonly auth = inject(AuthService);
+  private readonly catalogApi = inject(CatalogApiService);
+  private readonly toast = inject(ToastService);
+
+  readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'admin');
+  readonly sellerId = computed(() => this.auth.currentUser()?.sellerId);
+
+  // ── Catalog state ────────────────────────────────────────────
+  readonly selectedClientId = signal<number | null>(null);
+
+  readonly clientsResource = rxResource({
+    stream: () => this.catalogApi.getClients(),
+  });
+
+  readonly catalogResource = rxResource({
+    params: () => this.selectedClientId(),
+    stream: ({ params: clientId }) =>
+      this.catalogApi.getCatalog(clientId ?? undefined),
+  });
+
+  readonly eur = (v: number | null) => v != null ? eurFmt(v) : '—';
+
+  readonly groupedServices = computed<ClientGroup[]>(() => {
+    const services = this.catalogResource.value() ?? [];
+    const map = new Map<string, ClientGroup>();
+    for (const svc of services) {
+      const key = svc.client ? String(svc.client.id) : '__none__';
+      if (!map.has(key)) {
+        map.set(key, { key, clientName: svc.client?.name ?? 'Senza cliente', client: svc.client ?? null, services: [] });
+      }
+      map.get(key)!.services.push(svc);
+    }
+    return [...map.values()].sort((a, b) => {
+      if (!a.client) return 1;
+      if (!b.client) return -1;
+      return a.clientName.localeCompare(b.clientName);
+    });
+  });
+
+  // ── Edit state (admin) ───────────────────────────────────────
+  readonly editState = signal<EditState | null>(null);
+  readonly saving = signal(false);
+
+  // ── Generate modal state ─────────────────────────────────────
+  readonly generateModal = signal<GenerateModal | null>(null);
+  readonly trialDate = signal('');
+  readonly sellerIdOverride = signal('');
+  readonly generating = signal(false);
+  readonly generatedUrl = signal<string | null>(null);
+  readonly urlCopied = signal(false);
+
+  readonly minDate = tomorrow();
+
+  readonly resolvedSellerId = computed<number | null>(() => {
+    if (this.isAdmin()) {
+      const v = Number(this.sellerIdOverride());
+      return v > 0 ? v : null;
+    }
+    const sid = this.sellerId();
+    if (sid == null) return null;
+    const n = Number(sid);
+    return n > 0 ? n : null;
+  });
+
+  // ── Copy standard link ───────────────────────────────────────
+  copyLink(plan: CatalogPricePlan): void {
+    if (!plan.stripePaymentLink) return;
+    const sid = this.sellerId();
+    const url = sid != null
+      ? `${plan.stripePaymentLink}?client_reference_id=${sid}`
+      : plan.stripePaymentLink;
+    navigator.clipboard.writeText(url).then(() => {
+      this.toast.success('Link copiato!');
+    });
+  }
+
+  // ── Generate modal ───────────────────────────────────────────
+  openGenerateModal(plan: CatalogPricePlan): void {
+    this.generateModal.set({
+      planId: plan.id,
+      planName: plan.name ?? '',
+      hasStripePrice: !!plan.stripePriceId,
+    });
+    this.trialDate.set('');
+    this.sellerIdOverride.set('');
+    this.generatedUrl.set(null);
+    this.urlCopied.set(false);
+  }
+
+  closeGenerateModal(): void {
+    this.generateModal.set(null);
+  }
+
+  resetGenerate(): void {
+    this.trialDate.set('');
+    this.generatedUrl.set(null);
+    this.urlCopied.set(false);
+  }
+
+  generateLink(): void {
+    const modal = this.generateModal();
+    const sellerId = this.resolvedSellerId();
+    if (!modal || !this.trialDate() || !sellerId) return;
+
+    this.generating.set(true);
+    this.catalogApi.createCheckoutSession({
+      pricePlanId: Number(modal.planId),
+      sellerId: Number(sellerId),
+      trialEndDate: this.trialDate(),
+    }).subscribe({
+      next: ({ url }) => {
+        this.generating.set(false);
+        this.generatedUrl.set(url);
+      },
+      error: (err: { error?: { message?: string } }) => {
+        this.generating.set(false);
+        this.toast.error(err?.error?.message ?? 'Errore nella generazione del link');
+      },
+    });
+  }
+
+  copyGeneratedUrl(): void {
+    const url = this.generatedUrl();
+    if (!url) return;
+    navigator.clipboard.writeText(url).then(() => {
+      this.urlCopied.set(true);
+      setTimeout(() => this.urlCopied.set(false), 2000);
+    });
+  }
+
+  // ── Edit plan (admin) ────────────────────────────────────────
+  toggleEdit(plan: CatalogPricePlan): void {
+    if (this.editState()?.id === plan.id) {
+      this.editState.set(null);
+      return;
+    }
+    this.editState.set({
+      id: plan.id,
+      name: plan.name ?? '',
+      basePrice: plan.basePrice != null ? String(plan.basePrice) : '',
+      installmentCount: plan.installmentCount != null ? String(plan.installmentCount) : '',
+      installmentAmount: plan.installmentAmount != null ? String(plan.installmentAmount) : '',
+      totalAmount: plan.totalAmount != null ? String(plan.totalAmount) : '',
+      stripePaymentLink: plan.stripePaymentLink ?? '',
+    });
+  }
+
+  patchEdit(field: keyof Omit<EditState, 'id'>, value: string): void {
+    const s = this.editState();
+    if (!s) return;
+    this.editState.set({ ...s, [field]: value });
+  }
+
+  savePlan(): void {
+    const s = this.editState();
+    if (!s) return;
+    this.saving.set(true);
+
+    const dto = {
+      name: s.name || undefined,
+      basePrice: s.basePrice !== '' ? Number(s.basePrice) : undefined,
+      installmentCount: s.installmentCount !== '' ? Number(s.installmentCount) : undefined,
+      installmentAmount: s.installmentAmount !== '' ? Number(s.installmentAmount) : undefined,
+      totalAmount: s.totalAmount !== '' ? Number(s.totalAmount) : undefined,
+      stripePaymentLink: s.stripePaymentLink || undefined,
+    };
+
+    this.catalogApi.updatePricePlan(s.id, dto).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.editState.set(null);
+        this.catalogResource.reload();
+        this.toast.success('Piano aggiornato');
+      },
+      error: () => {
+        this.saving.set(false);
+        this.toast.error('Errore nel salvataggio');
+      },
+    });
+  }
+}

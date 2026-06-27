@@ -1,0 +1,120 @@
+<div class="page">
+
+  <!-- Header -->
+  <div class="page-head">
+    <div>
+      <h1>
+        Chiamate
+        @if (isAdmin()) { <span class="muted-pill">team</span> }
+      </h1>
+      <p class="page-sub">
+        {{ dayLabel() }} · {{ callsForDate().length }} chiamate
+      </p>
+    </div>
+    <button class="btn-primary">
+      <app-icon name="plus" [size]="17" />Prenota chiamata
+    </button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stat-grid">
+    <app-stat-card
+      icon="calendar"
+      label="In giornata"
+      [value]="callsForDate().length"
+      [sub]="todo() + ' da fare'"
+      [accent]="true"
+    />
+    <app-stat-card icon="clock" label="Da fare" [value]="todo()" />
+    <app-stat-card icon="check" label="Completate" [value]="done()" />
+    <app-stat-card
+      icon="phone"
+      label="No-show"
+      [value]="callsForDate().length - todo() - done()"
+    />
+  </div>
+
+  <!-- Day navigator -->
+  <app-date-nav [selected]="selectedDate()" (selectedChange)="selectedDate.set($event)" />
+
+  <!-- Loading -->
+  @if (leadsResource.isLoading()) {
+    <div class="empty" aria-live="polite" aria-busy="true">
+      <app-icon name="clock" [size]="28" />
+      <span>Caricamento chiamate…</span>
+    </div>
+  } @else if (leadsResource.error()) {
+    <div class="empty" role="alert">
+      <app-icon name="x" [size]="28" />
+      <span>Impossibile caricare le chiamate. Controlla la connessione e riprova.</span>
+    </div>
+  } @else {
+    <div class="toolbar">
+      <div class="search-box">
+        <app-icon name="search" [size]="17" />
+        <input
+          placeholder="Cerca per nome o azienda…"
+          [value]="q()"
+          (input)="q.set($any($event.target).value)"
+          aria-label="Cerca"
+        />
+      </div>
+      <app-segmented
+        [value]="statusF()"
+        [options]="statusOptions()"
+        (changed)="statusF.set($event)"
+      />
+    </div>
+
+    @if (filtered().length === 0) {
+      <div class="empty">
+        <app-icon name="search" [size]="28" />
+        <span>Nessuna chiamata trovata per questo giorno</span>
+      </div>
+    } @else if (layout() === 'kanban') {
+      <app-kanban-view
+        [calls]="filtered()"
+        [isAdmin]="isAdmin()"
+        [sellersById]="sellersById()"
+        (openCall)="openCall.set($event)"
+        (quickTransfer)="quickAction.set({ call: $event, type: 'transfer' })"
+        (quickReschedule)="quickAction.set({ call: $event, type: 'reschedule' })"
+      />
+    } @else if (layout() === 'agenda') {
+      <app-agenda-view
+        [calls]="filtered()"
+        [isAdmin]="isAdmin()"
+        [sellersById]="sellersById()"
+        (openCall)="openCall.set($event)"
+      />
+    } @else {
+      <app-list-view
+        [calls]="filtered()"
+        [isAdmin]="isAdmin()"
+        [sellersById]="sellersById()"
+        (openCall)="openCall.set($event)"
+        (quickTransfer)="quickAction.set({ call: $event, type: 'transfer' })"
+        (quickReschedule)="quickAction.set({ call: $event, type: 'reschedule' })"
+      />
+    }
+  }
+
+</div>
+
+@if (openCall(); as call) {
+  <app-call-drawer
+    [call]="call"
+    [seller]="sellersById()[call.sellerId] ?? unknownSeller"
+    (closed)="openCall.set(null)"
+    (saved)="onCallSaved()"
+  />
+}
+
+@if (quickAction(); as qa) {
+  <app-call-quick-action
+    [call]="qa.call"
+    [type]="qa.type"
+    (done)="onQuickActionDone()"
+    (closed)="quickAction.set(null)"
+  />
+}

@@ -1,0 +1,518 @@
+import { Component, computed, inject, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { AuthService } from '../../auth/auth.service';
+import { CommissionApiService, CommissionDto } from '../../commissions/commission-api.service';
+import { Seller } from '../../models';
+import { IconComponent } from '../../shared/icon.component';
+import { AvatarComponent } from '../../shared/avatar.component';
+import { StatCardComponent } from '../../shared/stat-card.component';
+import { ProgressBarComponent } from '../../shared/progress-bar.component';
+import { BarChartComponent, AreaChartComponent, DonutChartComponent } from '../../shared/charts.component';
+import { SalesStateService } from '../../sales-state.service';
+import { MonthNavComponent } from './month-nav.component';
+import { eur, fmtDate } from '../../utils';
+
+const SELLER_COLORS = ['#4f46e5', '#0d9488', '#db8c0e', '#be185d', '#059669'];
+const IT_MONTHS = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+const IT_MONTHS_LONG = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+
+const COMM_TYPE: Record<string, { label: string; color: string }> = {
+  percentuale: { label: '% fissa',       color: '#4f46e5' },
+  scaglione:   { label: '% a scaglioni', color: '#0d9488' },
+  fisso:       { label: 'Importo fisso', color: '#db8c0e' },
+};
+
+interface DealRow {
+  id: string;
+  sellerId: string;
+  client: string;
+  value: number;
+  commType: string;
+  rate: number | null;
+  commission: number;
+  date: string;
+  month: string;
+  comms: CommissionDto[];
+}
+
+interface LeaderboardEntry {
+  seller: Seller;
+  total: number;
+}
+
+function isoMonth(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function isoCurrentMonth(): string {
+  return isoMonth(new Date());
+}
+
+function last6Months(): Array<{ iso: string; label: string }> {
+  const now = new Date();
+  return Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+    return { iso: isoMonth(d), label: IT_MONTHS[d.getMonth()] };
+  });
+}
+
+function makeDisplaySeller(c: CommissionDto, colorIdx: number): Seller {
+  const s = c.seller;
+  const name = [s?.name, s?.lastName].filter(Boolean).join(' ') || '—';
+  const initials = ((s?.name ?? '').charAt(0) + (s?.lastName ?? '').charAt(0)).toUpperCase() || '??';
+  return { id: String(s?.id ?? 0), name, initials, color: SELLER_COLORS[colorIdx % SELLER_COLORS.length], role: 'Venditore' };
+}
+
+function commsToDeal(saleId: number, salComms: CommissionDto[]): DealRow {
+  const first = salComms[0];
+  const commission = salComms.reduce((s, c) => s + Number(c.amount ?? 0), 0);
+  const value = Number(first.sale?.pricePlan?.totalAmount ?? 0);
+  const clientName = [first.sale?.customer?.name, first.sale?.customer?.surname].filter(Boolean).join(' ') || '—';
+  const date = first.sale?.createdAt ?? first.createdAt;
+  const monthIdx = new Date(date).getMonth();
+  const sorted = [...salComms].sort((a, b) => {
+    const ai = a.installment;
+    const bi = b.installment;
+    if (ai?.type === 'deposit' && bi?.type !== 'deposit') return -1;
+    if (bi?.type === 'deposit' && ai?.type !== 'deposit') return 1;
+    return (ai?.installmentNumber ?? 0) - (bi?.installmentNumber ?? 0);
+  });
+  return {
+    id: String(saleId),
+    sellerId: String(first.seller?.id ?? ''),
+    client: clientName,
+    value,
+    commType: 'percentuale',
+    rate: first.percentage ? first.percentage / 100 : null,
+    commission,
+    date,
+    month: IT_MONTHS[monthIdx] ?? '',
+    comms: sorted,
+  };
+}
+
+function isCurrentMonth(inst: CommissionDto['installment']): boolean {
+  const m = isoCurrentMonth();
+  return !!(inst?.dueDate?.startsWith(m) || inst?.paymentDate?.startsWith(m));
+}
+
+function instStatusLabel(status: string): string {
+  if (status === 'paid') return 'Pagata';
+  if (status === 'failed') return 'Fallita';
+  return 'In attesa';
+}
+
+function monthLongLabel(isoM: string): string {
+  const [, mon] = isoM.split('-').map(Number);
+  return IT_MONTHS_LONG[mon - 1] ?? isoM;
+}
+
+@Component({
+  selector: 'app-commissions',
+  imports: [
+    IconComponent, AvatarComponent, StatCardComponent, ProgressBarComponent,
+    BarChartComponent, AreaChartComponent, DonutChartComponent,
+    MonthNavComponent,
+  ],
+  styleUrl: './commissions.component.css',
+  template: `
+    <div class="page">
+      <div class="page-head">
+        <div>
+          <h1>
+            Provvigioni
+            @if (isAdmin()) { <span class="muted-pill">team</span> }
+          </h1>
+          <p class="page-sub">
+            {{ isAdmin() ? 'Provvigioni maturate dal team' : 'Le tue provvigioni maturate' }}
+            · {{ monthLabel() }}
+          </p>
+        </div>
+        <button class="btn-ghost">
+          <app-icon name="external" [size]="16" />Esporta
+        </button>
+      </div>
+
+      <app-month-nav [(selected)]="selectedMonth" />
+
+      <div class="stat-grid">
+        <app-stat-card icon="euro" [label]="'Maturato — ' + monthLabel()" [value]="eurMaturato()" [trend]="9" [accent]="true" />
+        <app-stat-card icon="clock" label="Da incassare" [value]="eurDaIncassare()" sub="pagamento in attesa" />
+        <app-stat-card icon="chart" label="Totale anno" [value]="eurAnnoTot()" [trend]="14" />
+        <app-stat-card icon="target" label="Tasso medio" [value]="tassoMedio()" sub="sul venduto" />
+      </div>
+
+      <div class="comm-grid">
+        <!-- CHART CARD -->
+        <div class="card chart-card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Andamento provvigioni</div>
+              <div class="card-sub">Ultimi 6 mesi</div>
+            </div>
+            <div class="card-figure">{{ eurAnnoTot() }}</div>
+          </div>
+
+          @if (chartType() === 'donut') {
+            <div class="donut-layout">
+              <app-donut-chart
+                [slices]="donutSlices()"
+                [size]="196"
+                [label]="eurMaturato()"
+                sub="totale"
+              />
+              <div class="donut-legend">
+                @for (s of byType(); track s.key) {
+                  <div class="dl-row">
+                    <span class="legend-dot" [style.background]="s.color"></span>
+                    <span class="dl-label">{{ s.label }}</span>
+                    <span class="dl-val">{{ eurFmt(s.v) }}</span>
+                    <span class="dl-pct">{{ pct(s.v) }}%</span>
+                  </div>
+                }
+              </div>
+            </div>
+          } @else if (chartType() === 'area') {
+            <app-area-chart [data]="series()" />
+          } @else {
+            <app-bar-chart [data]="series()" />
+          }
+
+          @if (chartType() !== 'donut') {
+            <div class="legend">
+              @for (s of byType(); track s.key) {
+                <span class="legend-item">
+                  <span class="legend-dot" [style.background]="s.color"></span>
+                  {{ s.label }} · <strong>{{ eurFmt(s.v) }}</strong>
+                </span>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- TARGET CARD -->
+        <div class="card target-card">
+          <div class="card-title">Obiettivo mensile</div>
+          <div class="target-big">
+            {{ eurMaturato() }}<span> / {{ eurFmt(target()) }}</span>
+          </div>
+          <app-progress-bar [value]="maturato()" [max]="target()" />
+          <div class="target-meta">
+            <span>{{ targetPct() }}% raggiunto</span>
+            <span>{{ eurFmt(Math.max(0, target() - maturato())) }} al traguardo</span>
+          </div>
+          <div class="divider"></div>
+          <div class="mini-stats">
+            <div>
+              <span class="ms-label">Deal chiusi</span>
+              <span class="ms-val">{{ filteredDeals().length }}</span>
+            </div>
+            <div>
+              <span class="ms-label">Provv. media</span>
+              <span class="ms-val">{{ eurFmt(totalCommission() / (filteredDeals().length || 1)) }}</span>
+            </div>
+            <div>
+              <span class="ms-label">Deal più alto</span>
+              <span class="ms-val">{{ eurFmt(maxCommission()) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEADERBOARD ADMIN -->
+      @if (isAdmin() && leaderboard().length > 0) {
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Maturate dal team — {{ monthLabel() }}</div>
+          </div>
+          <div class="leaderboard">
+            @for (entry of leaderboard(); track entry.seller.id) {
+              <div class="lb-row">
+                <app-avatar [seller]="entry.seller" [size]="34" />
+                <div class="lb-name">{{ entry.seller.name }}<span>{{ entry.seller.role }}</span></div>
+                <div class="lb-bar">
+                  <div class="lb-fill"
+                    [style.width]="lbWidth(entry.total)"
+                    [style.background]="entry.seller.color">
+                  </div>
+                </div>
+                <div class="lb-val">{{ eurFmt(entry.total) }}</div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- DEAL TABLE -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Dettaglio provvigioni — {{ monthLabel() }}</div>
+          @if (commissionsResource.isLoading()) {
+            <span class="card-sub">Caricamento…</span>
+          } @else {
+            <span class="card-sub">{{ filteredDeals().length }} deal</span>
+          }
+        </div>
+        <div class="table-scroll">
+          <div class="table table-deals" [class.adm]="isAdmin()">
+            <div class="tr th">
+              <span>Cliente</span>
+              @if (isAdmin()) { <span>Venditore</span> }
+              <span>Tipo</span>
+              <span class="r">Valore deal</span>
+              <span class="r">Tasso</span>
+              <span class="r">Provvigione</span>
+            </div>
+
+            @for (d of filteredDeals(); track d.id) {
+              <div class="tr-group">
+                <!-- main deal row -->
+                <div
+                  class="tr"
+                  role="button"
+                  tabindex="0"
+                  (click)="toggleDeal(d.id)"
+                  (keydown.enter)="toggleDeal(d.id)"
+                  (keydown.space)="$event.preventDefault(); toggleDeal(d.id)"
+                  [attr.aria-expanded]="isDealExpanded(d.id)"
+                >
+                  <span class="td-strong" style="display:flex;align-items:center;gap:6px">
+                    <button
+                      class="expand-btn"
+                      (click)="$event.stopPropagation(); toggleDeal(d.id)"
+                      [attr.aria-label]="isDealExpanded(d.id) ? 'Comprimi rate' : 'Espandi rate'"
+                    >
+                      <span class="expand-icon" [class.open]="isDealExpanded(d.id)">
+                        <app-icon name="chevron" [size]="13" />
+                      </span>
+                    </button>
+                    {{ d.client }}
+                    @if (d.comms.length > 0) {
+                      <span style="font-size:11px;color:var(--ink-3);font-weight:400">({{ d.comms.length }} rate)</span>
+                    }
+                  </span>
+                  @if (isAdmin()) {
+                    <span class="td-seller">
+                      <app-avatar [seller]="displaySellersById()[d.sellerId]" [size]="24" />
+                      {{ (displaySellersById()[d.sellerId]?.name ?? '—').split(' ')[0] }}
+                    </span>
+                  }
+                  <span>
+                    <span class="comm-tag"
+                      [style.color]="commColor(d.commType)"
+                      [style.background]="commColor(d.commType) + '14'">
+                      {{ commLabel(d.commType) }}
+                    </span>
+                  </span>
+                  <span class="r mono">{{ eurFmt(d.value) }}</span>
+                  <span class="r mono muted">{{ d.rate ? (d.rate * 100).toFixed(0) + '%' : '—' }}</span>
+                  <span class="r mono strong">{{ eurFmt(d.commission) }}</span>
+                </div>
+
+                <!-- expandable installment-commission sub-rows -->
+                @if (isDealExpanded(d.id) && d.comms.length > 0) {
+                  <div class="comm-panel" role="region" [attr.aria-label]="'Rate di ' + d.client">
+                    @for (c of d.comms; track c.id) {
+                      <div
+                        class="comm-inst-row"
+                        [class.inst-current]="isCurrentMonthFn(c.installment)"
+                        [class.inst-deposit]="c.installment?.type === 'deposit' && !isCurrentMonthFn(c.installment)"
+                      >
+                        <span class="inst-label">
+                          @if (c.installment?.type === 'deposit') {
+                            Acconto
+                          } @else {
+                            Rata {{ c.installment?.installmentNumber }}/{{ c.installment?.totalInstallment || d.comms.length }}
+                          }
+                          @if (isCurrentMonthFn(c.installment)) {
+                            <span class="current-tag">Questo mese</span>
+                          }
+                        </span>
+                        <span class="inst-badge" [attr.data-status]="c.installment?.status">
+                          {{ instStatusLabelFn(c.installment?.status ?? '') }}
+                        </span>
+                        @if (c.installment?.amount) {
+                          <span class="inst-amount">{{ eurFmt(+(c.installment!.amount ?? 0)) }}</span>
+                        } @else {
+                          <span></span>
+                        }
+                        <span class="comm-amount">{{ eurFmt(+(c.amount ?? 0)) }}</span>
+                        <span class="inst-date">
+                          @if (c.installment?.status === 'paid' && c.installment?.paymentDate) {
+                            Pag. {{ fmtDateFn(c.installment!.paymentDate!) }}
+                          } @else if (c.installment?.dueDate) {
+                            Scad. {{ fmtDateFn(c.installment!.dueDate!) }}
+                          }
+                        </span>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+})
+export class CommissionsComponent {
+  private readonly auth = inject(AuthService);
+  private readonly commissionApiService = inject(CommissionApiService);
+  private readonly state = inject(SalesStateService);
+
+  readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'admin');
+  readonly chartType = this.state.chartType;
+
+  // Fetch ALL commissions — filtered client-side for deal table; chart always shows last 6 months
+  readonly commissionsResource = rxResource({ stream: () => this.commissionApiService.getAll() });
+
+  private readonly comms = computed(() => this.commissionsResource.value() ?? []);
+
+  readonly selectedMonth = signal(isoCurrentMonth());
+
+  readonly monthLabel = computed(() => monthLongLabel(this.selectedMonth()));
+
+  readonly Math = Math;
+  readonly eurFmt = eur;
+  readonly fmtDateFn = fmtDate;
+  readonly isCurrentMonthFn = isCurrentMonth;
+  readonly instStatusLabelFn = instStatusLabel;
+
+  readonly displaySellersById = computed<Record<string, Seller>>(() => {
+    const seen = new Map<number, number>();
+    const result: Record<string, Seller> = {};
+    for (const c of this.comms()) {
+      if (!c.seller) continue;
+      const id = c.seller.id;
+      if (!seen.has(id)) seen.set(id, seen.size);
+      result[String(id)] = makeDisplaySeller(c, seen.get(id)!);
+    }
+    return result;
+  });
+
+  // Commissions filtered by selected month (for deal table + monthly stats)
+  private readonly filteredComms = computed(() => {
+    const m = this.selectedMonth();
+    return this.comms().filter(c => {
+      const inst = c.installment;
+      if (inst) return inst.dueDate?.startsWith(m) || inst.paymentDate?.startsWith(m);
+      return c.createdAt?.startsWith(m);
+    });
+  });
+
+  // All deals for selected month
+  readonly filteredDeals = computed<DealRow[]>(() => {
+    const saleMap = new Map<number, CommissionDto[]>();
+    for (const c of this.filteredComms()) {
+      if (!c.sale) continue;
+      const id = c.sale.id;
+      if (!saleMap.has(id)) saleMap.set(id, []);
+      saleMap.get(id)!.push(c);
+    }
+    return [...saleMap.entries()]
+      .map(([id, salComms]) => commsToDeal(id, salComms))
+      .sort((a, b) => b.commission - a.commission);
+  });
+
+  // Chart: always last 6 months regardless of selectedMonth
+  readonly series = computed(() =>
+    last6Months().map(({ iso, label }) => ({
+      m: label,
+      v: this.comms()
+        .filter(c => c.installment?.status === 'paid' && c.installment.paymentDate?.startsWith(iso))
+        .reduce((s, c) => s + Number(c.amount ?? 0), 0),
+    }))
+  );
+
+  // Stats: based on selected month
+  readonly maturato = computed(() =>
+    this.filteredComms()
+      .filter(c => c.installment?.status === 'paid')
+      .reduce((s, c) => s + Number(c.amount ?? 0), 0)
+  );
+
+  readonly daIncassare = computed(() =>
+    this.filteredComms()
+      .filter(c => c.installment?.status === 'draft')
+      .reduce((s, c) => s + Number(c.amount ?? 0), 0)
+  );
+
+  // Year total uses all comms (not filtered by selectedMonth)
+  readonly annoTot = computed(() => {
+    const year = String(new Date().getFullYear());
+    return this.comms()
+      .filter(c => c.installment?.status === 'paid' && c.installment.paymentDate?.startsWith(year))
+      .reduce((s, c) => s + Number(c.amount ?? 0), 0);
+  });
+
+  readonly totalCommission = computed(() => this.filteredDeals().reduce((s, d) => s + d.commission, 0));
+  readonly dealVal = computed(() => this.filteredDeals().reduce((s, d) => s + d.value, 0));
+
+  readonly tassoMedio = computed(() => {
+    const v = this.dealVal();
+    return v ? ((this.totalCommission() / v) * 100).toFixed(1) + '%' : '0%';
+  });
+
+  readonly target = computed(() => this.isAdmin() ? 18000 : 6000);
+  readonly targetPct = computed(() => Math.round((this.maturato() / this.target()) * 100));
+  readonly maxCommission = computed(() =>
+    this.filteredDeals().length ? Math.max(...this.filteredDeals().map(d => d.commission)) : 0
+  );
+
+  readonly eurMaturato = computed(() => eur(this.maturato()));
+  readonly eurDaIncassare = computed(() => eur(this.daIncassare()));
+  readonly eurAnnoTot = computed(() => eur(this.annoTot()));
+
+  readonly byType = computed(() =>
+    Object.keys(COMM_TYPE)
+      .map(k => ({
+        key: k,
+        label: COMM_TYPE[k].label,
+        color: COMM_TYPE[k].color,
+        v: this.filteredDeals().filter(d => d.commType === k).reduce((s, d) => s + d.commission, 0),
+      }))
+      .filter(s => s.v > 0)
+  );
+
+  readonly donutSlices = computed(() => this.byType().map(s => ({ v: s.v, color: s.color })));
+
+  readonly leaderboard = computed<LeaderboardEntry[]>(() => {
+    if (!this.isAdmin()) return [];
+    const sellersById = this.displaySellersById();
+    const totals = new Map<string, number>();
+    for (const c of this.filteredComms()) {
+      if (!c.seller) continue;
+      const sid = String(c.seller.id);
+      totals.set(sid, (totals.get(sid) ?? 0) + Number(c.amount ?? 0));
+    }
+    return [...totals.entries()]
+      .map(([sid, total]) => ({ seller: sellersById[sid], total }))
+      .filter((e): e is LeaderboardEntry => e.seller !== undefined)
+      .sort((a, b) => b.total - a.total);
+  });
+
+  // Tree expansion state
+  readonly expandedDeals = signal(new Set<string>());
+
+  toggleDeal(id: string): void {
+    this.expandedDeals.update(set => {
+      const next = new Set(set);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  isDealExpanded(id: string): boolean {
+    return this.expandedDeals().has(id);
+  }
+
+  pct(v: number): number { return Math.round(v / (this.totalCommission() || 1) * 100); }
+  commColor(type: string): string { return COMM_TYPE[type]?.color ?? '#666'; }
+  commLabel(type: string): string { return COMM_TYPE[type]?.label ?? type; }
+
+  lbWidth(total: number): string {
+    const max = Math.max(...this.leaderboard().map(e => e.total), 1);
+    return (total / max * 100) + '%';
+  }
+}

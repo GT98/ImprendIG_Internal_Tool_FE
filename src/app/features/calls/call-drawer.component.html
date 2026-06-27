@@ -1,0 +1,239 @@
+<div class="drawer-overlay" (click)="closed.emit()" role="dialog" aria-modal="true" aria-label="Dettaglio chiamata">
+  <div class="drawer" (click)="$event.stopPropagation()" role="document">
+
+    <div class="drawer-head">
+      <span class="client-mono lg">{{ call().client.slice(0, 2).toUpperCase() }}</span>
+      <div>
+        <h2>{{ call().client }}</h2>
+        <div class="drawer-sub">{{ call().company }}</div>
+      </div>
+      <button class="icon-btn" (click)="closed.emit()" aria-label="Chiudi">
+        <app-icon name="x" [size]="20" />
+      </button>
+    </div>
+
+    <div class="drawer-chips">
+      <app-type-chip [type]="call().type" />
+      <app-status-badge [status]="call().status" />
+    </div>
+
+    <div class="drawer-grid">
+      <div>
+        <span class="dg-label">Data e ora</span>
+        <span class="dg-val sm">{{ fmtDateTime(call().when) }}</span>
+      </div>
+      <div>
+        <span class="dg-label">Valore potenziale</span>
+        <span class="dg-val">{{ eur(call().value) }}</span>
+      </div>
+      <div>
+        <span class="dg-label">Tipo</span>
+        <span class="dg-val sm">{{ typeLabel() }}</span>
+      </div>
+      <div>
+        <span class="dg-label">Venditore</span>
+        <span class="dg-val sm">
+          <app-avatar [seller]="seller()" [size]="20" />
+          {{ seller().name.split(' ')[0] }}
+        </span>
+      </div>
+    </div>
+
+    @if (call().link && call().status === 'da-fare') {
+      <a class="videocall" [href]="'https://' + call().link" target="_blank" rel="noreferrer">
+        <span class="vc-ico"><app-icon name="video" [size]="18" /></span>
+        <span>
+          <span class="vc-label">Videochiamata</span>
+          <span class="vc-link">{{ call().link }}</span>
+        </span>
+        <app-icon name="external" [size]="16" />
+      </a>
+    }
+
+    <div class="drawer-section">
+      <label class="ds-title" for="esito-select">Esito chiamata</label>
+      @if (statusOptionsResource.isLoading()) {
+        <div class="esito-loading">Caricamento…</div>
+      } @else {
+        <select
+          id="esito-select"
+          class="esito-select"
+          [value]="selectedOptionId() ?? ''"
+          (change)="selectedOptionId.set(+$any($event.target).value || null)"
+        >
+          <option value="">— Da fare —</option>
+          @for (opt of statusOptionsResource.value(); track opt.id) {
+            <option [value]="opt.id">{{ opt.label }}</option>
+          }
+        </select>
+      }
+    </div>
+
+    <div class="drawer-section">
+      <label class="ds-title" for="notes-area">Note</label>
+      <textarea
+        id="notes-area"
+        class="note-area"
+        placeholder="Aggiungi note o dettagli sulla chiamata…"
+        [value]="notes()"
+        (input)="notes.set($any($event.target).value)"
+      ></textarea>
+    </div>
+
+    <div class="drawer-actions">
+      <button class="btn-primary full" [disabled]="saving()" (click)="save()">
+        @if (saving()) { Salvataggio… } @else {
+          <app-icon name="check" [size]="16" />Salva esito e note
+        }
+      </button>
+
+      <div class="secondary-divider"><span>Altre operazioni</span></div>
+
+      <div class="action-btns">
+        <button class="btn-ghost half" (click)="openTransfer()" [class.active]="transferring()">
+          <app-icon name="swap" [size]="15" />Trasferisci
+        </button>
+        <button class="btn-ghost half" (click)="openReschedule()" [class.active]="rescheduling()">
+          <app-icon name="calendar" [size]="15" />Riprogramma
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Transfer panel ─────────────────────────────────── -->
+    @if (transferring()) {
+      <div class="action-panel" role="region" aria-label="Trasferisci chiamata">
+        <div class="ap-head">
+          <span class="ap-title">Trasferisci a un altro venditore</span>
+          <button class="icon-btn" (click)="transferring.set(false)" aria-label="Chiudi pannello">
+            <app-icon name="x" [size]="16" />
+          </button>
+        </div>
+
+        <div class="ap-field">
+          <label class="ap-label" for="transfer-seller">Venditore</label>
+          @if (sellersResource.isLoading()) {
+            <div class="esito-loading">Caricamento…</div>
+          } @else {
+            <select
+              id="transfer-seller"
+              class="esito-select"
+              [value]="transferSellerId() ?? ''"
+              (change)="transferSellerId.set(+$any($event.target).value || null)"
+            >
+              <option value="">— Seleziona venditore —</option>
+              @for (s of otherSellers(); track s.id) {
+                <option [value]="s.id">{{ sellerDisplayName(s) }}</option>
+              }
+            </select>
+          }
+        </div>
+
+        <div class="ap-field">
+          <label class="ap-label" for="transfer-note">Nota (opzionale)</label>
+          <input
+            id="transfer-note"
+            class="ap-input"
+            type="text"
+            placeholder="Es: cliente preferisce chiamate mattutine"
+            [value]="transferNote()"
+            (input)="transferNote.set($any($event.target).value)"
+          />
+        </div>
+
+        <div class="ap-actions">
+          <button class="btn-ghost" (click)="transferring.set(false)">Annulla</button>
+          <button
+            class="btn-primary"
+            [disabled]="!transferSellerId() || acting()"
+            (click)="submitTransfer()"
+          >
+            @if (acting()) { Trasferimento… } @else { Conferma trasferimento }
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- ── Reschedule panel ───────────────────────────────── -->
+    @if (rescheduling()) {
+      <div class="action-panel" role="region" aria-label="Riprogramma chiamata">
+        <div class="ap-head">
+          <span class="ap-title">Riprogramma chiamata</span>
+          <button class="icon-btn" (click)="rescheduling.set(false)" aria-label="Chiudi pannello">
+            <app-icon name="x" [size]="16" />
+          </button>
+        </div>
+
+        <div class="ap-field">
+          <label class="ap-label" for="reschedule-date">Nuova data e ora</label>
+          <input
+            id="reschedule-date"
+            class="ap-input"
+            type="datetime-local"
+            [min]="minDateTime()"
+            [value]="rescheduleDate()"
+            (input)="rescheduleDate.set($any($event.target).value)"
+          />
+        </div>
+
+        <div class="ap-field">
+          <label class="ap-label" for="reschedule-note">Nota (opzionale)</label>
+          <input
+            id="reschedule-note"
+            class="ap-input"
+            type="text"
+            placeholder="Es: accordo privato con la cliente"
+            [value]="rescheduleNote()"
+            (input)="rescheduleNote.set($any($event.target).value)"
+          />
+        </div>
+
+        <div class="ap-actions">
+          <button class="btn-ghost" (click)="rescheduling.set(false)">Annulla</button>
+          <button
+            class="btn-primary"
+            [disabled]="!rescheduleDate() || acting()"
+            (click)="submitReschedule()"
+          >
+            @if (acting()) { Salvataggio… } @else { Conferma data }
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- ── Event history ──────────────────────────────────── -->
+    @if (events().length > 0) {
+      <div class="event-history">
+        <div class="ds-title">Storico modifiche</div>
+        @for (ev of events(); track ev.id) {
+          <div class="event-item">
+            <span class="ev-badge" [attr.data-type]="ev.type">
+              @if (ev.type === 'transfer') { Trasferimento }
+              @else { Riprogrammazione }
+            </span>
+            @if (ev.type === 'transfer') {
+              <span class="ev-detail">
+                {{ parsePayload(ev.payload)['fromName'] ?? '—' }}
+                → {{ parsePayload(ev.payload)['toName'] ?? '—' }}
+              </span>
+            } @else {
+              <span class="ev-detail">
+                {{ fmtDate(parsePayload(ev.payload)['oldDate']) }}
+                → {{ fmtDate(parsePayload(ev.payload)['newDate']) }}
+              </span>
+            }
+            <span class="ev-meta">
+              {{ fmtDate(ev.createdAt) }}
+              @if (ev.createdBy) {
+                · {{ sellerDisplayName(ev.createdBy) }}
+              }
+            </span>
+            @if (ev.note) {
+              <span class="ev-note">{{ ev.note }}</span>
+            }
+          </div>
+        }
+      </div>
+    }
+
+  </div>
+</div>
