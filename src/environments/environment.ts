@@ -1,4 +1,4 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://charged-spin-handles-clear.trycloudflare.com',
+  apiUrl: 'http://localhost:3000',
 };

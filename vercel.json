@@ -1,0 +1,5 @@
+{
+  "buildCommand": "ng build",
+  "outputDirectory": "dist/imprendig_it_fe/browser",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}

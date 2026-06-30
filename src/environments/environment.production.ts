@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://charged-spin-handles-clear.trycloudflare.com',
+  apiUrl: '', // aggiorna con l'URL del BE Railway prima del build
 };
