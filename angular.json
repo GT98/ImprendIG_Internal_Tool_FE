@@ -30,6 +30,12 @@
           },
           "configurations": {
             "production": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.production.ts"
+                }
+              ],
               "budgets": [
                 {
                   "type": "initial",
@@ -53,6 +59,9 @@
           "defaultConfiguration": "production"
         },
         "serve": {
+          "options": {
+            "allowedHosts": ["coordinated-gathered-interior-directed.trycloudflare.com"]
+          },
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
