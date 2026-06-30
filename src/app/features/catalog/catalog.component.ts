@@ -1,17 +1,17 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../auth/auth.service';
-import { CatalogApiService, CatalogPricePlan } from '../../catalog/catalog-api.service';
+import { CatalogApiService, CatalogPricePlan, CatalogService } from '../../catalog/catalog-api.service';
 import { ToastService } from '../../shared/toast.service';
 import { IconComponent } from '../../shared/icon.component';
 import { eur as eurFmt } from '../../utils';
-import {TitleCasePipe} from '@angular/common';
+import { TitleCasePipe } from '@angular/common';
 
 interface ClientGroup {
   key: string;
   clientName: string;
   client: { id: number; name: string } | null;
-  services: import('../../catalog/catalog-api.service').CatalogService[];
+  services: CatalogService[];
 }
 
 interface EditState {
@@ -61,17 +61,29 @@ function tomorrow(): string {
       }
     </div>
 
+    <!-- Search bar -->
+    <div class="cat-search-wrap">
+      <input
+        type="search"
+        class="cat-search-input"
+        placeholder="Cerca servizio o variante…"
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+        aria-label="Cerca servizio o variante"
+      />
+    </div>
+
     <!-- Loading / empty states -->
     @if (catalogResource.isLoading()) {
       <div class="cat-empty"><span>Caricamento…</span></div>
-    } @else if ((catalogResource.value() ?? []).length === 0) {
+    } @else if (filteredGroups().length === 0) {
       <div class="cat-empty">
         <app-icon name="grid" [size]="32" />
-        <span>Nessun servizio trovato</span>
+        <span>{{ searchQuery() ? 'Nessun risultato per "' + searchQuery() + '"' : 'Nessun servizio trovato' }}</span>
       </div>
     } @else {
       <!-- Grouped by client -->
-      @for (group of groupedServices(); track group.key) {
+      @for (group of filteredGroups(); track group.key) {
         <div class="client-group">
           <!-- Client section header -->
           <div class="client-group-header">
@@ -344,6 +356,7 @@ export class CatalogComponent {
 
   // ── Catalog state ────────────────────────────────────────────
   readonly selectedClientId = signal<number | null>(null);
+  readonly searchQuery = signal('');
 
   readonly clientsResource = rxResource({
     stream: () => this.catalogApi.getClients(),
@@ -372,6 +385,27 @@ export class CatalogComponent {
       if (!b.client) return -1;
       return a.clientName.localeCompare(b.clientName);
     });
+  });
+
+  readonly filteredGroups = computed<ClientGroup[]>(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    const groups = this.groupedServices();
+    if (!q) return groups;
+
+    return groups
+      .map(group => {
+        const matchingServices = group.services
+          .map(svc => {
+            if (svc.name?.toLowerCase().includes(q)) return svc;
+            const matchingVariants = (svc.variants ?? []).filter(v =>
+              v.name?.toLowerCase().includes(q),
+            );
+            return matchingVariants.length > 0 ? { ...svc, variants: matchingVariants } : null;
+          })
+          .filter((s): s is CatalogService => s !== null);
+        return matchingServices.length > 0 ? { ...group, services: matchingServices } : null;
+      })
+      .filter((g): g is ClientGroup => g !== null);
   });
 
   // ── Edit state (admin) ───────────────────────────────────────

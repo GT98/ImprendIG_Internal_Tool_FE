@@ -3,10 +3,11 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { tap } from 'rxjs';
 import type { AuthUser, LoginResponse } from './auth.models';
+import { environment } from '../../environments/environment';
 
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';
-const API_URL = 'http://localhost:3000';
+const API_URL = environment.apiUrl;
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {

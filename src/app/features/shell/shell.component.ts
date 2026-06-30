@@ -17,7 +17,7 @@ import { ToastContainerComponent } from '../../shared/toast.component';
 const BASE_NAV = [
   { path: 'chiamate', label: 'Chiamate', icon: 'phone' },
   { path: 'provvigioni', label: 'Provvigioni', icon: 'chart' },
-  { path: 'clienti', label: 'Clienti', icon: 'users' },
+  { path: 'clienti', label: 'Vendite', icon: 'users' },
   { path: 'catalogo', label: 'Catalogo', icon: 'grid' },
 ];
 const ADMIN_NAV = [{ path: 'dashboard', label: 'Dashboard', icon: 'home' }, ...BASE_NAV];

@@ -3,6 +3,12 @@
 .cat-chip:hover { border-color:var(--accent); color:var(--accent) }
 .cat-chip.active { background:var(--accent); border-color:var(--accent); color:#fff }
 
+.cat-search-wrap { position:relative; padding:12px 24px 0; }
+.cat-search-icon { position:absolute; left:36px; top:50%; transform:translateY(-50%) translateY(6px); color:var(--ink-3,#9ca3af); pointer-events:none }
+.cat-search-input { width:100%; padding:8px 12px 8px 36px; border:1.5px solid var(--border,#e5e7eb); border-radius:8px; font-size:14px; color:var(--ink,#111827); background:var(--surface,#fff); outline:none; transition:border-color .15s }
+.cat-search-input:focus { border-color:var(--accent) }
+.cat-search-input::placeholder { color:var(--ink-3,#9ca3af) }
+
 .cat-empty { display:flex; flex-direction:column; align-items:center; gap:12px; padding:64px 24px; color:var(--ink-3,#9ca3af); font-size:14px }
 
 /* ── Client groups ──────────────────────────────────────────────── */
