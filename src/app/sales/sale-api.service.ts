@@ -36,11 +36,29 @@ export interface SaleDto {
   installments: InstallmentDto[];
 }
 
+export interface CreateManualSaleDto {
+  customerEmail: string;
+  customerName?: string;
+  customerSurname?: string;
+  customerPhone?: string;
+  pricePlanId: number;
+  sellerId?: number;
+  clientId?: number;
+  leadId?: number;
+  includeDeposit?: boolean;
+  depositAmount?: number;
+  firstInstallmentDate?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class SaleApiService {
   private readonly http = inject(HttpClient);
 
   getAll(): Observable<SaleDto[]> {
     return this.http.get<SaleDto[]>(`${API_URL}/sales`);
+  }
+
+  createManual(dto: CreateManualSaleDto): Observable<SaleDto> {
+    return this.http.post<SaleDto>(`${API_URL}/sales/manual`, dto);
   }
 }

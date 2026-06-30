@@ -8,6 +8,7 @@ import { AvatarComponent } from '../../shared/avatar.component';
 import { StatCardComponent } from '../../shared/stat-card.component';
 import { StatusBadgeComponent } from '../../shared/badge.component';
 import { SegmentedComponent } from '../../shared/segmented.component';
+import { CreateSaleModalComponent } from './create-sale-modal.component';
 import { eur, fmtDate } from '../../utils';
 
 const SELLER_COLORS = ['#4f46e5', '#0d9488', '#db8c0e', '#be185d', '#059669'];
@@ -239,24 +240,31 @@ export class ClientDrawerComponent {
 // ---- CLIENTS PAGE -----------------------------------------------
 @Component({
   selector: 'app-clients',
-  imports: [IconComponent, AvatarComponent, StatCardComponent, StatusBadgeComponent, SegmentedComponent, ClientDrawerComponent],
+  imports: [IconComponent, AvatarComponent, StatCardComponent, StatusBadgeComponent, SegmentedComponent, ClientDrawerComponent, CreateSaleModalComponent],
   styleUrl: './clients.component.css',
   template: `
     <div class="page">
       <div class="page-head">
         <div>
           <h1>
-            Clienti
+            Vendite
             @if (isAdmin()) { <span class="muted-pill">team</span> }
           </h1>
           <p class="page-sub">
-            {{ isAdmin() ? 'Tutti i clienti gestiti dal team' : 'I clienti che gestisci' }}
+            {{ isAdmin() ? 'Tutte le vendite gestite dal team' : 'Le tue vendite' }}
             · pagamenti sincronizzati da <span class="stripe-tag">Stripe</span>
           </p>
         </div>
-        <button class="btn-ghost">
-          <app-icon name="external" [size]="16" />Apri Stripe
-        </button>
+        <div style="display:flex;gap:8px">
+          @if (isAdmin()) {
+            <button class="btn-primary" (click)="showCreateModal.set(true)">
+              <app-icon name="plus" [size]="15" />Nuova vendita
+            </button>
+          }
+          <button class="btn-ghost">
+            <app-icon name="external" [size]="16" />Apri Stripe
+          </button>
+        </div>
       </div>
 
       <div class="stat-grid">
@@ -388,6 +396,12 @@ export class ClientDrawerComponent {
       }
     </div>
 
+    <app-create-sale-modal
+      [visible]="showCreateModal()"
+      (closed)="showCreateModal.set(false)"
+      (created)="onSaleCreated()"
+    />
+
     @if (openSale(); as sale) {
       <app-client-drawer
         [client]="saleToClientFn(sale)"
@@ -429,6 +443,12 @@ export class ClientsComponent {
   readonly payF = signal('tutti');
   readonly openSale = signal<SaleDto | null>(null);
   readonly expandedRows = signal(new Set<string>());
+  readonly showCreateModal = signal(false);
+
+  onSaleCreated(): void {
+    this.showCreateModal.set(false);
+    this.salesResource.reload();
+  }
 
   readonly saleToClientFn = saleToClient;
   readonly sortedInstsFn = sortedInstallments;

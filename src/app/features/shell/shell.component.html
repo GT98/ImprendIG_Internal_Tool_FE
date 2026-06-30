@@ -16,9 +16,6 @@
       >
         <app-icon [name]="n.icon" [size]="18" />
         {{ n.label }}
-        @if (n.path === 'chiamate' && state.todoCount() > 0) {
-          <span class="badge-num">{{ state.todoCount() }}</span>
-        }
       </a>
     }
     <div class="sidebar-spacer"></div>
