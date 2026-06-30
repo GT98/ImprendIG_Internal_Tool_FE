@@ -10,6 +10,11 @@
   @if (isLoading()) {
     <div class="empty"><span>Caricamento dati…</span></div>
   } @else {
+    @if (leadsError()) {
+      <div class="error-banner">
+        Impossibile caricare i lead — i dati sulle chiamate potrebbero non essere aggiornati.
+      </div>
+    }
 
     <!-- ── KPI row ──────────────────────────────────────────── -->
     <div class="kpi-grid">

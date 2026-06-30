@@ -68,6 +68,7 @@ export class DashboardComponent {
       this.commissionsResource.isLoading(),
   );
 
+  readonly leadsError = computed(() => !!this.leadsResource.error());
   readonly leads = computed(() => this.leadsResource.value() ?? []);
   readonly sales = computed(() => this.salesResource.value() ?? []);
   readonly commissions = computed(() => this.commissionsResource.value() ?? []);

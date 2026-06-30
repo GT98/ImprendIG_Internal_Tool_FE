@@ -22,6 +22,7 @@ interface EditState {
   installmentAmount: string;
   totalAmount: string;
   stripePaymentLink: string;
+  stripePriceId: string;
 }
 
 interface GenerateModal {
@@ -222,6 +223,15 @@ function tomorrow(): string {
                                 [value]="editState()!.stripePaymentLink"
                                 (input)="patchEdit('stripePaymentLink', $any($event.target).value)"
                                 placeholder="https://buy.stripe.com/…"
+                              />
+                            </label>
+                            <label class="edit-field edit-field-wide">
+                              <span>Stripe Price ID</span>
+                              <input
+                                type="text"
+                                [value]="editState()!.stripePriceId"
+                                (input)="patchEdit('stripePriceId', $any($event.target).value)"
+                                placeholder="price_…"
                               />
                             </label>
                           </div>
@@ -513,6 +523,7 @@ export class CatalogComponent {
       installmentAmount: plan.installmentAmount != null ? String(plan.installmentAmount) : '',
       totalAmount: plan.totalAmount != null ? String(plan.totalAmount) : '',
       stripePaymentLink: plan.stripePaymentLink ?? '',
+      stripePriceId: plan.stripePriceId ?? '',
     });
   }
 
@@ -534,6 +545,7 @@ export class CatalogComponent {
       installmentAmount: s.installmentAmount !== '' ? Number(s.installmentAmount) : undefined,
       totalAmount: s.totalAmount !== '' ? Number(s.totalAmount) : undefined,
       stripePaymentLink: s.stripePaymentLink || undefined,
+      stripePriceId: s.stripePriceId || undefined,
     };
 
     this.catalogApi.updatePricePlan(s.id, dto).subscribe({
