@@ -17,6 +17,7 @@ export interface CommissionDto {
     customer: { name: string | null; surname: string | null } | null;
   } | null;
   seller: { id: number; name: string | null; lastName: string | null } | null;
+  setter: { id: number; name: string | null; lastName: string | null } | null;
   installment: {
     id: number;
     installmentNumber: number;

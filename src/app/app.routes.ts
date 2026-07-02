@@ -54,6 +54,13 @@ export const routes: Routes = [
           import('./features/catalog/catalog.component').then(m => m.CatalogComponent),
         title: 'Catalogo',
       },
+      {
+        path: 'setter',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/setters/setters.component').then(m => m.SettersComponent),
+        title: 'Setter',
+      },
     ],
   },
 ];

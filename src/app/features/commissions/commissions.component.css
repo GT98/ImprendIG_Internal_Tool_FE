@@ -1,3 +1,46 @@
+/* ---------- FILTER BAR ---------- */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-tabs {
+  display: flex;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  gap: 2px;
+}
+
+.filter-tabs button {
+  padding: 5px 14px;
+  border-radius: calc(var(--radius-sm) - 2px);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+  transition: background .12s, color .12s;
+}
+
+.filter-tabs button.active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+.filter-person-select {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+  min-width: 160px;
+}
+
 /* ---------- DEAL TABLE TREE ---------- */
 .tr-group { display: contents; }
 
@@ -101,3 +144,4 @@
 .inst-badge[data-status='paid']   { background: #e7f5ee; color: #15803d; }
 .inst-badge[data-status='draft']  { background: #eef0fb; color: #4f46e5; }
 .inst-badge[data-status='failed'] { background: #fdeceb; color: #b91c1c; }
+

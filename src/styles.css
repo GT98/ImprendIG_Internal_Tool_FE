@@ -405,6 +405,7 @@ app-root { display: block; height: 100%; }
 .tr.tr-click:hover { background: var(--surface-2); }
 .td-strong { font-weight: 700; font-size: 13.5px; }
 .td-seller { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; }
+.td-empty { color: var(--ink-3); font-size: 13px; }
 .td-client { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .td-client > span:last-child { display: flex; flex-direction: column; line-height: 1.35; min-width: 0; }
 .td-client .td-strong, .td-contact { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
@@ -417,8 +418,8 @@ app-root { display: block; height: 100%; }
 .client-mono.lg { width: 48px; height: 48px; font-size: 15px; border-radius: 12px; }
 .table-scroll { overflow-x: auto; }
 .table-clients .tr { grid-template-columns: 2fr 1.6fr .7fr .85fr 1fr 1fr; }
-.table-clients.adm .tr { grid-template-columns: 1.7fr .85fr 1.5fr .65fr .8fr 1fr .9fr; }
-.table-deals.adm .tr { grid-template-columns: 1.6fr 1fr 1fr .9fr .7fr 1fr; }
+.table-clients.adm .tr { grid-template-columns: 1.4fr .8fr .8fr 1.3fr .6fr .75fr .9fr .85fr; }
+.table-deals.adm .tr { grid-template-columns: 1.4fr .85fr .85fr 1fr .85fr .65fr 1fr; }
 
 /* ---- Drawer ---- */
 /* ── Quick-action modal ─────────────────────────────────── */

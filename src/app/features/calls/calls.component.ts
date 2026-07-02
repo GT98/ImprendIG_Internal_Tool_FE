@@ -54,6 +54,7 @@ function leadToCall(lead: Lead): Call {
   return {
     id: String(lead.id),
     sellerId: String(lead.seller?.id ?? ''),
+    setterId: lead.setter ? String(lead.setter.id) : null,
     client: [lead.name, lead.surname].filter(Boolean).join(' ') || '—',
     company: lead.client?.name ?? '—',
     type: 'demo',

@@ -9,6 +9,7 @@ export interface Seller {
 export interface Call {
   id: string;
   sellerId: string;
+  setterId: string | null;
   client: string;
   company: string;
   type: 'demo' | 'follow-up' | 'closing';
@@ -41,6 +42,8 @@ export interface CommissionPoint {
 export interface Client {
   id: string;
   sellerId: string;
+  setterId: string | null;
+  setterName: string | null;
   name: string;
   contact: string;
   plan: string;

@@ -23,6 +23,7 @@ export interface SaleDto {
   stripeSubscriptionId: string | null;
   customer: { name: string | null; surname: string | null; email: string | null; phone: string | null } | null;
   seller: { id: number; name: string | null; lastName: string | null } | null;
+  setter: { id: number; name: string | null; lastName: string | null } | null;
   client: { id: number; name: string | null } | null;
   pricePlan: {
     name: string | null;
@@ -43,6 +44,7 @@ export interface CreateManualSaleDto {
   customerPhone?: string;
   pricePlanId: number;
   sellerId?: number;
+  setterId?: number;
   clientId?: number;
   leadId?: number;
   includeDeposit?: boolean;

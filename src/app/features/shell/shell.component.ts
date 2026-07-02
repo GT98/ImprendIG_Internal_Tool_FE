@@ -20,7 +20,11 @@ const BASE_NAV = [
   { path: 'clienti', label: 'Vendite', icon: 'users' },
   { path: 'catalogo', label: 'Catalogo', icon: 'grid' },
 ];
-const ADMIN_NAV = [{ path: 'dashboard', label: 'Dashboard', icon: 'home' }, ...BASE_NAV];
+const ADMIN_NAV = [
+  { path: 'dashboard', label: 'Dashboard', icon: 'home' },
+  ...BASE_NAV,
+  { path: 'setter', label: 'Setter', icon: 'users' },
+];
 
 @Component({
   selector: 'app-shell',
