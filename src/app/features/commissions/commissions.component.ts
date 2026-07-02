@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../auth/auth.service';
 import { CommissionApiService, CommissionDto } from '../../commissions/commission-api.service';
+import { SetterApiService } from '../../setter/setter-api.service';
 import { Seller } from '../../models';
 import { IconComponent } from '../../shared/icon.component';
 import { AvatarComponent } from '../../shared/avatar.component';
@@ -12,7 +13,10 @@ import { SalesStateService } from '../../sales-state.service';
 import { MonthNavComponent } from './month-nav.component';
 import { eur, fmtDate } from '../../utils';
 
+type CommFilterType = 'all' | 'seller' | 'setter';
+
 const SELLER_COLORS = ['#4f46e5', '#0d9488', '#db8c0e', '#be185d', '#059669'];
+const SETTER_COLORS = ['#7c3aed', '#9333ea', '#a855f7', '#6d28d9', '#8b5cf6'];
 const IT_MONTHS = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
 const IT_MONTHS_LONG = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
 
@@ -24,7 +28,10 @@ const COMM_TYPE: Record<string, { label: string; color: string }> = {
 
 interface DealRow {
   id: string;
-  sellerId: string;
+  personId: string;
+  personType: 'seller' | 'setter' | 'mixed';
+  sellerId: string | null;
+  setterId: string | null;
   client: string;
   value: number;
   commType: string;
@@ -57,10 +64,23 @@ function last6Months(): Array<{ iso: string; label: string }> {
 }
 
 function makeDisplaySeller(c: CommissionDto, colorIdx: number): Seller {
-  const s = c.seller;
+  const s = c.seller ?? c.setter;
+  const name = [s?.name, s?.lastName].filter(Boolean).join(' ') || '—';
+  const initials = ((s?.name ?? '').charAt(0) + (s?.lastName ?? '').charAt(0)).toUpperCase() || '??';
+  const role = c.setter ? 'Setter' : 'Venditore';
+  return { id: String(s?.id ?? 0), name, initials, color: SELLER_COLORS[colorIdx % SELLER_COLORS.length], role };
+}
+
+function makeSellerOnly(s: CommissionDto['seller'], colorIdx: number): Seller {
   const name = [s?.name, s?.lastName].filter(Boolean).join(' ') || '—';
   const initials = ((s?.name ?? '').charAt(0) + (s?.lastName ?? '').charAt(0)).toUpperCase() || '??';
   return { id: String(s?.id ?? 0), name, initials, color: SELLER_COLORS[colorIdx % SELLER_COLORS.length], role: 'Venditore' };
+}
+
+function makeSetterOnly(s: CommissionDto['setter'], colorIdx: number): Seller {
+  const name = [s?.name, s?.lastName].filter(Boolean).join(' ') || '—';
+  const initials = ((s?.name ?? '').charAt(0) + (s?.lastName ?? '').charAt(0)).toUpperCase() || '??';
+  return { id: String(s?.id ?? 0), name, initials, color: SETTER_COLORS[colorIdx % SETTER_COLORS.length], role: 'Setter' };
 }
 
 function commsToDeal(saleId: number, salComms: CommissionDto[]): DealRow {
@@ -77,9 +97,20 @@ function commsToDeal(saleId: number, salComms: CommissionDto[]): DealRow {
     if (bi?.type === 'deposit' && ai?.type !== 'deposit') return 1;
     return (ai?.installmentNumber ?? 0) - (bi?.installmentNumber ?? 0);
   });
+
+  const hasSeller = salComms.some(c => !!c.seller);
+  const hasSetter = salComms.some(c => !!c.setter);
+  const personType: DealRow['personType'] = hasSeller && hasSetter ? 'mixed' : hasSetter ? 'setter' : 'seller';
+  const primaryPerson = first.setter ?? first.seller;
+  const sellerComm = salComms.find(c => !!c.seller);
+  const setterComm = salComms.find(c => !!c.setter);
+
   return {
     id: String(saleId),
-    sellerId: String(first.seller?.id ?? ''),
+    personId: String(primaryPerson?.id ?? ''),
+    personType,
+    sellerId: sellerComm?.seller ? String(sellerComm.seller.id) : null,
+    setterId: setterComm?.setter ? String(setterComm.setter.id) : null,
     client: clientName,
     value,
     commType: 'percentuale',
@@ -134,6 +165,38 @@ function monthLongLabel(isoM: string): string {
       </div>
 
       <app-month-nav [(selected)]="selectedMonth" />
+
+      @if (isAdmin()) {
+        <div class="filter-bar">
+          <div class="filter-tabs" role="tablist">
+            <button role="tab" [class.active]="filterType() === 'all'" (click)="setFilter('all')">Tutti</button>
+            <button role="tab" [class.active]="filterType() === 'seller'" (click)="setFilter('seller')">Venditori</button>
+            <button role="tab" [class.active]="filterType() === 'setter'" (click)="setFilter('setter')">Setter</button>
+          </div>
+          @if (filterType() === 'seller') {
+            <select class="filter-person-select"
+              [value]="filterPersonId() ?? ''"
+              (change)="filterPersonId.set(+$any($event.target).value || null)"
+              aria-label="Filtra per venditore">
+              <option value="">Tutti i venditori</option>
+              @for (s of sellersList(); track s.id) {
+                <option [value]="s.id">{{ [s.name, s.lastName].filter(Boolean).join(' ') }}</option>
+              }
+            </select>
+          }
+          @if (filterType() === 'setter') {
+            <select class="filter-person-select"
+              [value]="filterPersonId() ?? ''"
+              (change)="filterPersonId.set(+$any($event.target).value || null)"
+              aria-label="Filtra per setter">
+              <option value="">Tutti i setter</option>
+              @for (s of settersResource.value(); track s.id) {
+                <option [value]="s.id">{{ [s.name, s.lastName].filter(Boolean).join(' ') }}</option>
+              }
+            </select>
+          }
+        </div>
+      }
 
       <div class="stat-grid">
         <app-stat-card icon="euro" [label]="'Maturato — ' + monthLabel()" [value]="eurMaturato()" [trend]="9" [accent]="true" />
@@ -258,6 +321,7 @@ function monthLongLabel(isoM: string): string {
             <div class="tr th">
               <span>Cliente</span>
               @if (isAdmin()) { <span>Venditore</span> }
+              @if (isAdmin()) { <span>Setter</span> }
               <span>Tipo</span>
               <span class="r">Valore deal</span>
               <span class="r">Tasso</span>
@@ -293,8 +357,22 @@ function monthLongLabel(isoM: string): string {
                   </span>
                   @if (isAdmin()) {
                     <span class="td-seller">
-                      <app-avatar [seller]="displaySellersById()[d.sellerId]" [size]="24" />
-                      {{ (displaySellersById()[d.sellerId]?.name ?? '—').split(' ')[0] }}
+                      @if (d.sellerId && displaySellerOnlyById()[d.sellerId]) {
+                        <app-avatar [seller]="displaySellerOnlyById()[d.sellerId]" [size]="24" />
+                        {{ displaySellerOnlyById()[d.sellerId].name.split(' ')[0] }}
+                      } @else {
+                        <span class="td-empty">—</span>
+                      }
+                    </span>
+                  }
+                  @if (isAdmin()) {
+                    <span class="td-seller">
+                      @if (d.setterId && displaySetterOnlyById()[d.setterId]) {
+                        <app-avatar [seller]="displaySetterOnlyById()[d.setterId]" [size]="24" />
+                        {{ displaySetterOnlyById()[d.setterId].name.split(' ')[0] }}
+                      } @else {
+                        <span class="td-empty">—</span>
+                      }
                     </span>
                   }
                   <span>
@@ -359,6 +437,7 @@ function monthLongLabel(isoM: string): string {
 export class CommissionsComponent {
   private readonly auth = inject(AuthService);
   private readonly commissionApiService = inject(CommissionApiService);
+  private readonly setterApi = inject(SetterApiService);
   private readonly state = inject(SalesStateService);
 
   readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'admin');
@@ -366,38 +445,99 @@ export class CommissionsComponent {
 
   // Fetch ALL commissions — filtered client-side for deal table; chart always shows last 6 months
   readonly commissionsResource = rxResource({ stream: () => this.commissionApiService.getAll() });
+  readonly settersResource = rxResource({ stream: () => this.setterApi.getAll() });
 
   private readonly comms = computed(() => this.commissionsResource.value() ?? []);
 
   readonly selectedMonth = signal(isoCurrentMonth());
 
+  // ── Filtri seller / setter ────────────────────────────────────────
+  readonly filterType = signal<CommFilterType>('all');
+  readonly filterPersonId = signal<number | null>(null);
+
+  setFilter(type: CommFilterType): void {
+    this.filterType.set(type);
+    this.filterPersonId.set(null);
+  }
+
+  readonly sellersList = computed(() => {
+    const seen = new Set<number>();
+    const result: { id: number; name: string | null; lastName: string | null }[] = [];
+    for (const c of this.comms()) {
+      if (!c.seller || seen.has(c.seller.id)) continue;
+      seen.add(c.seller.id);
+      result.push(c.seller);
+    }
+    return result;
+  });
+
   readonly monthLabel = computed(() => monthLongLabel(this.selectedMonth()));
 
   readonly Math = Math;
+  readonly Boolean = Boolean;
   readonly eurFmt = eur;
   readonly fmtDateFn = fmtDate;
   readonly isCurrentMonthFn = isCurrentMonth;
   readonly instStatusLabelFn = instStatusLabel;
 
   readonly displaySellersById = computed<Record<string, Seller>>(() => {
+    const seen = new Map<string, number>();
+    const result: Record<string, Seller> = {};
+    for (const c of this.comms()) {
+      const person = c.setter ?? c.seller;
+      if (!person) continue;
+      const key = (c.setter ? 'set' : 'sel') + String(person.id);
+      if (!seen.has(key)) seen.set(key, seen.size);
+      result[String(person.id)] = makeDisplaySeller(c, seen.get(key)!);
+    }
+    return result;
+  });
+
+  readonly displaySellerOnlyById = computed<Record<string, Seller>>(() => {
     const seen = new Map<number, number>();
     const result: Record<string, Seller> = {};
     for (const c of this.comms()) {
       if (!c.seller) continue;
       const id = c.seller.id;
       if (!seen.has(id)) seen.set(id, seen.size);
-      result[String(id)] = makeDisplaySeller(c, seen.get(id)!);
+      result[String(id)] = makeSellerOnly(c.seller, seen.get(id)!);
     }
     return result;
   });
 
-  // Commissions filtered by selected month (for deal table + monthly stats)
+  readonly displaySetterOnlyById = computed<Record<string, Seller>>(() => {
+    const seen = new Map<number, number>();
+    const result: Record<string, Seller> = {};
+    for (const c of this.comms()) {
+      if (!c.setter) continue;
+      const id = c.setter.id;
+      if (!seen.has(id)) seen.set(id, seen.size);
+      result[String(id)] = makeSetterOnly(c.setter, seen.get(id)!);
+    }
+    return result;
+  });
+
+  // Commissions filtered by selected month + type + person
   private readonly filteredComms = computed(() => {
     const m = this.selectedMonth();
+    const type = this.filterType();
+    const personId = this.filterPersonId();
+
     return this.comms().filter(c => {
       const inst = c.installment;
-      if (inst) return inst.dueDate?.startsWith(m) || inst.paymentDate?.startsWith(m);
-      return c.createdAt?.startsWith(m);
+      const inMonth = inst
+        ? (inst.dueDate?.startsWith(m) || inst.paymentDate?.startsWith(m))
+        : c.createdAt?.startsWith(m);
+      if (!inMonth) return false;
+
+      if (type === 'seller' && !c.seller) return false;
+      if (type === 'setter' && !c.setter) return false;
+
+      if (personId) {
+        if (type === 'setter') return c.setter?.id === personId;
+        return c.seller?.id === personId;
+      }
+      return true;
     });
   });
 
@@ -482,12 +622,13 @@ export class CommissionsComponent {
     const sellersById = this.displaySellersById();
     const totals = new Map<string, number>();
     for (const c of this.filteredComms()) {
-      if (!c.seller) continue;
-      const sid = String(c.seller.id);
-      totals.set(sid, (totals.get(sid) ?? 0) + Number(c.amount ?? 0));
+      const person = c.seller ?? c.setter;
+      if (!person) continue;
+      const pid = String(person.id);
+      totals.set(pid, (totals.get(pid) ?? 0) + Number(c.amount ?? 0));
     }
     return [...totals.entries()]
-      .map(([sid, total]) => ({ seller: sellersById[sid], total }))
+      .map(([pid, total]) => ({ seller: sellersById[pid], total }))
       .filter((e): e is LeaderboardEntry => e.seller !== undefined)
       .sort((a, b) => b.total - a.total);
   });

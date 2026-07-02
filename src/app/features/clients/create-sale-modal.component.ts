@@ -85,14 +85,23 @@ function todayIso(): string {
                   </select>
                 </div>
                 <div class="field">
-                  <label for="ms-service">Servizio</label>
-                  <select id="ms-service" [value]="selectedServiceId()" (change)="onServiceChange($event)">
-                    <option [value]="null">— seleziona —</option>
-                    @for (svc of catalog(); track svc.id) {
-                      <option [value]="svc.id">{{ svc.name }}</option>
+                  <label for="ms-setter">Setter</label>
+                  <select id="ms-setter" formControlName="setterId">
+                    <option [value]="null">— nessuno —</option>
+                    @for (s of setters(); track s.id) {
+                      <option [value]="s.id">{{ s.name }} {{ s.lastName }}</option>
                     }
                   </select>
                 </div>
+              </div>
+              <div class="field">
+                <label for="ms-service">Servizio</label>
+                <select id="ms-service" [value]="selectedServiceId()" (change)="onServiceChange($event)">
+                  <option [value]="null">— seleziona —</option>
+                  @for (svc of catalog(); track svc.id) {
+                    <option [value]="svc.id">{{ svc.name }}</option>
+                  }
+                </select>
               </div>
               <div class="field">
                 <label for="ms-plan">
@@ -314,6 +323,7 @@ export class CreateSaleModalComponent {
     customerSurname: [''],
     customerPhone: [''],
     sellerId: [null as number | null],
+    setterId: [null as number | null],
     pricePlanId: [null as number | null, Validators.required],
     includeDeposit: [false],
     depositAmount: [null as number | null],
@@ -324,9 +334,11 @@ export class CreateSaleModalComponent {
   readonly submitting = signal(false);
 
   private readonly sellersResource = rxResource({ stream: () => this.leadsService.getSellers() });
+  private readonly settersResource = rxResource({ stream: () => this.leadsService.getSetters() });
   private readonly catalogResource = rxResource({ stream: () => this.catalogApi.getCatalog() });
 
   readonly sellers = computed(() => this.sellersResource.value() ?? []);
+  readonly setters = computed(() => this.settersResource.value() ?? []);
   readonly catalog = computed(() => this.catalogResource.value() ?? []);
 
   readonly availablePlans = computed(() => {
@@ -379,6 +391,7 @@ export class CreateSaleModalComponent {
       customerPhone: v.customerPhone || undefined,
       pricePlanId: Number(v.pricePlanId!),
       sellerId: v.sellerId != null ? Number(v.sellerId) : undefined,
+      setterId: v.setterId != null ? Number(v.setterId) : undefined,
       includeDeposit: v.includeDeposit || undefined,
       depositAmount: v.depositAmount ?? undefined,
       firstInstallmentDate: v.firstInstallmentDate || undefined,
@@ -403,6 +416,7 @@ export class CreateSaleModalComponent {
       customerSurname: '',
       customerPhone: '',
       sellerId: null,
+      setterId: null,
       pricePlanId: null,
       includeDeposit: false,
       depositAmount: null,

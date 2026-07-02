@@ -39,6 +39,27 @@
       </div>
     </div>
 
+    @if (isAdmin()) {
+      <div class="setter-row">
+        <span class="dg-label">Setter</span>
+        @if (settersResource.isLoading()) {
+          <span class="dg-val sm muted">Caricamento…</span>
+        } @else {
+          <select
+            class="setter-select"
+            [value]="selectedSetterId() ?? ''"
+            (change)="selectedSetterId.set(+$any($event.target).value || null)"
+            aria-label="Setter assegnato"
+          >
+            <option value="">— Nessun setter —</option>
+            @for (s of settersResource.value(); track s.id) {
+              <option [value]="s.id">{{ [s.name, s.lastName].filter(Boolean).join(' ') }}</option>
+            }
+          </select>
+        }
+      </div>
+    }
+
     @if (call().link && call().status === 'da-fare') {
       <a class="videocall" [href]="'https://' + call().link" target="_blank" rel="noreferrer">
         <span class="vc-ico"><app-icon name="video" [size]="18" /></span>

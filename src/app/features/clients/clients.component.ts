@@ -12,11 +12,18 @@ import { CreateSaleModalComponent } from './create-sale-modal.component';
 import { eur, fmtDate } from '../../utils';
 
 const SELLER_COLORS = ['#4f46e5', '#0d9488', '#db8c0e', '#be185d', '#059669'];
+const SETTER_COLORS = ['#7c3aed', '#9333ea', '#a855f7', '#6d28d9', '#8b5cf6'];
 
 function makeDisplaySeller(s: SaleDto['seller'], colorIdx: number): Seller {
   const name = [s?.name, s?.lastName].filter(Boolean).join(' ') || '—';
   const initials = ((s?.name ?? '').charAt(0) + (s?.lastName ?? '').charAt(0)).toUpperCase() || '??';
   return { id: String(s?.id ?? 0), name, initials, color: SELLER_COLORS[colorIdx % SELLER_COLORS.length], role: 'Venditore' };
+}
+
+function makeDisplaySetter(s: SaleDto['setter'], colorIdx: number): Seller {
+  const name = [s?.name, s?.lastName].filter(Boolean).join(' ') || '—';
+  const initials = ((s?.name ?? '').charAt(0) + (s?.lastName ?? '').charAt(0)).toUpperCase() || '??';
+  return { id: String(s?.id ?? 0), name, initials, color: SETTER_COLORS[colorIdx % SETTER_COLORS.length], role: 'Setter' };
 }
 
 function derivePayStatus(installments: InstallmentDto[]): 'pagato' | 'pending' | 'fallito' {
@@ -41,6 +48,10 @@ function saleToClient(sale: SaleDto): Client {
   return {
     id: String(sale.id),
     sellerId: String(sale.seller?.id ?? ''),
+    setterId: sale.setter ? String(sale.setter.id) : null,
+    setterName: sale.setter
+      ? [sale.setter.name, sale.setter.lastName].filter(Boolean).join(' ') || null
+      : null,
     name: [sale.customer?.name, sale.customer?.surname].filter(Boolean).join(' ') || '—',
     contact: sale.customer?.email ?? '—',
     plan: sale.pricePlan?.name ?? '—',
@@ -150,14 +161,23 @@ function instStatusLabel(status: string): string {
         </div>
 
         <div class="drawer-section">
-          <div class="ds-title">Venditore</div>
+          <div class="ds-title">Team</div>
           <div class="kv">
-            <span>Assegnato a</span>
+            <span>Venditore</span>
             <span class="td-seller">
               <app-avatar [seller]="seller()" [size]="22" />
               {{ seller().name }}
             </span>
           </div>
+          @if (setter()) {
+            <div class="kv">
+              <span>Setter</span>
+              <span class="td-seller">
+                <app-avatar [seller]="setter()!" [size]="22" />
+                {{ setter()!.name }}
+              </span>
+            </div>
+          }
           <div class="kv">
             <span>Ultimo pagamento</span>
             <span>{{ fmtDate(client().lastPay) }}</span>
@@ -211,6 +231,7 @@ function instStatusLabel(status: string): string {
 export class ClientDrawerComponent {
   readonly client = input.required<Client>();
   readonly seller = input.required<Seller>();
+  readonly setter = input<Seller | null>(null);
   readonly installments = input<InstallmentDto[]>([]);
   readonly serviceName = input<string | null>(null);
   readonly variantName = input<string | null>(null);
@@ -302,6 +323,7 @@ export class ClientDrawerComponent {
               <div class="tr th">
                 <span>Cliente</span>
                 @if (isAdmin()) { <span>Venditore</span> }
+                @if (isAdmin()) { <span>Setter</span> }
                 <span>Servizio</span>
                 <span>Piano</span>
                 <span class="r">MRR</span>
@@ -342,6 +364,16 @@ export class ClientDrawerComponent {
                       <span class="td-seller">
                         <app-avatar [seller]="displaySellersById()[row.client.sellerId]" [size]="24" />
                         {{ (displaySellersById()[row.client.sellerId]?.name ?? '—').split(' ')[0] }}
+                      </span>
+                    }
+                    @if (isAdmin()) {
+                      <span class="td-seller">
+                        @if (row.client.setterId && displaySettersById()[row.client.setterId]) {
+                          <app-avatar [seller]="displaySettersById()[row.client.setterId]" [size]="24" />
+                          {{ displaySettersById()[row.client.setterId].name.split(' ')[0] }}
+                        } @else {
+                          <span class="td-empty">—</span>
+                        }
                       </span>
                     }
                     <span class="td-service">
@@ -406,6 +438,7 @@ export class ClientDrawerComponent {
       <app-client-drawer
         [client]="saleToClientFn(sale)"
         [seller]="displaySellersById()[String(sale.seller?.id ?? '')] ?? fallbackSeller"
+        [setter]="sale.setter ? (displaySettersById()[String(sale.setter.id)] ?? null) : null"
         [installments]="sale.installments"
         [serviceName]="sale.pricePlan?.serviceVariant?.service?.name ?? null"
         [variantName]="sale.pricePlan?.serviceVariant?.name ?? null"
@@ -433,6 +466,19 @@ export class ClientsComponent {
       const id = sale.seller.id;
       if (!seen.has(id)) seen.set(id, seen.size);
       result[String(id)] = makeDisplaySeller(sale.seller, seen.get(id)!);
+    }
+    return result;
+  });
+
+  readonly displaySettersById = computed<Record<string, Seller>>(() => {
+    const sales = this.salesResource.value() ?? [];
+    const seen = new Map<number, number>();
+    const result: Record<string, Seller> = {};
+    for (const sale of sales) {
+      if (!sale.setter) continue;
+      const id = sale.setter.id;
+      if (!seen.has(id)) seen.set(id, seen.size);
+      result[String(id)] = makeDisplaySetter(sale.setter, seen.get(id)!);
     }
     return result;
   });

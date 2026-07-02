@@ -9,6 +9,7 @@ export interface PatchLeadDto {
   statusOptionId?: number | null;
   notes?: string | null;
   sellerId?: number | null;
+  setterId?: number | null;
   callStartDate?: string | null;
 }
 
@@ -49,6 +50,10 @@ export class LeadsService {
 
   getSellers() {
     return this.http.get<SellerBasicDto[]>(`${API_URL}/sellers`);
+  }
+
+  getSetters() {
+    return this.http.get<SellerBasicDto[]>(`${API_URL}/setters`);
   }
 
   getEvents(leadId: string) {

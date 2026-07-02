@@ -5,6 +5,12 @@ export interface LeadSeller {
   email: string | null;
 }
 
+export interface LeadSetter {
+  id: number;
+  name: string | null;
+  lastName: string | null;
+}
+
 export interface LeadClient {
   id: number;
   name: string | null;
@@ -36,6 +42,7 @@ export interface Lead {
   notes: string | null;
   callStartDate: string | null;
   seller: LeadSeller | null;
+  setter: LeadSetter | null;
   client: LeadClient | null;
   service: LeadServiceRef | null;
 }

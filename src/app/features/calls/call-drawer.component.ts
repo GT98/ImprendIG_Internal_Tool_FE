@@ -45,6 +45,10 @@ export class CallDrawerComponent {
     stream: () => this.leadsService.getSellers(),
   });
 
+  readonly settersResource = rxResource({
+    stream: () => this.leadsService.getSetters(),
+  });
+
   readonly eventsResource = rxResource({
     params: () => this.call().id,
     stream: ({ params: id }) => this.leadsService.getEvents(id),
@@ -55,11 +59,15 @@ export class CallDrawerComponent {
   readonly eur = eur;
   readonly parsePayload = parsePayload;
   readonly sellerDisplayName = sellerDisplayName;
+  readonly Boolean = Boolean;
 
   // ── existing signals ──────────────────────────────────────────
   readonly selectedOptionId = signal<number | null>(null);
   readonly notes = signal<string>('');
+  readonly selectedSetterId = signal<number | null>(null);
   readonly saving = signal(false);
+
+  readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'admin');
 
   // ── transfer signals ──────────────────────────────────────────
   readonly transferring = signal(false);
@@ -99,6 +107,7 @@ export class CallDrawerComponent {
     this.selectedOptionId.set(this.call().statusOptionId);
     this.notes.set(this.call().notes ?? '');
     this.rescheduleDate.set(this.call().when.slice(0, 16));
+    this.selectedSetterId.set(this.call().setterId ? parseInt(this.call().setterId!) : null);
   }
 
   typeLabel(): string {
@@ -123,7 +132,8 @@ export class CallDrawerComponent {
     this.saving.set(true);
     const statusOptionId = this.selectedOptionId();
     const notes = this.notes().trim() || null;
-    this.leadsService.patch(this.call().id, { statusOptionId, notes }).subscribe({
+    const setterId = this.isAdmin() ? this.selectedSetterId() : undefined;
+    this.leadsService.patch(this.call().id, { statusOptionId, notes, setterId }).subscribe({
       next: () => {
         this.saving.set(false);
         this.toast.success('Esito e note salvati correttamente');
