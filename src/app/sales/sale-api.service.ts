@@ -63,4 +63,8 @@ export class SaleApiService {
   createManual(dto: CreateManualSaleDto): Observable<SaleDto> {
     return this.http.post<SaleDto>(`${API_URL}/sales/manual`, dto);
   }
+
+  reassignSeller(saleId: number, sellerId: number): Observable<SaleDto> {
+    return this.http.post<SaleDto>(`${API_URL}/sales/${saleId}/reassign-seller`, { sellerId });
+  }
 }

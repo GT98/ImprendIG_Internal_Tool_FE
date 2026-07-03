@@ -512,6 +512,13 @@ app-root { display: block; height: 100%; }
   padding: 9px 0; border-top: 1px solid var(--border-2); font-size: 13px;
 }
 .kv > span:first-child { color: var(--ink-3); }
+.kv-edit { display: flex; align-items: center; gap: 4px; }
+.select-inline {
+  font-size: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 3px 6px; background: var(--surface-2); color: var(--ink);
+  height: 28px; max-width: 160px;
+}
+.icon-btn.sm { padding: 3px; height: 24px; width: 24px; min-width: 24px; }
 .note-area {
   width: 100%; min-height: 84px; border: 1px solid var(--border); border-radius: var(--radius-sm);
   padding: 11px; font-size: 13px; resize: vertical; outline: none; color: var(--ink);

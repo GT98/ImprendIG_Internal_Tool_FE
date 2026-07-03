@@ -2,6 +2,8 @@ import { Component, computed, inject, input, output, signal } from '@angular/cor
 import { rxResource } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../auth/auth.service';
 import { SaleApiService, SaleDto, InstallmentDto } from '../../sales/sale-api.service';
+import { LeadsService, SellerBasicDto } from '../../leads/lead.service';
+import { ToastService } from '../../shared/toast.service';
 import { Client, Seller } from '../../models';
 import { IconComponent } from '../../shared/icon.component';
 import { AvatarComponent } from '../../shared/avatar.component';
@@ -164,10 +166,36 @@ function instStatusLabel(status: string): string {
           <div class="ds-title">Team</div>
           <div class="kv">
             <span>Venditore</span>
-            <span class="td-seller">
-              <app-avatar [seller]="seller()" [size]="22" />
-              {{ seller().name }}
-            </span>
+            @if (editingSeller()) {
+              <span class="kv-edit">
+                <select
+                  class="select-inline"
+                  [value]="newSellerId()"
+                  (change)="newSellerId.set(+$any($event.target).value)"
+                  aria-label="Seleziona venditore"
+                >
+                  @for (s of sellers(); track s.id) {
+                    <option [value]="s.id">{{ s.name }} {{ s.lastName }}</option>
+                  }
+                </select>
+                <button class="icon-btn sm" (click)="confirmReassign()" [disabled]="reassigning()" aria-label="Conferma">
+                  <app-icon name="check" [size]="14" />
+                </button>
+                <button class="icon-btn sm" (click)="editingSeller.set(false)" [disabled]="reassigning()" aria-label="Annulla">
+                  <app-icon name="x" [size]="14" />
+                </button>
+              </span>
+            } @else {
+              <span class="td-seller">
+                <app-avatar [seller]="seller()" [size]="22" />
+                {{ seller().name }}
+                @if (isAdmin()) {
+                  <button class="icon-btn sm" (click)="startEditSeller()" aria-label="Cambia venditore">
+                    <app-icon name="edit" [size]="14" />
+                  </button>
+                }
+              </span>
+            }
           </div>
           @if (setter()) {
             <div class="kv">
@@ -230,6 +258,7 @@ function instStatusLabel(status: string): string {
 })
 export class ClientDrawerComponent {
   readonly client = input.required<Client>();
+  readonly saleId = input.required<number>();
   readonly seller = input.required<Seller>();
   readonly setter = input<Seller | null>(null);
   readonly installments = input<InstallmentDto[]>([]);
@@ -237,8 +266,19 @@ export class ClientDrawerComponent {
   readonly variantName = input<string | null>(null);
   readonly isAdmin = input<boolean>(false);
   readonly closedChange = output<void>();
+  readonly sellerChanged = output<void>();
+
+  private readonly saleApiService = inject(SaleApiService);
+  private readonly leadsService = inject(LeadsService);
+  private readonly toast = inject(ToastService);
+
+  readonly sellersResource = rxResource({ stream: () => this.leadsService.getSellers() });
+  readonly sellers = computed<SellerBasicDto[]>(() => this.sellersResource.value() ?? []);
 
   readonly instExpanded = signal(true);
+  readonly editingSeller = signal(false);
+  readonly newSellerId = signal<number | null>(null);
+  readonly reassigning = signal(false);
   readonly eurFmt = eur;
   readonly fmtDate = fmtDate;
   readonly instStatusLabelFn = instStatusLabel;
@@ -249,6 +289,29 @@ export class ClientDrawerComponent {
     const bal = this.installments().filter(i => i.type === 'balance');
     return bal[0]?.totalInstallment || bal.length;
   });
+
+  startEditSeller(): void {
+    this.newSellerId.set(Number(this.seller().id) || null);
+    this.editingSeller.set(true);
+  }
+
+  confirmReassign(): void {
+    const sellerId = this.newSellerId();
+    if (!sellerId) return;
+    this.reassigning.set(true);
+    this.saleApiService.reassignSeller(this.saleId(), sellerId).subscribe({
+      next: () => {
+        this.reassigning.set(false);
+        this.editingSeller.set(false);
+        this.toast.success('Venditore riassegnato e commissioni ricalcolate');
+        this.sellerChanged.emit();
+      },
+      error: () => {
+        this.reassigning.set(false);
+        this.toast.error('Impossibile riassegnare il venditore. Riprova.');
+      },
+    });
+  }
 
   bannerText(): string {
     const s = this.client().payStatus;
@@ -437,6 +500,7 @@ export class ClientDrawerComponent {
     @if (openSale(); as sale) {
       <app-client-drawer
         [client]="saleToClientFn(sale)"
+        [saleId]="sale.id"
         [seller]="displaySellersById()[String(sale.seller?.id ?? '')] ?? fallbackSeller"
         [setter]="sale.setter ? (displaySettersById()[String(sale.setter.id)] ?? null) : null"
         [installments]="sale.installments"
@@ -444,6 +508,7 @@ export class ClientDrawerComponent {
         [variantName]="sale.pricePlan?.serviceVariant?.name ?? null"
         [isAdmin]="isAdmin()"
         (closedChange)="openSale.set(null)"
+        (sellerChanged)="onSellerReassigned()"
       />
     }
   `,
@@ -494,6 +559,11 @@ export class ClientsComponent {
   onSaleCreated(): void {
     this.showCreateModal.set(false);
     this.salesResource.reload();
+  }
+
+  onSellerReassigned(): void {
+    this.salesResource.reload();
+    this.openSale.set(null);
   }
 
   readonly saleToClientFn = saleToClient;
