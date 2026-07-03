@@ -95,7 +95,10 @@ export class CallDrawerComponent {
 
   readonly events = computed<LeadEventDto[]>(() => this.eventsResource.value() ?? []);
 
-  private readonly currentSellerId = computed(() => this.auth.currentUser()?.sellerId ?? null);
+  private readonly currentSellerId = computed(() => {
+    const id = this.auth.currentUser()?.sellerId;
+    return id != null ? Number(id) : null;
+  });
 
   constructor() {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') this.closed.emit(); };
