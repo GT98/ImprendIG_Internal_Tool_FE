@@ -105,6 +105,10 @@ function commsToDeal(saleId: number, salComms: CommissionDto[]): DealRow {
   const sellerComm = salComms.find(c => !!c.seller);
   const setterComm = salComms.find(c => !!c.setter);
 
+  const sellerPct = Number(sellerComm?.percentage ?? 0);
+  const setterPct = Number(setterComm?.percentage ?? 0);
+  const combinedPct = sellerPct + setterPct;
+
   return {
     id: String(saleId),
     personId: String(primaryPerson?.id ?? ''),
@@ -114,7 +118,7 @@ function commsToDeal(saleId: number, salComms: CommissionDto[]): DealRow {
     client: clientName,
     value,
     commType: 'percentuale',
-    rate: first.percentage ? first.percentage / 100 : null,
+    rate: combinedPct > 0 ? combinedPct / 100 : null,
     commission,
     date,
     month: IT_MONTHS[monthIdx] ?? '',
