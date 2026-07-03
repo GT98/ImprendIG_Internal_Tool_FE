@@ -197,13 +197,42 @@ function instStatusLabel(status: string): string {
               </span>
             }
           </div>
-          @if (setter()) {
+          @if (isAdmin()) {
             <div class="kv">
               <span>Setter</span>
-              <span class="td-seller">
-                <app-avatar [seller]="setter()!" [size]="22" />
-                {{ setter()!.name }}
-              </span>
+              @if (editingSetter()) {
+                <span class="kv-edit">
+                  <select
+                    class="select-inline"
+                    [value]="newSetterId() ?? ''"
+                    (change)="newSetterId.set($any($event.target).value ? +$any($event.target).value : null)"
+                    aria-label="Seleziona setter"
+                  >
+                    <option value="">— Nessuno —</option>
+                    @for (s of setters(); track s.id) {
+                      <option [value]="s.id">{{ s.name }} {{ s.lastName }}</option>
+                    }
+                  </select>
+                  <button class="icon-btn sm" (click)="confirmReassignSetter()" [disabled]="reassigningSetter()" aria-label="Conferma">
+                    <app-icon name="check" [size]="14" />
+                  </button>
+                  <button class="icon-btn sm" (click)="editingSetter.set(false)" [disabled]="reassigningSetter()" aria-label="Annulla">
+                    <app-icon name="x" [size]="14" />
+                  </button>
+                </span>
+              } @else if (setter()) {
+                <span class="td-seller">
+                  <app-avatar [seller]="setter()!" [size]="22" />
+                  {{ setter()!.name }}
+                  <button class="icon-btn sm" (click)="startEditSetter()" aria-label="Cambia setter">
+                    <app-icon name="edit" [size]="14" />
+                  </button>
+                </span>
+              } @else {
+                <button class="btn-ghost-xs" (click)="startEditSetter()">
+                  <app-icon name="plus" [size]="13" />Aggiungi setter
+                </button>
+              }
             </div>
           }
           <div class="kv">
@@ -273,12 +302,17 @@ export class ClientDrawerComponent {
   private readonly toast = inject(ToastService);
 
   readonly sellersResource = rxResource({ stream: () => this.leadsService.getSellers() });
+  readonly settersResource = rxResource({ stream: () => this.leadsService.getSetters() });
   readonly sellers = computed<SellerBasicDto[]>(() => this.sellersResource.value() ?? []);
+  readonly setters = computed<SellerBasicDto[]>(() => this.settersResource.value() ?? []);
 
   readonly instExpanded = signal(true);
   readonly editingSeller = signal(false);
   readonly newSellerId = signal<number | null>(null);
   readonly reassigning = signal(false);
+  readonly editingSetter = signal(false);
+  readonly newSetterId = signal<number | null>(null);
+  readonly reassigningSetter = signal(false);
   readonly eurFmt = eur;
   readonly fmtDate = fmtDate;
   readonly instStatusLabelFn = instStatusLabel;
@@ -309,6 +343,27 @@ export class ClientDrawerComponent {
       error: () => {
         this.reassigning.set(false);
         this.toast.error('Impossibile riassegnare il venditore. Riprova.');
+      },
+    });
+  }
+
+  startEditSetter(): void {
+    this.newSetterId.set(this.setter() ? Number(this.setter()!.id) || null : null);
+    this.editingSetter.set(true);
+  }
+
+  confirmReassignSetter(): void {
+    this.reassigningSetter.set(true);
+    this.saleApiService.reassignSetter(this.saleId(), this.newSetterId()).subscribe({
+      next: () => {
+        this.reassigningSetter.set(false);
+        this.editingSetter.set(false);
+        this.toast.success('Setter aggiornato e commissioni ricalcolate');
+        this.sellerChanged.emit();
+      },
+      error: () => {
+        this.reassigningSetter.set(false);
+        this.toast.error('Impossibile aggiornare il setter. Riprova.');
       },
     });
   }

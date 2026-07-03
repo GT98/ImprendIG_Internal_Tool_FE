@@ -67,4 +67,8 @@ export class SaleApiService {
   reassignSeller(saleId: number, sellerId: number): Observable<SaleDto> {
     return this.http.post<SaleDto>(`${API_URL}/sales/${saleId}/reassign-seller`, { sellerId });
   }
+
+  reassignSetter(saleId: number, setterId: number | null): Observable<SaleDto> {
+    return this.http.post<SaleDto>(`${API_URL}/sales/${saleId}/reassign-setter`, { setterId });
+  }
 }
