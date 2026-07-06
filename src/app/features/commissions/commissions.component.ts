@@ -131,6 +131,25 @@ function isCurrentMonth(inst: CommissionDto['installment']): boolean {
   return !!(inst?.dueDate?.startsWith(m) || inst?.paymentDate?.startsWith(m));
 }
 
+// Returns the first balance installment (non-deposit, lowest installmentNumber) for a set of commissions
+function firstBalanceInstOf(comms: CommissionDto[]): NonNullable<CommissionDto['installment']> | null {
+  return comms
+    .filter(c => c.installment?.type !== 'deposit' && c.installment != null)
+    .sort((a, b) => (a.installment!.installmentNumber) - (b.installment!.installmentNumber))
+    [0]?.installment ?? null;
+}
+
+function buildSaleMap(comms: CommissionDto[]): Map<number, CommissionDto[]> {
+  const map = new Map<number, CommissionDto[]>();
+  for (const c of comms) {
+    if (!c.sale) continue;
+    const id = c.sale.id;
+    if (!map.has(id)) map.set(id, []);
+    map.get(id)!.push(c);
+  }
+  return map;
+}
+
 function instStatusLabel(status: string): string {
   if (status === 'paid') return 'Pagata';
   if (status === 'failed') return 'Fallita';
@@ -163,10 +182,36 @@ function monthLongLabel(isoM: string): string {
             · {{ monthLabel() }}
           </p>
         </div>
-        <button class="btn-ghost">
-          <app-icon name="external" [size]="16" />Esporta
-        </button>
+        <div class="head-actions">
+          <div class="mode-toggle" role="group" aria-label="Modalità calcolo provvigioni">
+            <button
+              [class.active]="commMode() === 'per-rata'"
+              (click)="commMode.set('per-rata')"
+              aria-pressed="commMode() === 'per-rata'">
+              Per rata
+            </button>
+            <button
+              [class.active]="commMode() === 'prima-rata'"
+              (click)="commMode.set('prima-rata')"
+              aria-pressed="commMode() === 'prima-rata'">
+              Prima rata
+            </button>
+          </div>
+          <button class="btn-ghost">
+            <app-icon name="external" [size]="16" />Esporta
+          </button>
+        </div>
       </div>
+
+      @if (commMode() === 'prima-rata') {
+        <div class="prima-rata-banner" role="status">
+          <span class="prb-dot"></span>
+          <span>
+            Modalità <strong>Prima rata attiva</strong> — la provvigione totale è attribuita
+            alla prima rata di ogni deal. Le rate successive mostrano €0.
+          </span>
+        </div>
+      }
 
       <app-month-nav [(selected)]="selectedMonth" />
 
@@ -395,10 +440,15 @@ function monthLongLabel(isoM: string): string {
                 @if (isDealExpanded(d.id) && d.comms.length > 0) {
                   <div class="comm-panel" role="region" [attr.aria-label]="'Rate di ' + d.client">
                     @for (c of d.comms; track c.id) {
+                      @let isPrimaRata = commMode() === 'prima-rata';
+                      @let isFirstBal = isFirstBalanceInst(c);
+                      @let isZeroRow = isPrimaRata && c.installment?.type !== 'deposit' && !isFirstBal;
                       <div
                         class="comm-inst-row"
-                        [class.inst-current]="isCurrentMonthFn(c.installment)"
+                        [class.inst-current]="isCurrentMonthFn(c.installment) && !isPrimaRata"
                         [class.inst-deposit]="c.installment?.type === 'deposit' && !isCurrentMonthFn(c.installment)"
+                        [class.inst-prima-rata]="isPrimaRata && isFirstBal"
+                        [class.inst-zero]="isZeroRow"
                       >
                         <span class="inst-label">
                           @if (c.installment?.type === 'deposit') {
@@ -406,20 +456,34 @@ function monthLongLabel(isoM: string): string {
                           } @else {
                             Rata {{ c.installment?.installmentNumber }}/{{ c.installment?.totalInstallment || d.comms.length }}
                           }
-                          @if (isCurrentMonthFn(c.installment)) {
+                          @if (!isPrimaRata && isCurrentMonthFn(c.installment)) {
                             <span class="current-tag">Questo mese</span>
+                          }
+                          @if (isPrimaRata && isFirstBal) {
+                            <span class="prima-rata-tag">Commissione totale</span>
+                          }
+                          @if (isZeroRow) {
+                            <span class="zero-tag">Inclusa in Rata 1</span>
                           }
                         </span>
                         <span class="inst-badge" [attr.data-status]="c.installment?.status">
                           {{ instStatusLabelFn(c.installment?.status ?? '') }}
                         </span>
                         @if (c.installment?.amount) {
-                          <span class="inst-amount">{{ eurFmt(+(c.installment!.amount ?? 0)) }}</span>
+                          <span class="inst-amount" [class.muted]="isZeroRow">
+                            {{ eurFmt(+(c.installment!.amount ?? 0)) }}
+                          </span>
                         } @else {
                           <span></span>
                         }
-                        <span class="comm-amount">{{ eurFmt(+(c.amount ?? 0)) }}</span>
-                        <span class="inst-date">
+                        @if (isPrimaRata && c.installment?.type !== 'deposit') {
+                          <span class="comm-amount" [class.comm-prima-rata-full]="isFirstBal" [class.comm-zero]="isZeroRow">
+                            {{ eurFmt(primaRataCommDisplayAmount(c, d)) }}
+                          </span>
+                        } @else {
+                          <span class="comm-amount">{{ eurFmt(+(c.amount ?? 0)) }}</span>
+                        }
+                        <span class="inst-date" [class.muted]="isZeroRow">
                           @if (c.installment?.status === 'paid' && c.installment?.paymentDate) {
                             Pag. {{ fmtDateFn(c.installment!.paymentDate!) }}
                           } @else if (c.installment?.dueDate) {
@@ -454,6 +518,7 @@ export class CommissionsComponent {
   private readonly comms = computed(() => this.commissionsResource.value() ?? []);
 
   readonly selectedMonth = signal(isoCurrentMonth());
+  readonly commMode = signal<'per-rata' | 'prima-rata'>('per-rata');
 
   // ── Filtri seller / setter ────────────────────────────────────────
   readonly filterType = signal<CommFilterType>('all');
@@ -545,8 +610,8 @@ export class CommissionsComponent {
     });
   });
 
-  // All deals for selected month
-  readonly filteredDeals = computed<DealRow[]>(() => {
+  // ── Per-rata deal grouping (current mode) ─────────────────────────
+  private readonly filteredDealsPerRata = computed<DealRow[]>(() => {
     const saleMap = new Map<number, CommissionDto[]>();
     for (const c of this.filteredComms()) {
       if (!c.sale) continue;
@@ -559,8 +624,47 @@ export class CommissionsComponent {
       .sort((a, b) => b.commission - a.commission);
   });
 
-  // Chart: always last 6 months regardless of selectedMonth
-  readonly series = computed(() =>
+  // ── Prima-rata deal grouping ───────────────────────────────────────
+  // A deal belongs to the month of its first balance installment (not any installment)
+  private readonly filteredDealsPrimaRata = computed<DealRow[]>(() => {
+    const m = this.selectedMonth();
+    const type = this.filterType();
+    const personId = this.filterPersonId();
+
+    const saleMap = new Map<number, CommissionDto[]>();
+    for (const c of this.comms()) {
+      if (!c.sale) continue;
+      if (type === 'seller' && !c.seller) continue;
+      if (type === 'setter' && !c.setter) continue;
+      if (personId) {
+        if (type === 'setter' && c.setter?.id !== personId) continue;
+        if (type !== 'setter' && c.seller?.id !== personId) continue;
+      }
+      const id = c.sale.id;
+      if (!saleMap.has(id)) saleMap.set(id, []);
+      saleMap.get(id)!.push(c);
+    }
+
+    const deals: DealRow[] = [];
+    for (const [id, salComms] of saleMap.entries()) {
+      const firstBal = firstBalanceInstOf(salComms);
+      // Fall back to deposit if no balance installment exists (deposit-only deal)
+      const pivotInst = firstBal ?? salComms.find(c => c.installment)?.installment ?? null;
+      if (!pivotInst) continue;
+      const inMonth = pivotInst.dueDate?.startsWith(m) || pivotInst.paymentDate?.startsWith(m);
+      if (!inMonth) continue;
+      deals.push(commsToDeal(id, salComms));
+    }
+    return deals.sort((a, b) => b.commission - a.commission);
+  });
+
+  // Mode-aware deal list (used by template and other computeds)
+  readonly filteredDeals = computed<DealRow[]>(() =>
+    this.commMode() === 'prima-rata' ? this.filteredDealsPrimaRata() : this.filteredDealsPerRata()
+  );
+
+  // ── Chart ─────────────────────────────────────────────────────────
+  private readonly seriesPerRata = computed(() =>
     last6Months().map(({ iso, label }) => ({
       m: label,
       v: this.comms()
@@ -569,26 +673,105 @@ export class CommissionsComponent {
     }))
   );
 
-  // Stats: based on selected month
-  readonly maturato = computed(() =>
+  private readonly seriesPrimaRata = computed(() => {
+    const saleMap = buildSaleMap(this.comms());
+    return last6Months().map(({ iso, label }) => {
+      let v = 0;
+      for (const salComms of saleMap.values()) {
+        const firstBal = firstBalanceInstOf(salComms);
+        if (firstBal?.status === 'paid' && firstBal.paymentDate?.startsWith(iso)) {
+          v += salComms
+            .filter(c => c.installment?.type !== 'deposit')
+            .reduce((s, c) => s + Number(c.amount ?? 0), 0);
+        }
+      }
+      return { m: label, v };
+    });
+  });
+
+  readonly series = computed(() =>
+    this.commMode() === 'prima-rata' ? this.seriesPrimaRata() : this.seriesPerRata()
+  );
+
+  // ── Stats per selected month ───────────────────────────────────────
+  private readonly maturatoPR = computed(() =>
     this.filteredComms()
       .filter(c => c.installment?.status === 'paid')
       .reduce((s, c) => s + Number(c.amount ?? 0), 0)
   );
 
-  readonly daIncassare = computed(() =>
+  private readonly maturatoPrimaRata = computed(() => {
+    const m = this.selectedMonth();
+    return this.filteredDealsPrimaRata().reduce((total, d) => {
+      const firstBal = firstBalanceInstOf(d.comms);
+      if (firstBal?.status === 'paid' && firstBal.paymentDate?.startsWith(m)) {
+        total += d.comms
+          .filter(c => c.installment?.type !== 'deposit')
+          .reduce((s, c) => s + Number(c.amount ?? 0), 0);
+      }
+      // Deposit commissions follow per-rata even in prima-rata mode
+      total += d.comms
+        .filter(c => c.installment?.type === 'deposit' &&
+          c.installment.status === 'paid' && c.installment.paymentDate?.startsWith(m))
+        .reduce((s, c) => s + Number(c.amount ?? 0), 0);
+      return total;
+    }, 0);
+  });
+
+  readonly maturato = computed(() =>
+    this.commMode() === 'prima-rata' ? this.maturatoPrimaRata() : this.maturatoPR()
+  );
+
+  private readonly daIncassarePR = computed(() =>
     this.filteredComms()
       .filter(c => c.installment?.status === 'draft')
       .reduce((s, c) => s + Number(c.amount ?? 0), 0)
   );
 
-  // Year total uses all comms (not filtered by selectedMonth)
-  readonly annoTot = computed(() => {
+  private readonly daIncassarePrimaRata = computed(() =>
+    this.filteredDealsPrimaRata().reduce((total, d) => {
+      const firstBal = firstBalanceInstOf(d.comms);
+      if (firstBal && firstBal.status !== 'paid') {
+        total += d.comms
+          .filter(c => c.installment?.type !== 'deposit')
+          .reduce((s, c) => s + Number(c.amount ?? 0), 0);
+      }
+      total += d.comms
+        .filter(c => c.installment?.type === 'deposit' && c.installment.status === 'draft')
+        .reduce((s, c) => s + Number(c.amount ?? 0), 0);
+      return total;
+    }, 0)
+  );
+
+  readonly daIncassare = computed(() =>
+    this.commMode() === 'prima-rata' ? this.daIncassarePrimaRata() : this.daIncassarePR()
+  );
+
+  // ── Year total ─────────────────────────────────────────────────────
+  private readonly annoTotPR = computed(() => {
     const year = String(new Date().getFullYear());
     return this.comms()
       .filter(c => c.installment?.status === 'paid' && c.installment.paymentDate?.startsWith(year))
       .reduce((s, c) => s + Number(c.amount ?? 0), 0);
   });
+
+  private readonly annoTotPrimaRata = computed(() => {
+    const year = String(new Date().getFullYear());
+    let total = 0;
+    for (const salComms of buildSaleMap(this.comms()).values()) {
+      const firstBal = firstBalanceInstOf(salComms);
+      if (firstBal?.status === 'paid' && firstBal.paymentDate?.startsWith(year)) {
+        total += salComms
+          .filter(c => c.installment?.type !== 'deposit')
+          .reduce((s, c) => s + Number(c.amount ?? 0), 0);
+      }
+    }
+    return total;
+  });
+
+  readonly annoTot = computed(() =>
+    this.commMode() === 'prima-rata' ? this.annoTotPrimaRata() : this.annoTotPR()
+  );
 
   readonly totalCommission = computed(() => this.filteredDeals().reduce((s, d) => s + d.commission, 0));
   readonly dealVal = computed(() => this.filteredDeals().reduce((s, d) => s + d.value, 0));
@@ -659,5 +842,25 @@ export class CommissionsComponent {
   lbWidth(total: number): string {
     const max = Math.max(...this.leaderboard().map(e => e.total), 1);
     return (total / max * 100) + '%';
+  }
+
+  // Returns the commission amount to display for a row in prima-rata mode.
+  // First balance installment → full balance commission for that person.
+  // Subsequent balance installments → 0 (included in the first).
+  // Deposit installments → unchanged.
+  primaRataCommDisplayAmount(c: CommissionDto, d: DealRow): number {
+    if (c.installment?.type === 'deposit') return Number(c.amount ?? 0);
+    const personId = c.seller?.id ?? c.setter?.id;
+    const isSeller = !!c.seller;
+    const personTotal = d.comms
+      .filter(x =>
+        x.installment?.type !== 'deposit' &&
+        (isSeller ? x.seller?.id === personId : x.setter?.id === personId))
+      .reduce((s, x) => s + Number(x.amount ?? 0), 0);
+    return c.installment?.installmentNumber === 1 ? personTotal : 0;
+  }
+
+  isFirstBalanceInst(c: CommissionDto): boolean {
+    return c.installment?.type !== 'deposit' && c.installment?.installmentNumber === 1;
   }
 }

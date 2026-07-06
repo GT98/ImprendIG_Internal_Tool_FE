@@ -458,6 +458,11 @@ app-root { display: block; height: 100%; }
 }
 .modal-input:focus { border-color: var(--accent); }
 .modal-footer { display: flex; gap: 8px; justify-content: flex-end; }
+.modal-card--wide { max-width: 600px; }
+.modal-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 520px) { .modal-grid2 { grid-template-columns: 1fr; } }
+.modal-textarea { min-height: 72px; resize: vertical; font-family: inherit; }
+.modal-input[aria-readonly='true'] { opacity: .7; cursor: default; }
 
 /* ── Drawer overlay ─────────────────────────────────────── */
 .drawer-overlay {

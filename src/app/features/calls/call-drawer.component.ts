@@ -155,8 +155,8 @@ export class CallDrawerComponent {
     if (!toId) return;
 
     const allSellers = this.sellersResource.value() ?? [];
-    const fromSeller = allSellers.find(s => String(s.id) === this.call().sellerId) ?? null;
-    const toSeller = allSellers.find(s => s.id === toId) ?? null;
+    const fromSeller = allSellers.find(s => Number(s.id) === Number(this.call().sellerId)) ?? null;
+    const toSeller = allSellers.find(s => Number(s.id) === Number(toId)) ?? null;
 
     const payload = JSON.stringify({
       fromSellerId: Number(this.call().sellerId),

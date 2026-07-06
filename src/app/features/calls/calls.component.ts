@@ -3,7 +3,7 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { switchMap } from 'rxjs';
 import { SalesStateService } from '../../sales-state.service';
 import { AuthService } from '../../auth/auth.service';
-import { LeadsService, SellerBasicDto } from '../../leads/lead.service';
+import { LeadsService, SellerBasicDto, CreateLeadDto } from '../../leads/lead.service';
 import { type Lead } from '../../leads/lead.model';
 import { type Call, type Seller } from '../../models';
 import { IconComponent } from '../../shared/icon.component';
@@ -406,8 +406,8 @@ export class CallQuickActionModalComponent {
     if (!toId) return;
 
     const allSellers = this.sellersResource.value() ?? [];
-    const fromSeller = allSellers.find(s => String(s.id) === this.call().sellerId) ?? null;
-    const toSeller = allSellers.find(s => s.id === toId) ?? null;
+    const fromSeller = allSellers.find(s => Number(s.id) === Number(this.call().sellerId)) ?? null;
+    const toSeller = allSellers.find(s => Number(s.id) === Number(toId)) ?? null;
 
     const payload = JSON.stringify({
       fromSellerId: Number(this.call().sellerId),
@@ -469,6 +469,164 @@ export class CallQuickActionModalComponent {
   }
 }
 
+// ── New call modal ───────────────────────────────────────────────────────────
+
+@Component({
+  selector: 'app-new-call-modal',
+  imports: [IconComponent],
+  template: `
+    <div class="modal-overlay" role="dialog" aria-modal="true" aria-label="Nuova chiamata"
+         (click)="closed.emit()" (keydown.escape)="closed.emit()">
+      <div class="modal-card modal-card--wide" (click)="$event.stopPropagation()">
+
+        <div class="modal-head">
+          <div class="modal-title">Nuova chiamata</div>
+          <button class="icon-btn" (click)="closed.emit()" aria-label="Chiudi">
+            <app-icon name="x" [size]="18" />
+          </button>
+        </div>
+
+        <div class="modal-grid2">
+          <div class="modal-field">
+            <label class="ap-label" for="nc-name">Nome</label>
+            <input id="nc-name" class="modal-input" type="text" placeholder="Nome"
+                   [value]="name()" (input)="name.set($any($event.target).value)" />
+          </div>
+          <div class="modal-field">
+            <label class="ap-label" for="nc-surname">Cognome</label>
+            <input id="nc-surname" class="modal-input" type="text" placeholder="Cognome"
+                   [value]="surname()" (input)="surname.set($any($event.target).value)" />
+          </div>
+          <div class="modal-field">
+            <label class="ap-label" for="nc-email">Email</label>
+            <input id="nc-email" class="modal-input" type="email" placeholder="email@esempio.com"
+                   [value]="email()" (input)="email.set($any($event.target).value)" />
+          </div>
+          <div class="modal-field">
+            <label class="ap-label" for="nc-phone">Telefono</label>
+            <input id="nc-phone" class="modal-input" type="tel" placeholder="+39 000 000 0000"
+                   [value]="phone()" (input)="phone.set($any($event.target).value)" />
+          </div>
+          <div class="modal-field">
+            <label class="ap-label" for="nc-date">Data e ora</label>
+            <input id="nc-date" class="modal-input" type="datetime-local"
+                   [value]="callDate()" (input)="callDate.set($any($event.target).value)" />
+          </div>
+          <div class="modal-field">
+            <label class="ap-label" for="nc-seller">Venditore</label>
+            @if (isAdmin()) {
+              @if (sellersResource.isLoading()) {
+                <div class="esito-loading">Caricamento…</div>
+              } @else {
+                <select id="nc-seller" class="modal-select"
+                        [value]="sellerId() ?? ''"
+                        (change)="sellerId.set(+$any($event.target).value || null)">
+                  <option value="">— Seleziona venditore —</option>
+                  @for (s of sellersResource.value() ?? []; track s.id) {
+                    <option [value]="s.id">{{ displayName(s) }}</option>
+                  }
+                </select>
+              }
+            } @else {
+              <input id="nc-seller" class="modal-input" type="text"
+                     [value]="currentSellerName()" readonly aria-readonly="true" />
+            }
+          </div>
+        </div>
+
+        <div class="modal-field">
+          <label class="ap-label" for="nc-notes">Note (opzionale)</label>
+          <textarea id="nc-notes" class="modal-input modal-textarea" placeholder="Aggiungi una nota…"
+                    [value]="notes()" (input)="notes.set($any($event.target).value)"></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-ghost" (click)="closed.emit()">Annulla</button>
+          <button class="btn-primary" [disabled]="!canSubmit() || saving()" (click)="submit()">
+            @if (saving()) { Salvataggio… }
+            @else { Crea chiamata }
+          </button>
+        </div>
+
+      </div>
+    </div>
+  `,
+})
+export class NewCallModalComponent {
+  readonly initialDate = input<string>('');
+  readonly done = output<void>();
+  readonly closed = output<void>();
+
+  private readonly leadsService = inject(LeadsService);
+  private readonly toast = inject(ToastService);
+  private readonly auth = inject(AuthService);
+
+  readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'admin');
+
+  readonly sellersResource = rxResource({ stream: () => this.leadsService.getSellers() });
+
+  readonly name = signal('');
+  readonly surname = signal('');
+  readonly email = signal('');
+  readonly phone = signal('');
+  readonly callDate = signal('');
+  readonly notes = signal('');
+  readonly sellerId = signal<number | null>(null);
+  readonly saving = signal(false);
+
+  readonly currentSellerName = computed(() => {
+    const id = this.auth.currentUser()?.sellerId;
+    if (id == null) return '—';
+    const s = (this.sellersResource.value() ?? []).find(x => Number(x.id) === Number(id));
+    return s ? this.displayName(s) : '—';
+  });
+
+  readonly canSubmit = computed(() => {
+    const hasDate = !!this.callDate();
+    const hasSeller = this.isAdmin() ? !!this.sellerId() : !!this.auth.currentUser()?.sellerId;
+    return hasDate && hasSeller;
+  });
+
+  readonly displayName = (s: SellerBasicDto) =>
+    [s.name, s.lastName].filter(Boolean).join(' ') || '—';
+
+  ngOnInit(): void {
+    this.callDate.set(this.initialDate().slice(0, 16));
+    if (!this.isAdmin()) {
+      const id = this.auth.currentUser()?.sellerId;
+      if (id != null) this.sellerId.set(id);
+    }
+  }
+
+  submit(): void {
+    if (!this.canSubmit()) return;
+
+    const dto: CreateLeadDto = {
+      ...(this.name().trim() ? { name: this.name().trim() } : {}),
+      ...(this.surname().trim() ? { surname: this.surname().trim() } : {}),
+      ...(this.email().trim() ? { email: this.email().trim() } : {}),
+      ...(this.phone().trim() ? { phone: this.phone().trim() } : {}),
+      ...(this.notes().trim() ? { notes: this.notes().trim() } : {}),
+      callStartDate: new Date(this.callDate()).toISOString(),
+      sellerId: this.sellerId() ?? undefined,
+    };
+
+    this.saving.set(true);
+    this.leadsService.create(dto).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.toast.success('Chiamata creata correttamente');
+        this.done.emit();
+        this.closed.emit();
+      },
+      error: () => {
+        this.saving.set(false);
+        this.toast.error('Impossibile creare la chiamata. Riprova.');
+      },
+    });
+  }
+}
+
 // ── Calls page ───────────────────────────────────────────────────────────────
 
 @Component({
@@ -479,6 +637,7 @@ export class CallQuickActionModalComponent {
     SegmentedComponent,
     CallDrawerComponent,
     CallQuickActionModalComponent,
+    NewCallModalComponent,
     DateNavComponent,
     ListViewComponent,
     KanbanViewComponent,
@@ -503,6 +662,7 @@ export class CallsComponent {
 
   readonly openCall = signal<Call | null>(null);
   readonly quickAction = signal<{ call: Call; type: 'transfer' | 'reschedule' } | null>(null);
+  readonly showNewCallModal = signal(false);
   readonly q = signal('');
   readonly statusF = signal('tutti');
 
@@ -568,6 +728,14 @@ export class CallsComponent {
     return [...fixed, ...fromDb];
   });
 
+  readonly newCallInitialDate = computed(() => {
+    const d = this.selectedDate();
+    const now = new Date();
+    const merged = new Date(d);
+    merged.setHours(now.getHours(), now.getMinutes());
+    return merged.toISOString();
+  });
+
   onCallSaved(): void {
     this.openCall.set(null);
     this.leadsResource.reload();
@@ -575,6 +743,11 @@ export class CallsComponent {
 
   onQuickActionDone(): void {
     this.quickAction.set(null);
+    this.leadsResource.reload();
+  }
+
+  onNewCallDone(): void {
+    this.showNewCallModal.set(false);
     this.leadsResource.reload();
   }
 }

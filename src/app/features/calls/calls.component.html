@@ -11,8 +11,8 @@
         {{ dayLabel() }} · {{ callsForDate().length }} chiamate
       </p>
     </div>
-    <button class="btn-primary">
-      <app-icon name="plus" [size]="17" />Prenota chiamata
+    <button class="btn-primary" (click)="showNewCallModal.set(true)">
+      <app-icon name="plus" [size]="17" />Nuova chiamata
     </button>
   </div>
 
@@ -116,5 +116,13 @@
     [type]="qa.type"
     (done)="onQuickActionDone()"
     (closed)="quickAction.set(null)"
+  />
+}
+
+@if (showNewCallModal()) {
+  <app-new-call-modal
+    [initialDate]="newCallInitialDate()"
+    (done)="onNewCallDone()"
+    (closed)="showNewCallModal.set(false)"
   />
 }

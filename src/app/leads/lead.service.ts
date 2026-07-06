@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import type { Lead, LeadStatusOption } from './lead.model';
+import type { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 const API_URL = environment.apiUrl;
@@ -11,6 +12,16 @@ export interface PatchLeadDto {
   sellerId?: number | null;
   setterId?: number | null;
   callStartDate?: string | null;
+}
+
+export interface CreateLeadDto {
+  name?: string;
+  surname?: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
+  callStartDate?: string;
+  sellerId?: number;
 }
 
 export interface LeadEventDto {
@@ -42,6 +53,10 @@ export class LeadsService {
 
   getStatusOptions() {
     return this.http.get<LeadStatusOption[]>(`${API_URL}/lead-status-options`);
+  }
+
+  create(dto: CreateLeadDto): Observable<Lead> {
+    return this.http.post<Lead>(`${API_URL}/leads`, dto);
   }
 
   patch(id: string, dto: PatchLeadDto) {

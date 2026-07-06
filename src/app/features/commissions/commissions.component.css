@@ -1,3 +1,63 @@
+/* ---------- MODE TOGGLE ---------- */
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mode-toggle {
+  display: flex;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--border);
+}
+
+.mode-toggle button {
+  padding: 5px 14px;
+  border-radius: calc(var(--radius-sm) - 2px);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+  transition: background .12s, color .12s;
+  white-space: nowrap;
+}
+
+.mode-toggle button.active {
+  background: #4f46e5;
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(79,70,229,.35);
+}
+
+/* ---------- PRIMA-RATA BANNER ---------- */
+.prima-rata-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: color-mix(in srgb, #4f46e5 8%, transparent);
+  border: 1px solid color-mix(in srgb, #4f46e5 22%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  margin-bottom: 16px;
+}
+
+.prb-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #4f46e5;
+  flex-shrink: 0;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .4; }
+}
+
 /* ---------- FILTER BAR ---------- */
 .filter-bar {
   display: flex;
@@ -132,6 +192,49 @@
   text-align: right;
   min-width: 90px;
 }
+
+/* ---------- PRIMA-RATA ROW STYLES ---------- */
+.comm-inst-row.inst-prima-rata {
+  background: color-mix(in srgb, #15803d 6%, var(--surface));
+  border: 1px solid color-mix(in srgb, #15803d 25%, transparent);
+  border-left: 3px solid #15803d;
+}
+
+.comm-inst-row.inst-zero {
+  opacity: .55;
+}
+
+.comm-amount.comm-prima-rata-full {
+  color: #15803d;
+  font-size: 14px;
+}
+
+.comm-amount.comm-zero {
+  color: var(--ink-3);
+}
+
+.prima-rata-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #15803d;
+  background: color-mix(in srgb, #15803d 12%, transparent);
+  border-radius: 20px;
+  padding: 1px 6px;
+}
+
+.zero-tag {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink-3);
+  background: var(--surface-2);
+  border-radius: 20px;
+  padding: 1px 6px;
+  font-style: italic;
+}
+
+.inst-amount.muted, .inst-date.muted { opacity: .5; }
 
 /* ---------- INSTALLMENT BADGES ---------- */
 .inst-badge {
