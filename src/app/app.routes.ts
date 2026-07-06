@@ -55,11 +55,11 @@ export const routes: Routes = [
         title: 'Catalogo',
       },
       {
-        path: 'setter',
+        path: 'team',
         canActivate: [adminGuard],
         loadComponent: () =>
-          import('./features/setters/setters.component').then(m => m.SettersComponent),
-        title: 'Setter',
+          import('./features/team/team.component').then(m => m.TeamComponent),
+        title: 'Team',
       },
     ],
   },

@@ -219,6 +219,7 @@ export class DashboardComponent {
   );
 
   payStatus(sale: ReturnType<typeof this.sales>[number]): 'pagato' | 'pending' | 'fallito' {
+    if (sale.status === 'completed') return 'pagato';
     const bal = sale.installments.filter((i) => i.type === 'balance');
     if (bal.some((i) => i.status === 'failed')) return 'fallito';
     if (bal.some((i) => i.status === 'paid')) return 'pagato';

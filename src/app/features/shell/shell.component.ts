@@ -23,7 +23,7 @@ const BASE_NAV = [
 const ADMIN_NAV = [
   { path: 'dashboard', label: 'Dashboard', icon: 'home' },
   ...BASE_NAV,
-  { path: 'setter', label: 'Setter', icon: 'users' },
+  { path: 'team', label: 'Team', icon: 'users' },
 ];
 
 @Component({
