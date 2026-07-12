@@ -40,6 +40,7 @@ export interface Lead {
   status: string;
   statusOption: LeadStatusOption | null;
   notes: string | null;
+  formCliente: string | null;
   callStartDate: string | null;
   seller: LeadSeller | null;
   setter: LeadSetter | null;

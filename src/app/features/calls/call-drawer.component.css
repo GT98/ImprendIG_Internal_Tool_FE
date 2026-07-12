@@ -217,3 +217,16 @@
   color: var(--ink-2);
   font-style: italic;
 }
+
+.form-cliente-box {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  white-space: pre-wrap;
+  line-height: 1.6;
+  max-height: 180px;
+  overflow-y: auto;
+}

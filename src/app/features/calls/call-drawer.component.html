@@ -47,13 +47,12 @@
         } @else {
           <select
             class="setter-select"
-            [value]="selectedSetterId() ?? ''"
             (change)="selectedSetterId.set(+$any($event.target).value || null)"
             aria-label="Setter assegnato"
           >
-            <option value="">— Nessun setter —</option>
+            <option value="" [selected]="!selectedSetterId()">— Nessun setter —</option>
             @for (s of settersResource.value(); track s.id) {
-              <option [value]="s.id">{{ [s.name, s.lastName].filter(Boolean).join(' ') }}</option>
+              <option [value]="s.id" [selected]="selectedSetterId() === s.id">{{ [s.name, s.lastName].filter(Boolean).join(' ') }}</option>
             }
           </select>
         }
@@ -79,23 +78,29 @@
         <select
           id="esito-select"
           class="esito-select"
-          [value]="selectedOptionId() ?? ''"
           (change)="selectedOptionId.set(+$any($event.target).value || null)"
         >
-          <option value="">— Da fare —</option>
+          <option value="" [selected]="!selectedOptionId()">— Da fare —</option>
           @for (opt of statusOptionsResource.value(); track opt.id) {
-            <option [value]="opt.id">{{ opt.label }}</option>
+            <option [value]="opt.id" [selected]="selectedOptionId() === opt.id">{{ opt.label }}</option>
           }
         </select>
       }
     </div>
 
+    @if (call().formCliente) {
+      <div class="drawer-section">
+        <div class="ds-title">Form cliente</div>
+        <div class="form-cliente-box">{{ call().formCliente }}</div>
+      </div>
+    }
+
     <div class="drawer-section">
-      <label class="ds-title" for="notes-area">Note</label>
+      <label class="ds-title" for="notes-area">Note venditrice</label>
       <textarea
         id="notes-area"
         class="note-area"
-        placeholder="Aggiungi note o dettagli sulla chiamata…"
+        placeholder="Aggiungi note sull'esito della chiamata…"
         [value]="notes()"
         (input)="notes.set($any($event.target).value)"
       ></textarea>
