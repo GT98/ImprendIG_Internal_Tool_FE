@@ -14,6 +14,8 @@ export interface CatalogPricePlan {
   totalAmount: number | null;
   stripePaymentLink: string | null;
   stripePriceId: string | null;
+  itaStripePriceId: string | null;
+  itaStripePaymentLink: string | null;
 }
 
 export interface CatalogVariant {
@@ -36,14 +38,20 @@ export interface CatalogClient {
 }
 
 export type UpdatePricePlanDto = Partial<Pick<CatalogPricePlan,
-  'name' | 'basePrice' | 'installmentCount' | 'installmentAmount' | 'totalAmount' | 'stripePaymentLink' | 'stripePriceId'
+  'name' | 'basePrice' | 'installmentCount' | 'installmentAmount' | 'totalAmount' |
+  'stripePaymentLink' | 'stripePriceId' | 'itaStripePriceId' | 'itaStripePaymentLink'
 >>;
 
 export interface CreateCheckoutSessionDto {
   pricePlanId: number;
   sellerId: number;
-  trialEndDate: string;
+  trialEndDate?: string;
+  stripeClientId?: number;
+  withCf?: boolean;
 }
+
+/** ID Stripe ITA dedicato (Anna Massari) */
+export const ITALIAN_STRIPE_CLIENT_ID = 99;
 
 @Injectable({ providedIn: 'root' })
 export class CatalogApiService {

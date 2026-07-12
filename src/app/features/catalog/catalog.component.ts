@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../auth/auth.service';
-import { CatalogApiService, CatalogPricePlan, CatalogService } from '../../catalog/catalog-api.service';
+import { CatalogApiService, CatalogPricePlan, CatalogService, ITALIAN_STRIPE_CLIENT_ID } from '../../catalog/catalog-api.service';
 import { ToastService } from '../../shared/toast.service';
 import { IconComponent } from '../../shared/icon.component';
 import { eur as eurFmt } from '../../utils';
@@ -23,12 +23,15 @@ interface EditState {
   totalAmount: string;
   stripePaymentLink: string;
   stripePriceId: string;
+  itaStripePriceId: string;
+  itaStripePaymentLink: string;
 }
 
 interface GenerateModal {
   planId: number;
   planName: string;
   hasStripePrice: boolean;
+  hasItaStripePrice: boolean;
 }
 
 function tomorrow(): string {
@@ -135,15 +138,28 @@ function tomorrow(): string {
                         </div>
 
                         <div class="plan-actions">
+                          <!-- Copy link UAE -->
                           <button
                             class="btn-link"
                             [disabled]="!plan.stripePaymentLink"
-                            [attr.aria-label]="'Copia link per ' + plan.name"
+                            [attr.aria-label]="plan.itaStripePaymentLink ? 'Copia link UAE per ' + plan.name : 'Copia link per ' + plan.name"
                             (click)="copyLink(plan)"
                           >
                             <app-icon name="copy" [size]="15" />
-                            Copia link
+                            {{ plan.itaStripePaymentLink ? 'Copia link UAE' : 'Copia link' }}
                           </button>
+
+                          <!-- Copy link ITA (solo se configurato) -->
+                          @if (plan.itaStripePaymentLink) {
+                            <button
+                              class="btn-link btn-link-ita"
+                              [attr.aria-label]="'Copia link ITA per ' + plan.name"
+                              (click)="copyLinkIta(plan)"
+                            >
+                              <app-icon name="copy" [size]="15" />
+                              Copia link ITA
+                            </button>
+                          }
 
                           <button
                             class="btn-generate"
@@ -151,7 +167,7 @@ function tomorrow(): string {
                             (click)="openGenerateModal(plan)"
                           >
                             <app-icon name="zap" [size]="15" />
-                            Genera link con prova gratuita
+                            Genera link
                           </button>
 
                           @if (isAdmin()) {
@@ -217,7 +233,7 @@ function tomorrow(): string {
                               />
                             </label>
                             <label class="edit-field edit-field-wide">
-                              <span>Stripe Payment Link</span>
+                              <span>Stripe Payment Link (UAE)</span>
                               <input
                                 type="url"
                                 [value]="editState()!.stripePaymentLink"
@@ -226,11 +242,29 @@ function tomorrow(): string {
                               />
                             </label>
                             <label class="edit-field edit-field-wide">
-                              <span>Stripe Price ID</span>
+                              <span>Stripe Price ID (UAE)</span>
                               <input
                                 type="text"
                                 [value]="editState()!.stripePriceId"
                                 (input)="patchEdit('stripePriceId', $any($event.target).value)"
+                                placeholder="price_…"
+                              />
+                            </label>
+                            <label class="edit-field edit-field-wide">
+                              <span>Stripe Payment Link (ITA)</span>
+                              <input
+                                type="url"
+                                [value]="editState()!.itaStripePaymentLink"
+                                (input)="patchEdit('itaStripePaymentLink', $any($event.target).value)"
+                                placeholder="https://buy.stripe.com/…"
+                              />
+                            </label>
+                            <label class="edit-field edit-field-wide">
+                              <span>Stripe Price ID (ITA)</span>
+                              <input
+                                type="text"
+                                [value]="editState()!.itaStripePriceId"
+                                (input)="patchEdit('itaStripePriceId', $any($event.target).value)"
                                 placeholder="price_…"
                               />
                             </label>
@@ -279,11 +313,11 @@ function tomorrow(): string {
             </button>
           </div>
 
-          @if (!generateModal()!.hasStripePrice) {
-            <!-- No stripePriceId configured -->
+          @if (!generateModal()!.hasStripePrice && !generateModal()!.hasItaStripePrice) {
+            <!-- No stripePriceId configured at all -->
             <div class="modal-warning">
               <app-icon name="alertTriangle" [size]="18" />
-              <span>Questo piano non ha uno <strong>Stripe Price ID</strong> configurato. Aggiungilo prima di generare il link.</span>
+              <span>Questo piano non ha nessuno <strong>Stripe Price ID</strong> configurato. Aggiungilo prima di generare il link.</span>
             </div>
           } @else if (generatedUrl()) {
             <!-- Generated URL result -->
@@ -303,17 +337,70 @@ function tomorrow(): string {
           } @else {
             <!-- Form -->
             <div class="modal-body">
-              <label class="modal-field">
-                <span class="modal-label">Data fine prova gratuita</span>
+
+              <!-- Account toggle (solo se esiste ita price ID) -->
+              @if (generateModal()!.hasItaStripePrice) {
+                <div class="modal-field">
+                  <span class="modal-label">Account Stripe</span>
+                  <div class="modal-toggle-group" role="group" aria-label="Seleziona account Stripe">
+                    <button
+                      class="toggle-btn"
+                      [class.active]="stripeAccount() === 'uae'"
+                      (click)="setStripeAccount('uae')"
+                    >
+                      🇦🇪 UAE
+                    </button>
+                    <button
+                      class="toggle-btn"
+                      [class.active]="stripeAccount() === 'ita'"
+                      (click)="setStripeAccount('ita')"
+                    >
+                      🇮🇹 Italia (CF)
+                    </button>
+                  </div>
+                </div>
+              }
+
+              <!-- Toggle prova gratuita -->
+              <div class="modal-field modal-field-row">
+                <label class="modal-label" for="toggle-trial">Con prova gratuita</label>
                 <input
-                  type="date"
-                  class="modal-date-input"
-                  [min]="minDate"
-                  [value]="trialDate()"
-                  (input)="trialDate.set($any($event.target).value)"
-                  aria-label="Data fine prova gratuita"
+                  id="toggle-trial"
+                  type="checkbox"
+                  class="modal-checkbox"
+                  [checked]="withTrial()"
+                  (change)="withTrial.set($any($event.target).checked)"
+                  aria-label="Abilita prova gratuita"
                 />
-              </label>
+              </div>
+
+              <!-- Date picker (visibile solo se prova abilitata) -->
+              @if (withTrial()) {
+                <label class="modal-field">
+                  <span class="modal-label">Data fine prova</span>
+                  <input
+                    type="date"
+                    class="modal-date-input"
+                    [min]="minDate"
+                    [value]="trialDate()"
+                    (input)="trialDate.set($any($event.target).value)"
+                    aria-label="Data fine prova gratuita"
+                  />
+                </label>
+              }
+
+              <!-- Toggle Codice Fiscale -->
+              <div class="modal-field modal-field-row">
+                <label class="modal-label" for="toggle-cf">Richiedi Codice Fiscale</label>
+                <input
+                  id="toggle-cf"
+                  type="checkbox"
+                  class="modal-checkbox"
+                  [checked]="withCf()"
+                  (change)="withCf.set($any($event.target).checked)"
+                  aria-label="Richiedi Codice Fiscale al checkout"
+                />
+              </div>
 
               @if (isAdmin()) {
                 <label class="modal-field">
@@ -334,19 +421,22 @@ function tomorrow(): string {
             <div class="modal-footer">
               <button
                 class="btn-save"
-                [disabled]="generating() || !trialDate() || !resolvedSellerId()"
+                [disabled]="generating() || (withTrial() && !trialDate()) || !resolvedSellerId() || !canGenerate()"
                 (click)="generateLink()"
               >
                 @if (generating()) {
                   Generazione…
                 } @else {
                   <app-icon name="zap" [size]="15" />
-                  Genera link
+                  Genera link {{ stripeAccount() === 'ita' ? '(ITA)' : '' }}
                 }
               </button>
               <button class="btn-cancel" (click)="closeGenerateModal()">Annulla</button>
               @if (isAdmin() && !resolvedSellerId()) {
                 <span class="modal-hint">Inserisci l'ID venditore per procedere</span>
+              }
+              @if (!canGenerate()) {
+                <span class="modal-hint">Price ID {{ stripeAccount() === 'ita' ? 'ITA' : 'UAE' }} non configurato per questo piano</span>
               }
             </div>
           }
@@ -424,6 +514,9 @@ export class CatalogComponent {
 
   // ── Generate modal state ─────────────────────────────────────
   readonly generateModal = signal<GenerateModal | null>(null);
+  readonly stripeAccount = signal<'uae' | 'ita'>('uae');
+  readonly withTrial = signal(true);
+  readonly withCf = signal(false);
   readonly trialDate = signal('');
   readonly sellerIdOverride = signal('');
   readonly generating = signal(false);
@@ -443,6 +536,13 @@ export class CatalogComponent {
     return n > 0 ? n : null;
   });
 
+  /** Vero se il price ID dell'account selezionato è configurato */
+  readonly canGenerate = computed(() => {
+    const modal = this.generateModal();
+    if (!modal) return false;
+    return this.stripeAccount() === 'ita' ? modal.hasItaStripePrice : modal.hasStripePrice;
+  });
+
   // ── Copy standard link ───────────────────────────────────────
   copyLink(plan: CatalogPricePlan): void {
     if (!plan.stripePaymentLink) return;
@@ -451,7 +551,18 @@ export class CatalogComponent {
       ? `${plan.stripePaymentLink}?client_reference_id=${sid}`
       : plan.stripePaymentLink;
     navigator.clipboard.writeText(url).then(() => {
-      this.toast.success('Link copiato!');
+      this.toast.success('Link UAE copiato!');
+    });
+  }
+
+  copyLinkIta(plan: CatalogPricePlan): void {
+    if (!plan.itaStripePaymentLink) return;
+    const sid = this.sellerId();
+    const url = sid != null
+      ? `${plan.itaStripePaymentLink}?client_reference_id=${sid}`
+      : plan.itaStripePaymentLink;
+    navigator.clipboard.writeText(url).then(() => {
+      this.toast.success('Link ITA copiato!');
     });
   }
 
@@ -461,11 +572,20 @@ export class CatalogComponent {
       planId: plan.id,
       planName: plan.name ?? '',
       hasStripePrice: !!plan.stripePriceId,
+      hasItaStripePrice: !!plan.itaStripePriceId,
     });
+    this.stripeAccount.set('uae');
+    this.withTrial.set(true);
+    this.withCf.set(false);
     this.trialDate.set('');
     this.sellerIdOverride.set('');
     this.generatedUrl.set(null);
     this.urlCopied.set(false);
+  }
+
+  setStripeAccount(account: 'uae' | 'ita'): void {
+    this.stripeAccount.set(account);
+    if (account === 'ita') this.withCf.set(true);
   }
 
   closeGenerateModal(): void {
@@ -481,13 +601,18 @@ export class CatalogComponent {
   generateLink(): void {
     const modal = this.generateModal();
     const sellerId = this.resolvedSellerId();
-    if (!modal || !this.trialDate() || !sellerId) return;
+    if (!modal || !sellerId || !this.canGenerate()) return;
+    if (this.withTrial() && !this.trialDate()) return;
+
+    const isIta = this.stripeAccount() === 'ita';
 
     this.generating.set(true);
     this.catalogApi.createCheckoutSession({
       pricePlanId: Number(modal.planId),
       sellerId: Number(sellerId),
-      trialEndDate: this.trialDate(),
+      ...(this.withTrial() ? { trialEndDate: this.trialDate() } : {}),
+      ...(isIta ? { stripeClientId: ITALIAN_STRIPE_CLIENT_ID } : {}),
+      ...(this.withCf() ? { withCf: true } : {}),
     }).subscribe({
       next: ({ url }) => {
         this.generating.set(false);
@@ -524,6 +649,8 @@ export class CatalogComponent {
       totalAmount: plan.totalAmount != null ? String(plan.totalAmount) : '',
       stripePaymentLink: plan.stripePaymentLink ?? '',
       stripePriceId: plan.stripePriceId ?? '',
+      itaStripePriceId: plan.itaStripePriceId ?? '',
+      itaStripePaymentLink: plan.itaStripePaymentLink ?? '',
     });
   }
 
@@ -546,6 +673,8 @@ export class CatalogComponent {
       totalAmount: s.totalAmount !== '' ? Number(s.totalAmount) : undefined,
       stripePaymentLink: s.stripePaymentLink || undefined,
       stripePriceId: s.stripePriceId || undefined,
+      itaStripePriceId: s.itaStripePriceId || undefined,
+      itaStripePaymentLink: s.itaStripePaymentLink || undefined,
     };
 
     this.catalogApi.updatePricePlan(s.id, dto).subscribe({
