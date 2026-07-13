@@ -127,6 +127,42 @@ function todayIso(): string {
             <!-- SEZIONE RATE -->
             <fieldset class="section">
               <legend class="section-title">Rate</legend>
+              <div class="field">
+                <label class="field-label" id="payment-method-label">Metodo di pagamento</label>
+                <div class="toggle-group" role="group" aria-labelledby="payment-method-label">
+                  <button
+                    type="button"
+                    class="toggle-opt"
+                    [class.active]="isStripe()"
+                    (click)="form.controls.paymentMethod.setValue('stripe')"
+                  >Stripe</button>
+                  <button
+                    type="button"
+                    class="toggle-opt"
+                    [class.active]="form.value.paymentMethod === 'bonifico'"
+                    (click)="form.controls.paymentMethod.setValue('bonifico')"
+                  >Bonifico</button>
+                </div>
+                @if (isStripe()) {
+                  <div class="toggle-group sub-toggle" role="group" aria-label="Account Stripe">
+                    <button
+                      type="button"
+                      class="toggle-opt sm"
+                      [class.active]="form.value.paymentMethod === 'stripe'"
+                      (click)="form.controls.paymentMethod.setValue('stripe')"
+                    >🇦🇪 UAE</button>
+                    <button
+                      type="button"
+                      class="toggle-opt sm"
+                      [class.active]="form.value.paymentMethod === 'stripe_ita'"
+                      (click)="form.controls.paymentMethod.setValue('stripe_ita')"
+                    >🇮🇹 Italia</button>
+                  </div>
+                }
+                @if (form.value.paymentMethod === 'bonifico') {
+                  <span class="field-hint">Le rate partono tutte come "da pagare" — il venditore le segna manualmente.</span>
+                }
+              </div>
               <div class="field checkbox-field">
                 <label class="checkbox-label">
                   <input type="checkbox" formControlName="includeDeposit" />
@@ -269,6 +305,14 @@ function todayIso(): string {
       font-size: 12px;
       color: #e53e3e;
     }
+    .toggle-group { display: flex; gap: 6px; margin-top: 2px; }
+    .sub-toggle { margin-top: 8px; padding-left: 4px; }
+    .toggle-opt.sm { font-size: 12px; padding: 4px 12px; }
+    .toggle-opt { padding: 6px 16px; border-radius: 20px; border: 1.5px solid var(--border, #e5e7eb); background: transparent; color: var(--ink-2, #444); font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
+    .toggle-opt.active { background: var(--accent, #4f46e5); border-color: var(--accent, #4f46e5); color: #fff; }
+    .toggle-opt:hover:not(.active) { border-color: var(--accent, #4f46e5); color: var(--accent, #4f46e5); }
+    .field-hint { font-size: 12px; color: var(--ink-3, #888); margin-top: 4px; }
+    .field-label { font-size: 13px; font-weight: 500; color: var(--ink-2, #444); }
     .checkbox-field { flex-direction: row; align-items: center; margin-top: 0; }
     .checkbox-label {
       display: flex;
@@ -328,6 +372,7 @@ export class CreateSaleModalComponent {
     includeDeposit: [false],
     depositAmount: [null as number | null],
     firstInstallmentDate: [todayIso()],
+    paymentMethod: ['stripe' as 'stripe' | 'stripe_ita' | 'bonifico'],
   });
 
   readonly selectedServiceId = signal<number | null>(null);
@@ -350,6 +395,10 @@ export class CreateSaleModalComponent {
       v.pricePlans.map(p => ({ ...p, variantName: v.name }))
     );
   });
+
+  readonly isStripe = computed(() =>
+    this.form.value.paymentMethod === 'stripe' || this.form.value.paymentMethod === 'stripe_ita'
+  );
 
   readonly emailInvalid = computed(() => {
     const ctrl = this.form.controls.customerEmail;
@@ -395,6 +444,7 @@ export class CreateSaleModalComponent {
       includeDeposit: v.includeDeposit || undefined,
       depositAmount: v.depositAmount ?? undefined,
       firstInstallmentDate: v.firstInstallmentDate || undefined,
+      paymentMethod: v.paymentMethod,
     }).subscribe({
       next: () => {
         this.submitting.set(false);
@@ -421,6 +471,7 @@ export class CreateSaleModalComponent {
       includeDeposit: false,
       depositAmount: null,
       firstInstallmentDate: todayIso(),
+      paymentMethod: 'stripe' as 'stripe' | 'stripe_ita' | 'bonifico',
     });
     this.selectedServiceId.set(null);
   }

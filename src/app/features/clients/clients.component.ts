@@ -109,6 +109,9 @@ function instStatusLabel(status: string): string {
             <h2>{{ client().name }}</h2>
             <div class="drawer-sub">
               {{ client().contact }} · <span class="plan-tag">{{ client().plan }}</span>
+              <span class="pay-method-badge" [attr.data-method]="paymentMethod()">
+                {{ paymentMethod() === 'bonifico' ? 'Bonifico' : paymentMethod() === 'stripe_ita' ? 'Stripe ITA' : 'Stripe UAE' }}
+              </span>
             </div>
           </div>
           <button class="icon-btn" (click)="closedChange.emit()" aria-label="Chiudi">
@@ -264,6 +267,22 @@ function instStatusLabel(status: string): string {
                       @if (inst.status === 'paid' && inst.paymentDate) { Pag. {{ fmtDate(inst.paymentDate) }} }
                       @else if (inst.dueDate) { Scad. {{ fmtDate(inst.dueDate) }} }
                     </span>
+                    @if (inst.status === 'draft' || inst.status === 'paid') {
+                      <button
+                        class="inst-toggle-btn"
+                        [class.paid]="inst.status === 'paid'"
+                        [disabled]="togglingId() === inst.id"
+                        (click)="toggleInstallment(inst)"
+                        [attr.aria-label]="inst.status === 'paid' ? 'Annulla pagamento' : 'Segna come pagata'"
+                      >
+                        @if (togglingId() === inst.id) { … }
+                        @else if (inst.status === 'paid') {
+                          <app-icon name="x" [size]="12" /> Annulla
+                        } @else {
+                          <app-icon name="check" [size]="12" /> Pagata
+                        }
+                      </button>
+                    }
                   </div>
                 }
               </div>
@@ -294,12 +313,16 @@ export class ClientDrawerComponent {
   readonly serviceName = input<string | null>(null);
   readonly variantName = input<string | null>(null);
   readonly isAdmin = input<boolean>(false);
+  readonly paymentMethod = input<'stripe' | 'stripe_ita' | 'bonifico'>('stripe');
   readonly closedChange = output<void>();
   readonly sellerChanged = output<void>();
+  readonly installmentChanged = output<void>();
 
   private readonly saleApiService = inject(SaleApiService);
   private readonly leadsService = inject(LeadsService);
   private readonly toast = inject(ToastService);
+
+  readonly togglingId = signal<number | null>(null);
 
   readonly sellersResource = rxResource({ stream: () => this.leadsService.getSellers() });
   readonly settersResource = rxResource({ stream: () => this.leadsService.getSetters() });
@@ -364,6 +387,24 @@ export class ClientDrawerComponent {
       error: () => {
         this.reassigningSetter.set(false);
         this.toast.error('Impossibile aggiornare il setter. Riprova.');
+      },
+    });
+  }
+
+  toggleInstallment(inst: InstallmentDto): void {
+    const id = Number(inst.id);
+    this.togglingId.set(id);
+    const req$ = inst.status === 'paid'
+      ? this.saleApiService.markInstallmentDraft(id)
+      : this.saleApiService.markInstallmentPaid(id);
+    req$.subscribe({
+      next: () => {
+        this.togglingId.set(null);
+        this.installmentChanged.emit();
+      },
+      error: () => {
+        this.togglingId.set(null);
+        this.toast.error('Errore nell\'aggiornamento della rata');
       },
     });
   }
@@ -502,6 +543,11 @@ export class ClientDrawerComponent {
                     </span>
                     <span>
                       <span class="plan-tag">{{ row.client.plan }}</span>
+                      @if (row.sale.paymentMethod !== 'stripe') {
+                        <span class="pay-method-badge" [attr.data-method]="row.sale.paymentMethod">
+                          {{ row.sale.paymentMethod === 'bonifico' ? 'Bonifico' : 'Stripe ITA' }}
+                        </span>
+                      }
                     </span>
                     <span class="r mono strong">{{ eurFmt(row.client.mrr) }}</span>
                     <span class="r mono muted">{{ eurFmt(row.client.totalPaid) }}</span>
@@ -562,8 +608,10 @@ export class ClientDrawerComponent {
         [serviceName]="sale.pricePlan?.serviceVariant?.service?.name ?? null"
         [variantName]="sale.pricePlan?.serviceVariant?.name ?? null"
         [isAdmin]="isAdmin()"
+        [paymentMethod]="sale.paymentMethod"
         (closedChange)="openSale.set(null)"
         (sellerChanged)="onSellerReassigned()"
+        (installmentChanged)="onInstallmentChanged()"
       />
     }
   `,
@@ -619,6 +667,10 @@ export class ClientsComponent {
   onSellerReassigned(): void {
     this.salesResource.reload();
     this.openSale.set(null);
+  }
+
+  onInstallmentChanged(): void {
+    this.salesResource.reload();
   }
 
   readonly saleToClientFn = saleToClient;

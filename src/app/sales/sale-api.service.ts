@@ -19,6 +19,7 @@ export interface InstallmentDto {
 export interface SaleDto {
   id: number;
   status: string;
+  paymentMethod: 'stripe' | 'stripe_ita' | 'bonifico';
   createdAt: string;
   stripeSubscriptionId: string | null;
   customer: { name: string | null; surname: string | null; email: string | null; phone: string | null } | null;
@@ -50,6 +51,7 @@ export interface CreateManualSaleDto {
   includeDeposit?: boolean;
   depositAmount?: number;
   firstInstallmentDate?: string;
+  paymentMethod?: 'stripe' | 'stripe_ita' | 'bonifico';
 }
 
 @Injectable({ providedIn: 'root' })
@@ -70,5 +72,19 @@ export class SaleApiService {
 
   reassignSetter(saleId: number, setterId: number | null): Observable<SaleDto> {
     return this.http.post<SaleDto>(`${API_URL}/sales/${saleId}/reassign-setter`, { setterId });
+  }
+
+  markInstallmentPaid(id: number): Observable<InstallmentDto> {
+    return this.http.patch<InstallmentDto>(`${API_URL}/installments/${id}`, {
+      status: 'paid',
+      paymentDate: new Date().toISOString(),
+    });
+  }
+
+  markInstallmentDraft(id: number): Observable<InstallmentDto> {
+    return this.http.patch<InstallmentDto>(`${API_URL}/installments/${id}`, {
+      status: 'draft',
+      paymentDate: null,
+    });
   }
 }
