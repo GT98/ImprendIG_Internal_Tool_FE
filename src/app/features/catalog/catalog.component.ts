@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../auth/auth.service';
-import { CatalogApiService, CatalogPricePlan, CatalogService, ITALIAN_STRIPE_CLIENT_ID } from '../../catalog/catalog-api.service';
+import { CatalogApiService, CatalogPricePlan, CatalogService, CatalogVariant, ITALIAN_STRIPE_CLIENT_ID } from '../../catalog/catalog-api.service';
 import { ToastService } from '../../shared/toast.service';
 import { IconComponent } from '../../shared/icon.component';
 import { eur as eurFmt } from '../../utils';
@@ -25,6 +25,7 @@ interface EditState {
   stripePriceId: string;
   itaStripePriceId: string;
   itaStripePaymentLink: string;
+  billingType: 'recurring' | 'one_time';
 }
 
 interface GenerateModal {
@@ -32,6 +33,7 @@ interface GenerateModal {
   planName: string;
   hasStripePrice: boolean;
   hasItaStripePrice: boolean;
+  billingType: 'recurring' | 'one_time' | null;
 }
 
 function tomorrow(): string {
@@ -45,6 +47,28 @@ function tomorrow(): string {
   imports: [IconComponent, TitleCasePipe],
   styleUrl: './catalog.component.css',
   template: `
+    <!-- View tabs UAE / ITA -->
+    <div class="cat-view-tabs" role="tablist" aria-label="Seleziona account Stripe">
+      <button
+        class="cat-view-tab"
+        role="tab"
+        [class.active]="catalogView() === 'uae'"
+        [attr.aria-selected]="catalogView() === 'uae'"
+        (click)="catalogView.set('uae')"
+      >
+        🇦🇪 Stripe UAE
+      </button>
+      <button
+        class="cat-view-tab"
+        role="tab"
+        [class.active]="catalogView() === 'ita'"
+        [attr.aria-selected]="catalogView() === 'ita'"
+        (click)="catalogView.set('ita')"
+      >
+        🇮🇹 Stripe ITA
+      </button>
+    </div>
+
     <!-- Filter bar -->
     <div class="cat-filter" role="group" aria-label="Filtra per cliente">
       <button
@@ -138,26 +162,27 @@ function tomorrow(): string {
                         </div>
 
                         <div class="plan-actions">
-                          <!-- Copy link UAE -->
-                          <button
-                            class="btn-link"
-                            [disabled]="!plan.stripePaymentLink"
-                            [attr.aria-label]="plan.itaStripePaymentLink ? 'Copia link UAE per ' + plan.name : 'Copia link per ' + plan.name"
-                            (click)="copyLink(plan)"
-                          >
-                            <app-icon name="copy" [size]="15" />
-                            {{ plan.itaStripePaymentLink ? 'Copia link UAE' : 'Copia link' }}
-                          </button>
-
-                          <!-- Copy link ITA (solo se configurato) -->
-                          @if (plan.itaStripePaymentLink) {
+                          @if (catalogView() === 'ita') {
+                            <!-- ITA view: solo pulsante link ITA -->
                             <button
                               class="btn-link btn-link-ita"
+                              [disabled]="!plan.itaStripePaymentLink"
                               [attr.aria-label]="'Copia link ITA per ' + plan.name"
                               (click)="copyLinkIta(plan)"
                             >
                               <app-icon name="copy" [size]="15" />
-                              Copia link ITA
+                              Copia link
+                            </button>
+                          } @else {
+                            <!-- UAE view: solo pulsante link UAE -->
+                            <button
+                              class="btn-link"
+                              [disabled]="!plan.stripePaymentLink"
+                              [attr.aria-label]="'Copia link UAE per ' + plan.name"
+                              (click)="copyLink(plan)"
+                            >
+                              <app-icon name="copy" [size]="15" />
+                              Copia link
                             </button>
                           }
 
@@ -268,6 +293,16 @@ function tomorrow(): string {
                                 placeholder="price_…"
                               />
                             </label>
+                            <label class="edit-field">
+                              <span>Tipo pagamento</span>
+                              <select
+                                [value]="editState()!.billingType"
+                                (change)="patchEdit('billingType', $any($event.target).value)"
+                              >
+                                <option value="recurring">Abbonamento</option>
+                                <option value="one_time">Singolo (una tantum)</option>
+                              </select>
+                            </label>
                           </div>
                           <div class="edit-footer">
                             <button class="btn-save" [disabled]="saving()" (click)="savePlan()">
@@ -361,32 +396,34 @@ function tomorrow(): string {
                 </div>
               }
 
-              <!-- Toggle prova gratuita -->
-              <div class="modal-field modal-field-row">
-                <label class="modal-label" for="toggle-trial">Con prova gratuita</label>
-                <input
-                  id="toggle-trial"
-                  type="checkbox"
-                  class="modal-checkbox"
-                  [checked]="withTrial()"
-                  (change)="withTrial.set($any($event.target).checked)"
-                  aria-label="Abilita prova gratuita"
-                />
-              </div>
-
-              <!-- Date picker (visibile solo se prova abilitata) -->
-              @if (withTrial()) {
-                <label class="modal-field">
-                  <span class="modal-label">Data fine prova</span>
+              <!-- Toggle prova gratuita (solo per abbonamenti) -->
+              @if (generateModal()!.billingType !== 'one_time') {
+                <div class="modal-field modal-field-row">
+                  <label class="modal-label" for="toggle-trial">Con prova gratuita</label>
                   <input
-                    type="date"
-                    class="modal-date-input"
-                    [min]="minDate"
-                    [value]="trialDate()"
-                    (input)="trialDate.set($any($event.target).value)"
-                    aria-label="Data fine prova gratuita"
+                    id="toggle-trial"
+                    type="checkbox"
+                    class="modal-checkbox"
+                    [checked]="withTrial()"
+                    (change)="withTrial.set($any($event.target).checked)"
+                    aria-label="Abilita prova gratuita"
                   />
-                </label>
+                </div>
+
+                <!-- Date picker (visibile solo se prova abilitata) -->
+                @if (withTrial()) {
+                  <label class="modal-field">
+                    <span class="modal-label">Data fine prova</span>
+                    <input
+                      type="date"
+                      class="modal-date-input"
+                      [min]="minDate"
+                      [value]="trialDate()"
+                      (input)="trialDate.set($any($event.target).value)"
+                      aria-label="Data fine prova gratuita"
+                    />
+                  </label>
+                }
               }
 
               <!-- Toggle Codice Fiscale -->
@@ -421,7 +458,7 @@ function tomorrow(): string {
             <div class="modal-footer">
               <button
                 class="btn-save"
-                [disabled]="generating() || (withTrial() && !trialDate()) || !resolvedSellerId() || !canGenerate()"
+                [disabled]="generating() || (generateModal()!.billingType !== 'one_time' && withTrial() && !trialDate()) || !resolvedSellerId() || !canGenerate()"
                 (click)="generateLink()"
               >
                 @if (generating()) {
@@ -455,6 +492,7 @@ export class CatalogComponent {
   readonly sellerId = computed(() => this.auth.currentUser()?.sellerId);
 
   // ── Catalog state ────────────────────────────────────────────
+  readonly catalogView = signal<'uae' | 'ita'>('uae');
   readonly selectedClientId = signal<number | null>(null);
   readonly searchQuery = signal('');
 
@@ -489,18 +527,38 @@ export class CatalogComponent {
 
   readonly filteredGroups = computed<ClientGroup[]>(() => {
     const q = this.searchQuery().trim().toLowerCase();
+    const view = this.catalogView();
     const groups = this.groupedServices();
-    if (!q) return groups;
+
+    const planMatchesView = (plan: CatalogPricePlan): boolean => {
+      if (view === 'ita') return !!(plan.itaStripePriceId || plan.itaStripePaymentLink);
+      // UAE: piani con config UAE oppure senza nessuna config (visibili per poterli configurare)
+      return !!(plan.stripePriceId || plan.stripePaymentLink) ||
+        (!plan.itaStripePriceId && !plan.itaStripePaymentLink);
+    };
 
     return groups
       .map(group => {
         const matchingServices = group.services
           .map(svc => {
-            if (svc.name?.toLowerCase().includes(q)) return svc;
-            const matchingVariants = (svc.variants ?? []).filter(v =>
-              v.name?.toLowerCase().includes(q),
-            );
-            return matchingVariants.length > 0 ? { ...svc, variants: matchingVariants } : null;
+            const viewFilteredVariants = (svc.variants ?? [])
+              .map(v => {
+                const viewPlans = (v.pricePlans ?? []).filter(planMatchesView);
+                return viewPlans.length > 0 ? { ...v, pricePlans: viewPlans } : null;
+              })
+              .filter((v): v is CatalogVariant => v !== null);
+
+            const svcMatches = !q || svc.name?.toLowerCase().includes(q);
+            if (svcMatches && viewFilteredVariants.length > 0) {
+              return { ...svc, variants: viewFilteredVariants };
+            }
+            if (!svcMatches && q) {
+              const searchFiltered = viewFilteredVariants.filter(v =>
+                v.name?.toLowerCase().includes(q),
+              );
+              return searchFiltered.length > 0 ? { ...svc, variants: searchFiltered } : null;
+            }
+            return viewFilteredVariants.length > 0 ? { ...svc, variants: viewFilteredVariants } : null;
           })
           .filter((s): s is CatalogService => s !== null);
         return matchingServices.length > 0 ? { ...group, services: matchingServices } : null;
@@ -568,14 +626,17 @@ export class CatalogComponent {
 
   // ── Generate modal ───────────────────────────────────────────
   openGenerateModal(plan: CatalogPricePlan): void {
+    const isOneTime = plan.billingType === 'one_time';
     this.generateModal.set({
       planId: plan.id,
       planName: plan.name ?? '',
       hasStripePrice: !!plan.stripePriceId,
       hasItaStripePrice: !!plan.itaStripePriceId,
+      billingType: plan.billingType,
     });
-    this.stripeAccount.set('uae');
-    this.withTrial.set(true);
+    const defaultAccount = this.catalogView();
+    this.stripeAccount.set(defaultAccount);
+    this.withTrial.set(!isOneTime);
     this.withCf.set(false);
     this.trialDate.set('');
     this.sellerIdOverride.set('');
@@ -602,7 +663,9 @@ export class CatalogComponent {
     const modal = this.generateModal();
     const sellerId = this.resolvedSellerId();
     if (!modal || !sellerId || !this.canGenerate()) return;
-    if (this.withTrial() && !this.trialDate()) return;
+
+    const isOneTime = modal.billingType === 'one_time';
+    if (!isOneTime && this.withTrial() && !this.trialDate()) return;
 
     const isIta = this.stripeAccount() === 'ita';
 
@@ -610,7 +673,7 @@ export class CatalogComponent {
     this.catalogApi.createCheckoutSession({
       pricePlanId: Number(modal.planId),
       sellerId: Number(sellerId),
-      ...(this.withTrial() ? { trialEndDate: this.trialDate() } : {}),
+      ...(!isOneTime && this.withTrial() ? { trialEndDate: this.trialDate() } : {}),
       ...(isIta ? { stripeClientId: ITALIAN_STRIPE_CLIENT_ID } : {}),
       ...(this.withCf() ? { withCf: true } : {}),
     }).subscribe({
@@ -651,6 +714,7 @@ export class CatalogComponent {
       stripePriceId: plan.stripePriceId ?? '',
       itaStripePriceId: plan.itaStripePriceId ?? '',
       itaStripePaymentLink: plan.itaStripePaymentLink ?? '',
+      billingType: plan.billingType ?? 'recurring',
     });
   }
 
@@ -675,6 +739,7 @@ export class CatalogComponent {
       stripePriceId: s.stripePriceId || undefined,
       itaStripePriceId: s.itaStripePriceId || undefined,
       itaStripePaymentLink: s.itaStripePaymentLink || undefined,
+      billingType: s.billingType,
     };
 
     this.catalogApi.updatePricePlan(s.id, dto).subscribe({

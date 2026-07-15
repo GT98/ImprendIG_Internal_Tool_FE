@@ -16,6 +16,7 @@ export interface CatalogPricePlan {
   stripePriceId: string | null;
   itaStripePriceId: string | null;
   itaStripePaymentLink: string | null;
+  billingType: 'recurring' | 'one_time' | null;
 }
 
 export interface CatalogVariant {
@@ -39,7 +40,8 @@ export interface CatalogClient {
 
 export type UpdatePricePlanDto = Partial<Pick<CatalogPricePlan,
   'name' | 'basePrice' | 'installmentCount' | 'installmentAmount' | 'totalAmount' |
-  'stripePaymentLink' | 'stripePriceId' | 'itaStripePriceId' | 'itaStripePaymentLink'
+  'stripePaymentLink' | 'stripePriceId' | 'itaStripePriceId' | 'itaStripePaymentLink' |
+  'billingType'
 >>;
 
 export interface CreateCheckoutSessionDto {

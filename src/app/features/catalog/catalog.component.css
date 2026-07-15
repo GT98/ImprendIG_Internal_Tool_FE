@@ -1,4 +1,9 @@
-.cat-filter { display:flex; flex-wrap:wrap; gap:8px; padding:20px 24px 0 }
+.cat-view-tabs { display:flex; padding:20px 24px 0; border-bottom:2px solid var(--border,#e5e7eb); gap:0 }
+.cat-view-tab { padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; border:none; background:transparent; color:var(--ink-2,#6b7280); border-bottom:2px solid transparent; margin-bottom:-2px; transition:color .15s,border-color .15s }
+.cat-view-tab:hover { color:var(--ink,#111827) }
+.cat-view-tab.active { color:var(--accent); border-bottom-color:var(--accent) }
+
+.cat-filter { display:flex; flex-wrap:wrap; gap:8px; padding:16px 24px 0 }
 .cat-chip { padding:6px 14px; border-radius:20px; border:1.5px solid var(--border,#e5e7eb); background:var(--surface,#fff); color:var(--ink-2,#6b7280); font-size:13px; font-weight:500; cursor:pointer; transition:background .15s,color .15s,border-color .15s }
 .cat-chip:hover { border-color:var(--accent); color:var(--accent) }
 .cat-chip.active { background:var(--accent); border-color:var(--accent); color:#fff }
