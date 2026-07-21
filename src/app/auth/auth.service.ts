@@ -1,7 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { tap } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import type { AuthUser, LoginResponse } from './auth.models';
 import { environment } from '../../environments/environment';
 
@@ -23,17 +23,28 @@ export class AuthService {
   readonly currentUser = computed(() => this._user());
   readonly isAuthenticated = computed(() => this._token() !== null);
 
+  private storeSession(res: LoginResponse): void {
+    localStorage.setItem(TOKEN_KEY, res.access_token);
+    localStorage.setItem(USER_KEY, JSON.stringify(res.user));
+    this._token.set(res.access_token);
+    this._user.set(res.user);
+  }
+
   login(email: string, password: string) {
     return this.http
       .post<LoginResponse>(`${API_URL}/auth/login`, { email, password })
-      .pipe(
-        tap(res => {
-          localStorage.setItem(TOKEN_KEY, res.access_token);
-          localStorage.setItem(USER_KEY, JSON.stringify(res.user));
-          this._token.set(res.access_token);
-          this._user.set(res.user);
-        }),
-      );
+      .pipe(tap(res => this.storeSession(res)));
+  }
+
+  refresh(): Observable<LoginResponse> {
+    const currentToken = this._token();
+    return this.http
+      .post<LoginResponse>(
+        `${API_URL}/auth/refresh`,
+        {},
+        { headers: { Authorization: `Bearer ${currentToken}` } },
+      )
+      .pipe(tap(res => this.storeSession(res)));
   }
 
   logout() {
