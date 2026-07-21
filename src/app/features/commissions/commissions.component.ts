@@ -254,83 +254,6 @@ function monthLongLabel(isoM: string): string {
         <app-stat-card icon="target" label="Tasso medio" [value]="tassoMedio()" sub="sul venduto" />
       </div>
 
-      <div class="comm-grid">
-        <!-- CHART CARD -->
-        <div class="card chart-card">
-          <div class="card-head">
-            <div>
-              <div class="card-title">Andamento provvigioni</div>
-              <div class="card-sub">Ultimi 6 mesi</div>
-            </div>
-            <div class="card-figure">{{ eurAnnoTot() }}</div>
-          </div>
-
-          @if (chartType() === 'donut') {
-            <div class="donut-layout">
-              <app-donut-chart
-                [slices]="donutSlices()"
-                [size]="196"
-                [label]="eurMaturato()"
-                sub="totale"
-              />
-              <div class="donut-legend">
-                @for (s of byType(); track s.key) {
-                  <div class="dl-row">
-                    <span class="legend-dot" [style.background]="s.color"></span>
-                    <span class="dl-label">{{ s.label }}</span>
-                    <span class="dl-val">{{ eurFmt(s.v) }}</span>
-                    <span class="dl-pct">{{ pct(s.v) }}%</span>
-                  </div>
-                }
-              </div>
-            </div>
-          } @else if (chartType() === 'area') {
-            <app-area-chart [data]="series()" />
-          } @else {
-            <app-bar-chart [data]="series()" />
-          }
-
-          @if (chartType() !== 'donut') {
-            <div class="legend">
-              @for (s of byType(); track s.key) {
-                <span class="legend-item">
-                  <span class="legend-dot" [style.background]="s.color"></span>
-                  {{ s.label }} · <strong>{{ eurFmt(s.v) }}</strong>
-                </span>
-              }
-            </div>
-          }
-        </div>
-
-        <!-- TARGET CARD -->
-        <div class="card target-card">
-          <div class="card-title">Obiettivo mensile</div>
-          <div class="target-big">
-            {{ eurMaturato() }}<span> / {{ eurFmt(target()) }}</span>
-          </div>
-          <app-progress-bar [value]="maturato()" [max]="target()" />
-          <div class="target-meta">
-            <span>{{ targetPct() }}% raggiunto</span>
-            <span>{{ eurFmt(Math.max(0, target() - maturato())) }} al traguardo</span>
-          </div>
-          <div class="divider"></div>
-          <div class="mini-stats">
-            <div>
-              <span class="ms-label">Deal chiusi</span>
-              <span class="ms-val">{{ filteredDeals().length }}</span>
-            </div>
-            <div>
-              <span class="ms-label">Provv. media</span>
-              <span class="ms-val">{{ eurFmt(totalCommission() / (filteredDeals().length || 1)) }}</span>
-            </div>
-            <div>
-              <span class="ms-label">Deal più alto</span>
-              <span class="ms-val">{{ eurFmt(maxCommission()) }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- LEADERBOARD ADMIN -->
       @if (isAdmin() && leaderboard().length > 0) {
         <div class="card">
@@ -603,8 +526,8 @@ export class CommissionsComponent {
       if (type === 'setter' && !c.setter) return false;
 
       if (personId) {
-        if (type === 'setter') return c.setter?.id === personId;
-        return c.seller?.id === personId;
+        if (type === 'setter') return Number(c.setter?.id) === personId;
+        return Number(c.seller?.id) === personId;
       }
       return true;
     });
@@ -637,8 +560,8 @@ export class CommissionsComponent {
       if (type === 'seller' && !c.seller) continue;
       if (type === 'setter' && !c.setter) continue;
       if (personId) {
-        if (type === 'setter' && c.setter?.id !== personId) continue;
-        if (type !== 'setter' && c.seller?.id !== personId) continue;
+        if (type === 'setter' && Number(c.setter?.id) !== personId) continue;
+        if (type !== 'setter' && Number(c.seller?.id) !== personId) continue;
       }
       const id = c.sale.id;
       if (!saleMap.has(id)) saleMap.set(id, []);
@@ -808,11 +731,12 @@ export class CommissionsComponent {
     if (!this.isAdmin()) return [];
     const sellersById = this.displaySellersById();
     const totals = new Map<string, number>();
-    for (const c of this.filteredComms()) {
-      const person = c.seller ?? c.setter;
-      if (!person) continue;
-      const pid = String(person.id);
-      totals.set(pid, (totals.get(pid) ?? 0) + Number(c.amount ?? 0));
+    for (const deal of this.filteredDeals()) {
+      for (const c of deal.comms) {
+        const person = c.seller ?? c.setter;
+        if (!person) continue;
+        totals.set(String(person.id), (totals.get(String(person.id)) ?? 0) + Number(c.amount ?? 0));
+      }
     }
     return [...totals.entries()]
       .map(([pid, total]) => ({ seller: sellersById[pid], total }))
