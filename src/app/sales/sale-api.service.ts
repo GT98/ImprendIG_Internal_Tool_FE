@@ -75,10 +75,7 @@ export class SaleApiService {
   }
 
   markInstallmentPaid(id: number): Observable<InstallmentDto> {
-    return this.http.patch<InstallmentDto>(`${API_URL}/installments/${id}`, {
-      status: 'paid',
-      paymentDate: new Date().toISOString(),
-    });
+    return this.http.patch<InstallmentDto>(`${API_URL}/installments/${id}/mark-paid-notify`, null);
   }
 
   markInstallmentDraft(id: number): Observable<InstallmentDto> {
