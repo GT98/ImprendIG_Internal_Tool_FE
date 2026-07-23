@@ -55,6 +55,13 @@ export const routes: Routes = [
         title: 'Catalogo',
       },
       {
+        path: 'onboarding',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/onboarding/onboarding.component').then(m => m.OnboardingComponent),
+        title: 'Onboarding',
+      },
+      {
         path: 'team',
         canActivate: [adminGuard],
         loadComponent: () =>

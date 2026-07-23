@@ -7,8 +7,6 @@ import { Seller } from '../../models';
 import { IconComponent } from '../../shared/icon.component';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { StatCardComponent } from '../../shared/stat-card.component';
-import { ProgressBarComponent } from '../../shared/progress-bar.component';
-import { BarChartComponent, AreaChartComponent, DonutChartComponent } from '../../shared/charts.component';
 import { SalesStateService } from '../../sales-state.service';
 import { MonthNavComponent } from './month-nav.component';
 import { eur, fmtDate } from '../../utils';
@@ -163,11 +161,7 @@ function monthLongLabel(isoM: string): string {
 
 @Component({
   selector: 'app-commissions',
-  imports: [
-    IconComponent, AvatarComponent, StatCardComponent, ProgressBarComponent,
-    BarChartComponent, AreaChartComponent, DonutChartComponent,
-    MonthNavComponent,
-  ],
+  imports: [IconComponent, AvatarComponent, StatCardComponent, MonthNavComponent],
   styleUrl: './commissions.component.css',
   template: `
     <div class="page">
@@ -175,7 +169,9 @@ function monthLongLabel(isoM: string): string {
         <div>
           <h1>
             Provvigioni
-            @if (isAdmin()) { <span class="muted-pill">team</span> }
+            @if (isAdmin()) {
+              <span class="muted-pill">team</span>
+            }
           </h1>
           <p class="page-sub">
             {{ isAdmin() ? 'Provvigioni maturate dal team' : 'Le tue provvigioni maturate' }}
@@ -187,19 +183,19 @@ function monthLongLabel(isoM: string): string {
             <button
               [class.active]="commMode() === 'per-rata'"
               (click)="commMode.set('per-rata')"
-              aria-pressed="commMode() === 'per-rata'">
+              aria-pressed="commMode() === 'per-rata'"
+            >
               Per rata
             </button>
             <button
               [class.active]="commMode() === 'prima-rata'"
               (click)="commMode.set('prima-rata')"
-              aria-pressed="commMode() === 'prima-rata'">
+              aria-pressed="commMode() === 'prima-rata'"
+            >
               Prima rata
             </button>
           </div>
-          <button class="btn-ghost">
-            <app-icon name="external" [size]="16" />Esporta
-          </button>
+          <button class="btn-ghost"><app-icon name="external" [size]="16" />Esporta</button>
         </div>
       </div>
 
@@ -207,8 +203,8 @@ function monthLongLabel(isoM: string): string {
         <div class="prima-rata-banner" role="status">
           <span class="prb-dot"></span>
           <span>
-            Modalità <strong>Prima rata attiva</strong> — la provvigione totale è attribuita
-            alla prima rata di ogni deal. Le rate successive mostrano €0.
+            Modalità <strong>Prima rata attiva</strong> — la provvigione totale è attribuita alla
+            prima rata di ogni deal. Le rate successive mostrano €0.
           </span>
         </div>
       }
@@ -218,15 +214,31 @@ function monthLongLabel(isoM: string): string {
       @if (isAdmin()) {
         <div class="filter-bar">
           <div class="filter-tabs" role="tablist">
-            <button role="tab" [class.active]="filterType() === 'all'" (click)="setFilter('all')">Tutti</button>
-            <button role="tab" [class.active]="filterType() === 'seller'" (click)="setFilter('seller')">Venditori</button>
-            <button role="tab" [class.active]="filterType() === 'setter'" (click)="setFilter('setter')">Setter</button>
+            <button role="tab" [class.active]="filterType() === 'all'" (click)="setFilter('all')">
+              Tutti
+            </button>
+            <button
+              role="tab"
+              [class.active]="filterType() === 'seller'"
+              (click)="setFilter('seller')"
+            >
+              Venditori
+            </button>
+            <button
+              role="tab"
+              [class.active]="filterType() === 'setter'"
+              (click)="setFilter('setter')"
+            >
+              Setter
+            </button>
           </div>
           @if (filterType() === 'seller') {
-            <select class="filter-person-select"
+            <select
+              class="filter-person-select"
               [value]="filterPersonId() ?? ''"
               (change)="filterPersonId.set(+$any($event.target).value || null)"
-              aria-label="Filtra per venditore">
+              aria-label="Filtra per venditore"
+            >
               <option value="">Tutti i venditori</option>
               @for (s of sellersList(); track s.id) {
                 <option [value]="s.id">{{ [s.name, s.lastName].filter(Boolean).join(' ') }}</option>
@@ -234,10 +246,12 @@ function monthLongLabel(isoM: string): string {
             </select>
           }
           @if (filterType() === 'setter') {
-            <select class="filter-person-select"
+            <select
+              class="filter-person-select"
               [value]="filterPersonId() ?? ''"
               (change)="filterPersonId.set(+$any($event.target).value || null)"
-              aria-label="Filtra per setter">
+              aria-label="Filtra per setter"
+            >
               <option value="">Tutti i setter</option>
               @for (s of settersResource.value(); track s.id) {
                 <option [value]="s.id">{{ [s.name, s.lastName].filter(Boolean).join(' ') }}</option>
@@ -248,8 +262,19 @@ function monthLongLabel(isoM: string): string {
       }
 
       <div class="stat-grid">
-        <app-stat-card icon="euro" [label]="'Maturato — ' + monthLabel()" [value]="eurMaturato()" [trend]="9" [accent]="true" />
-        <app-stat-card icon="clock" label="Da incassare" [value]="eurDaIncassare()" sub="pagamento in attesa" />
+        <app-stat-card
+          icon="euro"
+          [label]="'Maturato — ' + monthLabel()"
+          [value]="eurMaturato()"
+          [trend]="9"
+          [accent]="true"
+        />
+        <app-stat-card
+          icon="clock"
+          label="Da incassare"
+          [value]="eurDaIncassare()"
+          sub="pagamento in attesa"
+        />
         <app-stat-card icon="chart" label="Totale anno" [value]="eurAnnoTot()" [trend]="14" />
         <app-stat-card icon="target" label="Tasso medio" [value]="tassoMedio()" sub="sul venduto" />
       </div>
@@ -264,12 +289,15 @@ function monthLongLabel(isoM: string): string {
             @for (entry of leaderboard(); track entry.seller.id) {
               <div class="lb-row">
                 <app-avatar [seller]="entry.seller" [size]="34" />
-                <div class="lb-name">{{ entry.seller.name }}<span>{{ entry.seller.role }}</span></div>
+                <div class="lb-name">
+                  {{ entry.seller.name }}<span>{{ entry.seller.role }}</span>
+                </div>
                 <div class="lb-bar">
-                  <div class="lb-fill"
+                  <div
+                    class="lb-fill"
                     [style.width]="lbWidth(entry.total)"
-                    [style.background]="entry.seller.color">
-                  </div>
+                    [style.background]="entry.seller.color"
+                  ></div>
                 </div>
                 <div class="lb-val">{{ eurFmt(entry.total) }}</div>
               </div>
@@ -292,8 +320,12 @@ function monthLongLabel(isoM: string): string {
           <div class="table table-deals" [class.adm]="isAdmin()">
             <div class="tr th">
               <span>Cliente</span>
-              @if (isAdmin()) { <span>Venditore</span> }
-              @if (isAdmin()) { <span>Setter</span> }
+              @if (isAdmin()) {
+                <span>Venditore</span>
+              }
+              @if (isAdmin()) {
+                <span>Setter</span>
+              }
               <span>Tipo</span>
               <span class="r">Valore deal</span>
               <span class="r">Tasso</span>
@@ -324,7 +356,9 @@ function monthLongLabel(isoM: string): string {
                     </button>
                     {{ d.client }}
                     @if (d.comms.length > 0) {
-                      <span style="font-size:11px;color:var(--ink-3);font-weight:400">({{ d.comms.length }} rate)</span>
+                      <span style="font-size:11px;color:var(--ink-3);font-weight:400"
+                        >({{ d.comms.length }} rate)</span
+                      >
                     }
                   </span>
                   @if (isAdmin()) {
@@ -348,14 +382,18 @@ function monthLongLabel(isoM: string): string {
                     </span>
                   }
                   <span>
-                    <span class="comm-tag"
+                    <span
+                      class="comm-tag"
                       [style.color]="commColor(d.commType)"
-                      [style.background]="commColor(d.commType) + '14'">
+                      [style.background]="commColor(d.commType) + '14'"
+                    >
                       {{ commLabel(d.commType) }}
                     </span>
                   </span>
                   <span class="r mono">{{ eurFmt(d.value) }}</span>
-                  <span class="r mono muted">{{ d.rate ? (d.rate * 100).toFixed(0) + '%' : '—' }}</span>
+                  <span class="r mono muted">{{
+                    d.rate ? (d.rate * 100).toFixed(0) + '%' : '—'
+                  }}</span>
                   <span class="r mono strong">{{ eurFmt(d.commission) }}</span>
                 </div>
 
@@ -365,11 +403,14 @@ function monthLongLabel(isoM: string): string {
                     @for (c of d.comms; track c.id) {
                       @let isPrimaRata = commMode() === 'prima-rata';
                       @let isFirstBal = isFirstBalanceInst(c);
-                      @let isZeroRow = isPrimaRata && c.installment?.type !== 'deposit' && !isFirstBal;
+                      @let isZeroRow =
+                        isPrimaRata && c.installment?.type !== 'deposit' && !isFirstBal;
                       <div
                         class="comm-inst-row"
                         [class.inst-current]="isCurrentMonthFn(c.installment) && !isPrimaRata"
-                        [class.inst-deposit]="c.installment?.type === 'deposit' && !isCurrentMonthFn(c.installment)"
+                        [class.inst-deposit]="
+                          c.installment?.type === 'deposit' && !isCurrentMonthFn(c.installment)
+                        "
                         [class.inst-prima-rata]="isPrimaRata && isFirstBal"
                         [class.inst-zero]="isZeroRow"
                       >
@@ -377,7 +418,9 @@ function monthLongLabel(isoM: string): string {
                           @if (c.installment?.type === 'deposit') {
                             Acconto
                           } @else {
-                            Rata {{ c.installment?.installmentNumber }}/{{ c.installment?.totalInstallment || d.comms.length }}
+                            Rata {{ c.installment?.installmentNumber }}/{{
+                              c.installment?.totalInstallment || d.comms.length
+                            }}
                           }
                           @if (!isPrimaRata && isCurrentMonthFn(c.installment)) {
                             <span class="current-tag">Questo mese</span>
@@ -400,7 +443,11 @@ function monthLongLabel(isoM: string): string {
                           <span></span>
                         }
                         @if (isPrimaRata && c.installment?.type !== 'deposit') {
-                          <span class="comm-amount" [class.comm-prima-rata-full]="isFirstBal" [class.comm-zero]="isZeroRow">
+                          <span
+                            class="comm-amount"
+                            [class.comm-prima-rata-full]="isFirstBal"
+                            [class.comm-zero]="isZeroRow"
+                          >
                             {{ eurFmt(primaRataCommDisplayAmount(c, d)) }}
                           </span>
                         } @else {
@@ -515,10 +562,10 @@ export class CommissionsComponent {
     const type = this.filterType();
     const personId = this.filterPersonId();
 
-    return this.comms().filter(c => {
+    return this.comms().filter((c) => {
       const inst = c.installment;
       const inMonth = inst
-        ? (inst.dueDate?.startsWith(m) || inst.paymentDate?.startsWith(m))
+        ? inst.dueDate?.startsWith(m) || inst.paymentDate?.startsWith(m)
         : c.createdAt?.startsWith(m);
       if (!inMonth) return false;
 
@@ -572,7 +619,7 @@ export class CommissionsComponent {
     for (const [id, salComms] of saleMap.entries()) {
       const firstBal = firstBalanceInstOf(salComms);
       // Fall back to deposit if no balance installment exists (deposit-only deal)
-      const pivotInst = firstBal ?? salComms.find(c => c.installment)?.installment ?? null;
+      const pivotInst = firstBal ?? salComms.find((c) => c.installment)?.installment ?? null;
       if (!pivotInst) continue;
       const inMonth = pivotInst.dueDate?.startsWith(m) || pivotInst.paymentDate?.startsWith(m);
       if (!inMonth) continue;
@@ -583,7 +630,7 @@ export class CommissionsComponent {
 
   // Mode-aware deal list (used by template and other computeds)
   readonly filteredDeals = computed<DealRow[]>(() =>
-    this.commMode() === 'prima-rata' ? this.filteredDealsPrimaRata() : this.filteredDealsPerRata()
+    this.commMode() === 'prima-rata' ? this.filteredDealsPrimaRata() : this.filteredDealsPerRata(),
   );
 
   // ── Chart ─────────────────────────────────────────────────────────
@@ -591,9 +638,11 @@ export class CommissionsComponent {
     last6Months().map(({ iso, label }) => ({
       m: label,
       v: this.comms()
-        .filter(c => c.installment?.status === 'paid' && c.installment.paymentDate?.startsWith(iso))
+        .filter(
+          (c) => c.installment?.status === 'paid' && c.installment.paymentDate?.startsWith(iso),
+        )
         .reduce((s, c) => s + Number(c.amount ?? 0), 0),
-    }))
+    })),
   );
 
   private readonly seriesPrimaRata = computed(() => {
@@ -604,7 +653,7 @@ export class CommissionsComponent {
         const firstBal = firstBalanceInstOf(salComms);
         if (firstBal?.status === 'paid' && firstBal.paymentDate?.startsWith(iso)) {
           v += salComms
-            .filter(c => c.installment?.type !== 'deposit')
+            .filter((c) => c.installment?.type !== 'deposit')
             .reduce((s, c) => s + Number(c.amount ?? 0), 0);
         }
       }
@@ -613,14 +662,14 @@ export class CommissionsComponent {
   });
 
   readonly series = computed(() =>
-    this.commMode() === 'prima-rata' ? this.seriesPrimaRata() : this.seriesPerRata()
+    this.commMode() === 'prima-rata' ? this.seriesPrimaRata() : this.seriesPerRata(),
   );
 
   // ── Stats per selected month ───────────────────────────────────────
   private readonly maturatoPR = computed(() =>
     this.filteredComms()
-      .filter(c => c.installment?.status === 'paid')
-      .reduce((s, c) => s + Number(c.amount ?? 0), 0)
+      .filter((c) => c.installment?.status === 'paid')
+      .reduce((s, c) => s + Number(c.amount ?? 0), 0),
   );
 
   private readonly maturatoPrimaRata = computed(() => {
@@ -629,26 +678,30 @@ export class CommissionsComponent {
       const firstBal = firstBalanceInstOf(d.comms);
       if (firstBal?.status === 'paid' && firstBal.paymentDate?.startsWith(m)) {
         total += d.comms
-          .filter(c => c.installment?.type !== 'deposit')
+          .filter((c) => c.installment?.type !== 'deposit')
           .reduce((s, c) => s + Number(c.amount ?? 0), 0);
       }
       // Deposit commissions follow per-rata even in prima-rata mode
       total += d.comms
-        .filter(c => c.installment?.type === 'deposit' &&
-          c.installment.status === 'paid' && c.installment.paymentDate?.startsWith(m))
+        .filter(
+          (c) =>
+            c.installment?.type === 'deposit' &&
+            c.installment.status === 'paid' &&
+            c.installment.paymentDate?.startsWith(m),
+        )
         .reduce((s, c) => s + Number(c.amount ?? 0), 0);
       return total;
     }, 0);
   });
 
   readonly maturato = computed(() =>
-    this.commMode() === 'prima-rata' ? this.maturatoPrimaRata() : this.maturatoPR()
+    this.commMode() === 'prima-rata' ? this.maturatoPrimaRata() : this.maturatoPR(),
   );
 
   private readonly daIncassarePR = computed(() =>
     this.filteredComms()
-      .filter(c => c.installment?.status === 'draft')
-      .reduce((s, c) => s + Number(c.amount ?? 0), 0)
+      .filter((c) => c.installment?.status === 'draft')
+      .reduce((s, c) => s + Number(c.amount ?? 0), 0),
   );
 
   private readonly daIncassarePrimaRata = computed(() =>
@@ -656,25 +709,27 @@ export class CommissionsComponent {
       const firstBal = firstBalanceInstOf(d.comms);
       if (firstBal && firstBal.status !== 'paid') {
         total += d.comms
-          .filter(c => c.installment?.type !== 'deposit')
+          .filter((c) => c.installment?.type !== 'deposit')
           .reduce((s, c) => s + Number(c.amount ?? 0), 0);
       }
       total += d.comms
-        .filter(c => c.installment?.type === 'deposit' && c.installment.status === 'draft')
+        .filter((c) => c.installment?.type === 'deposit' && c.installment.status === 'draft')
         .reduce((s, c) => s + Number(c.amount ?? 0), 0);
       return total;
-    }, 0)
+    }, 0),
   );
 
   readonly daIncassare = computed(() =>
-    this.commMode() === 'prima-rata' ? this.daIncassarePrimaRata() : this.daIncassarePR()
+    this.commMode() === 'prima-rata' ? this.daIncassarePrimaRata() : this.daIncassarePR(),
   );
 
   // ── Year total ─────────────────────────────────────────────────────
   private readonly annoTotPR = computed(() => {
     const year = String(new Date().getFullYear());
     return this.comms()
-      .filter(c => c.installment?.status === 'paid' && c.installment.paymentDate?.startsWith(year))
+      .filter(
+        (c) => c.installment?.status === 'paid' && c.installment.paymentDate?.startsWith(year),
+      )
       .reduce((s, c) => s + Number(c.amount ?? 0), 0);
   });
 
@@ -685,7 +740,7 @@ export class CommissionsComponent {
       const firstBal = firstBalanceInstOf(salComms);
       if (firstBal?.status === 'paid' && firstBal.paymentDate?.startsWith(year)) {
         total += salComms
-          .filter(c => c.installment?.type !== 'deposit')
+          .filter((c) => c.installment?.type !== 'deposit')
           .reduce((s, c) => s + Number(c.amount ?? 0), 0);
       }
     }
@@ -693,10 +748,12 @@ export class CommissionsComponent {
   });
 
   readonly annoTot = computed(() =>
-    this.commMode() === 'prima-rata' ? this.annoTotPrimaRata() : this.annoTotPR()
+    this.commMode() === 'prima-rata' ? this.annoTotPrimaRata() : this.annoTotPR(),
   );
 
-  readonly totalCommission = computed(() => this.filteredDeals().reduce((s, d) => s + d.commission, 0));
+  readonly totalCommission = computed(() =>
+    this.filteredDeals().reduce((s, d) => s + d.commission, 0),
+  );
   readonly dealVal = computed(() => this.filteredDeals().reduce((s, d) => s + d.value, 0));
 
   readonly tassoMedio = computed(() => {
@@ -704,10 +761,10 @@ export class CommissionsComponent {
     return v ? ((this.totalCommission() / v) * 100).toFixed(1) + '%' : '0%';
   });
 
-  readonly target = computed(() => this.isAdmin() ? 18000 : 6000);
+  readonly target = computed(() => (this.isAdmin() ? 18000 : 6000));
   readonly targetPct = computed(() => Math.round((this.maturato() / this.target()) * 100));
   readonly maxCommission = computed(() =>
-    this.filteredDeals().length ? Math.max(...this.filteredDeals().map(d => d.commission)) : 0
+    this.filteredDeals().length ? Math.max(...this.filteredDeals().map((d) => d.commission)) : 0,
   );
 
   readonly eurMaturato = computed(() => eur(this.maturato()));
@@ -716,16 +773,18 @@ export class CommissionsComponent {
 
   readonly byType = computed(() =>
     Object.keys(COMM_TYPE)
-      .map(k => ({
+      .map((k) => ({
         key: k,
         label: COMM_TYPE[k].label,
         color: COMM_TYPE[k].color,
-        v: this.filteredDeals().filter(d => d.commType === k).reduce((s, d) => s + d.commission, 0),
+        v: this.filteredDeals()
+          .filter((d) => d.commType === k)
+          .reduce((s, d) => s + d.commission, 0),
       }))
-      .filter(s => s.v > 0)
+      .filter((s) => s.v > 0),
   );
 
-  readonly donutSlices = computed(() => this.byType().map(s => ({ v: s.v, color: s.color })));
+  readonly donutSlices = computed(() => this.byType().map((s) => ({ v: s.v, color: s.color })));
 
   readonly leaderboard = computed<LeaderboardEntry[]>(() => {
     if (!this.isAdmin()) return [];
@@ -748,9 +807,10 @@ export class CommissionsComponent {
   readonly expandedDeals = signal(new Set<string>());
 
   toggleDeal(id: string): void {
-    this.expandedDeals.update(set => {
+    this.expandedDeals.update((set) => {
       const next = new Set(set);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -759,13 +819,19 @@ export class CommissionsComponent {
     return this.expandedDeals().has(id);
   }
 
-  pct(v: number): number { return Math.round(v / (this.totalCommission() || 1) * 100); }
-  commColor(type: string): string { return COMM_TYPE[type]?.color ?? '#666'; }
-  commLabel(type: string): string { return COMM_TYPE[type]?.label ?? type; }
+  pct(v: number): number {
+    return Math.round((v / (this.totalCommission() || 1)) * 100);
+  }
+  commColor(type: string): string {
+    return COMM_TYPE[type]?.color ?? '#666';
+  }
+  commLabel(type: string): string {
+    return COMM_TYPE[type]?.label ?? type;
+  }
 
   lbWidth(total: number): string {
-    const max = Math.max(...this.leaderboard().map(e => e.total), 1);
-    return (total / max * 100) + '%';
+    const max = Math.max(...this.leaderboard().map((e) => e.total), 1);
+    return (total / max) * 100 + '%';
   }
 
   // Returns the commission amount to display for a row in prima-rata mode.
@@ -777,9 +843,11 @@ export class CommissionsComponent {
     const personId = c.seller?.id ?? c.setter?.id;
     const isSeller = !!c.seller;
     const personTotal = d.comms
-      .filter(x =>
-        x.installment?.type !== 'deposit' &&
-        (isSeller ? x.seller?.id === personId : x.setter?.id === personId))
+      .filter(
+        (x) =>
+          x.installment?.type !== 'deposit' &&
+          (isSeller ? x.seller?.id === personId : x.setter?.id === personId),
+      )
       .reduce((s, x) => s + Number(x.amount ?? 0), 0);
     return c.installment?.installmentNumber === 1 ? personTotal : 0;
   }

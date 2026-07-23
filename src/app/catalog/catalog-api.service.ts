@@ -52,6 +52,23 @@ export interface CreateCheckoutSessionDto {
   withCf?: boolean;
 }
 
+export interface TelegramSegment {
+  id: number;
+  serviceVariant: { id: number };
+  installmentNumber: number;
+  telegramChatId: string;
+  messageTemplate: string;
+}
+
+export interface CreateTelegramSegmentDto {
+  serviceVariantId: number;
+  installmentNumber: number;
+  telegramChatId: string;
+  messageTemplate: string;
+}
+
+export type UpdateTelegramSegmentDto = Partial<Omit<CreateTelegramSegmentDto, 'serviceVariantId'>>;
+
 /** ID Stripe ITA dedicato (Anna Massari) */
 export const ITALIAN_STRIPE_CLIENT_ID = 99;
 
@@ -75,5 +92,23 @@ export class CatalogApiService {
 
   createCheckoutSession(dto: CreateCheckoutSessionDto): Observable<{ url: string }> {
     return this.http.post<{ url: string }>(`${API}/stripe/checkout-session`, dto);
+  }
+
+  getTelegramSegments(serviceVariantId: number): Observable<TelegramSegment[]> {
+    return this.http.get<TelegramSegment[]>(`${API}/telegram-segments`, {
+      params: { serviceVariantId: String(serviceVariantId) },
+    });
+  }
+
+  createTelegramSegment(dto: CreateTelegramSegmentDto): Observable<TelegramSegment> {
+    return this.http.post<TelegramSegment>(`${API}/telegram-segments`, dto);
+  }
+
+  updateTelegramSegment(id: number, dto: UpdateTelegramSegmentDto): Observable<TelegramSegment> {
+    return this.http.patch<TelegramSegment>(`${API}/telegram-segments/${id}`, dto);
+  }
+
+  deleteTelegramSegment(id: number): Observable<void> {
+    return this.http.delete<void>(`${API}/telegram-segments/${id}`);
   }
 }
