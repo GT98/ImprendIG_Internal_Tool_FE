@@ -33,6 +33,7 @@ const ICONS: Record<string, string | string[]> = {
   trending:      ['M22 7l-8.5 8.5-5-5L2 17', 'M16 7h6v6'],
   activity:      'M22 12h-4l-3 9L9 3l-3 9H2',
   swap:          ['M7 16V4m0 0L3 8m4-4l4 4', 'M17 8v12m0 0l4-4m-4 4l-4-4'],
+  send:          ['M22 2L11 13', 'M22 2L15 22 11 13 2 9Z'],
 };
 
 @Component({

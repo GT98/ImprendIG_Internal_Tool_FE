@@ -44,6 +44,31 @@ export type UpdatePricePlanDto = Partial<Pick<CatalogPricePlan,
   'billingType'
 >>;
 
+export interface CreateServiceDto {
+  name: string;
+  clientId?: number;
+  isActive?: boolean;
+}
+
+export interface CreateVariantDto {
+  name: string;
+  serviceId: number;
+}
+
+export interface CreatePricePlanDto {
+  name: string;
+  serviceVariantId: number;
+  billingType: 'recurring' | 'one_time';
+  basePrice?: number;
+  installmentCount?: number;
+  installmentAmount?: number;
+  totalAmount?: number;
+  stripePaymentLink?: string;
+  stripePriceId?: string;
+  itaStripePriceId?: string;
+  itaStripePaymentLink?: string;
+}
+
 export interface CreateCheckoutSessionDto {
   pricePlanId: number;
   sellerId: number;
@@ -110,5 +135,37 @@ export class CatalogApiService {
 
   deleteTelegramSegment(id: number): Observable<void> {
     return this.http.delete<void>(`${API}/telegram-segments/${id}`);
+  }
+
+  createService(dto: CreateServiceDto): Observable<CatalogService> {
+    return this.http.post<CatalogService>(`${API}/services`, dto);
+  }
+
+  updateService(id: number, dto: { name?: string; isActive?: boolean }): Observable<CatalogService> {
+    return this.http.patch<CatalogService>(`${API}/services/${id}`, dto);
+  }
+
+  deleteService(id: number): Observable<void> {
+    return this.http.delete<void>(`${API}/services/${id}`);
+  }
+
+  createVariant(dto: CreateVariantDto): Observable<CatalogVariant> {
+    return this.http.post<CatalogVariant>(`${API}/service-variants`, dto);
+  }
+
+  updateVariant(id: number, dto: { name: string }): Observable<CatalogVariant> {
+    return this.http.patch<CatalogVariant>(`${API}/service-variants/${id}`, dto);
+  }
+
+  deleteVariant(id: number): Observable<void> {
+    return this.http.delete<void>(`${API}/service-variants/${id}`);
+  }
+
+  createPricePlan(dto: CreatePricePlanDto): Observable<CatalogPricePlan> {
+    return this.http.post<CatalogPricePlan>(`${API}/price-plans`, dto);
+  }
+
+  deletePricePlan(id: number): Observable<void> {
+    return this.http.delete<void>(`${API}/price-plans/${id}`);
   }
 }

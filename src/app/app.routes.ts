@@ -68,6 +68,19 @@ export const routes: Routes = [
           import('./features/team/team.component').then(m => m.TeamComponent),
         title: 'Team',
       },
+      {
+        path: 'customers',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/customers/customers-list.component').then(m => m.CustomersListComponent),
+        title: 'Clienti',
+      },
+      {
+        path: 'leads',
+        loadComponent: () =>
+          import('./features/leads/leads-list.component').then(m => m.LeadsListComponent),
+        title: 'Lead',
+      },
     ],
   },
 ];

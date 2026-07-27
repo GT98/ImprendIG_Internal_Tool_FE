@@ -19,10 +19,12 @@ const BASE_NAV = [
   { path: 'provvigioni', label: 'Provvigioni', icon: 'chart' },
   { path: 'clienti', label: 'Vendite', icon: 'users' },
   { path: 'catalogo', label: 'Catalogo', icon: 'grid' },
+  { path: 'leads', label: 'Lead', icon: 'target' },
 ];
 const ADMIN_NAV = [
   { path: 'dashboard', label: 'Dashboard', icon: 'home' },
   ...BASE_NAV,
+  { path: 'customers', label: 'Clienti', icon: 'users' },
   { path: 'onboarding', label: 'Onboarding', icon: 'send' },
   { path: 'team', label: 'Team', icon: 'users' },
 ];

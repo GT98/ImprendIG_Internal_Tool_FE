@@ -1,7 +1,13 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../auth/auth.service';
-import { CatalogApiService, CatalogPricePlan, CatalogService, CatalogVariant, ITALIAN_STRIPE_CLIENT_ID } from '../../catalog/catalog-api.service';
+import {
+  CatalogApiService,
+  CatalogPricePlan,
+  CatalogService,
+  CatalogVariant,
+  ITALIAN_STRIPE_CLIENT_ID,
+} from '../../catalog/catalog-api.service';
 import { ToastService } from '../../shared/toast.service';
 import { IconComponent } from '../../shared/icon.component';
 import { eur as eurFmt } from '../../utils';
@@ -42,6 +48,22 @@ function tomorrow(): string {
   return d.toISOString().split('T')[0];
 }
 
+function emptyEditState(): EditState {
+  return {
+    id: 0,
+    name: '',
+    basePrice: '',
+    installmentCount: '',
+    installmentAmount: '',
+    totalAmount: '',
+    stripePaymentLink: '',
+    stripePriceId: '',
+    itaStripePriceId: '',
+    itaStripePaymentLink: '',
+    billingType: 'recurring',
+  };
+}
+
 @Component({
   selector: 'app-catalog',
   imports: [IconComponent, TitleCasePipe],
@@ -49,43 +71,19 @@ function tomorrow(): string {
   template: `
     <!-- View tabs UAE / ITA -->
     <div class="cat-view-tabs" role="tablist" aria-label="Seleziona account Stripe">
-      <button
-        class="cat-view-tab"
-        role="tab"
-        [class.active]="catalogView() === 'uae'"
-        [attr.aria-selected]="catalogView() === 'uae'"
-        (click)="catalogView.set('uae')"
-      >
+      <button class="cat-view-tab" role="tab" [class.active]="catalogView() === 'uae'" [attr.aria-selected]="catalogView() === 'uae'" (click)="catalogView.set('uae')">
         🇦🇪 Stripe UAE
       </button>
-      <button
-        class="cat-view-tab"
-        role="tab"
-        [class.active]="catalogView() === 'ita'"
-        [attr.aria-selected]="catalogView() === 'ita'"
-        (click)="catalogView.set('ita')"
-      >
+      <button class="cat-view-tab" role="tab" [class.active]="catalogView() === 'ita'" [attr.aria-selected]="catalogView() === 'ita'" (click)="catalogView.set('ita')">
         🇮🇹 Stripe ITA
       </button>
     </div>
 
     <!-- Filter bar -->
     <div class="cat-filter" role="group" aria-label="Filtra per cliente">
-      <button
-        class="cat-chip"
-        [class.active]="selectedClientId() === null"
-        (click)="selectedClientId.set(null)"
-      >
-        Tutti
-      </button>
+      <button class="cat-chip" [class.active]="selectedClientId() === null" (click)="selectedClientId.set(null)">Tutti</button>
       @for (c of clientsResource.value() ?? []; track c.id) {
-        <button
-          class="cat-chip"
-          [class.active]="selectedClientId() === c.id"
-          (click)="selectedClientId.set(c.id)"
-        >
-          {{ c.name | titlecase }}
-        </button>
+        <button class="cat-chip" [class.active]="selectedClientId() === c.id" (click)="selectedClientId.set(c.id)">{{ c.name | titlecase }}</button>
       }
     </div>
 
@@ -101,7 +99,6 @@ function tomorrow(): string {
       />
     </div>
 
-    <!-- Loading / empty states -->
     @if (catalogResource.isLoading()) {
       <div class="cat-empty"><span>Caricamento…</span></div>
     } @else if (filteredGroups().length === 0) {
@@ -110,29 +107,88 @@ function tomorrow(): string {
         <span>{{ searchQuery() ? 'Nessun risultato per "' + searchQuery() + '"' : 'Nessun servizio trovato' }}</span>
       </div>
     } @else {
-      <!-- Grouped by client -->
       @for (group of filteredGroups(); track group.key) {
         <div class="client-group">
-          <!-- Client section header -->
+
+          <!-- Client group header -->
           <div class="client-group-header">
             <span class="client-group-name">{{ group.clientName }}</span>
             <span class="client-group-count">{{ group.services.length }} {{ group.services.length === 1 ? 'servizio' : 'servizi' }}</span>
             <span class="client-group-line" aria-hidden="true"></span>
+
+            @if (isAdmin()) {
+              @if (addingServiceClientKey() === group.key) {
+                <div class="add-inline-form" role="form" aria-label="Nuovo servizio">
+                  <input
+                    class="add-inline-input"
+                    type="text"
+                    placeholder="Nome servizio"
+                    [value]="newServiceName()"
+                    (input)="newServiceName.set($any($event.target).value)"
+                    aria-label="Nome nuovo servizio"
+                  />
+                  <button class="btn-sm-primary" [disabled]="!newServiceName().trim() || creatingService()" (click)="createService(group)">
+                    {{ creatingService() ? '…' : 'Crea' }}
+                  </button>
+                  <button class="btn-sm-ghost" (click)="cancelAddService()">Annulla</button>
+                </div>
+              } @else {
+                <button class="add-inline-btn" (click)="openAddService(group.key)" [attr.aria-label]="'Aggiungi servizio a ' + group.clientName">
+                  <app-icon name="plus" [size]="13" />
+                  Servizio
+                </button>
+              }
+            }
           </div>
 
-          <!-- Services for this client -->
+          <!-- Services -->
           <div class="client-group-services">
             @for (svc of group.services; track svc.id) {
               <div class="svc-card">
+
                 <!-- Service header -->
-                <div class="svc-header">
-                  <span class="svc-name">{{ svc.name }}</span>
-                  @if (svc.isActive) {
-                    <span class="svc-badge active" aria-label="Attivo">Attivo</span>
-                  } @else {
-                    <span class="svc-badge" aria-label="Non attivo">Non attivo</span>
-                  }
-                </div>
+                @if (isAdmin() && editServiceId() === svc.id) {
+                  <div class="svc-edit-header">
+                    <input
+                      class="add-inline-input"
+                      type="text"
+                      [value]="editServiceNameVal()"
+                      (input)="editServiceNameVal.set($any($event.target).value)"
+                      placeholder="Nome servizio"
+                      aria-label="Nome servizio"
+                    />
+                    <label class="toggle-label">
+                      <input type="checkbox" [checked]="editServiceActiveVal()" (change)="editServiceActiveVal.set($any($event.target).checked)" />
+                      Attivo
+                    </label>
+                    <button class="btn-sm-primary" [disabled]="savingService()" (click)="saveService()">{{ savingService() ? '…' : 'Salva' }}</button>
+                    <button class="btn-sm-ghost" (click)="cancelEditService()">Annulla</button>
+                  </div>
+                } @else {
+                  <div class="svc-header">
+                    <span class="svc-name">{{ svc.name }}</span>
+                    @if (svc.isActive) {
+                      <span class="svc-badge active" aria-label="Attivo">Attivo</span>
+                    } @else {
+                      <span class="svc-badge" aria-label="Non attivo">Non attivo</span>
+                    }
+                    @if (isAdmin()) {
+                      <div class="svc-admin-actions">
+                        <button class="btn-icon-sm" (click)="startEditService(svc)" aria-label="Modifica servizio">
+                          <app-icon name="edit" [size]="14" />
+                        </button>
+                        @if (isConfirming('service', svc.id)) {
+                          <button class="btn-del-confirm" (click)="deleteService(svc.id)">Elimina</button>
+                          <button class="btn-sm-ghost btn-sm-compact" (click)="confirmDelete.set(null)">Annulla</button>
+                        } @else {
+                          <button class="btn-icon-sm btn-icon-del" (click)="askDelete('service', svc.id)" aria-label="Elimina servizio">
+                            <app-icon name="x" [size]="14" />
+                          </button>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
 
                 <!-- Variants -->
                 @if ((svc.variants ?? []).length === 0) {
@@ -140,7 +196,36 @@ function tomorrow(): string {
                 }
                 @for (variant of svc.variants ?? []; track variant.id) {
                   <div class="variant-block">
-                    <div class="variant-name">{{ variant.name }}</div>
+
+                    <!-- Variant name row -->
+                    <div class="variant-name-row">
+                      @if (isAdmin() && editVariantId() === variant.id) {
+                        <input
+                          class="variant-edit-input"
+                          type="text"
+                          [value]="editVariantNameVal()"
+                          (input)="editVariantNameVal.set($any($event.target).value)"
+                          aria-label="Nome variante"
+                        />
+                        <button class="btn-sm-primary btn-sm-compact" [disabled]="savingVariant()" (click)="saveVariant()">{{ savingVariant() ? '…' : 'Salva' }}</button>
+                        <button class="btn-sm-ghost btn-sm-compact" (click)="cancelEditVariant()">✕</button>
+                      } @else {
+                        <span class="variant-name">{{ variant.name }}</span>
+                        @if (isAdmin()) {
+                          <button class="btn-icon-sm variant-action" (click)="startEditVariant(variant)" [attr.aria-label]="'Rinomina variante ' + variant.name">
+                            <app-icon name="edit" [size]="13" />
+                          </button>
+                          @if (isConfirming('variant', variant.id)) {
+                            <button class="btn-del-confirm btn-del-confirm-sm" (click)="deleteVariant(variant.id)">Elimina</button>
+                            <button class="btn-sm-ghost btn-sm-compact" (click)="confirmDelete.set(null)">Annulla</button>
+                          } @else {
+                            <button class="btn-icon-sm btn-icon-del variant-action" (click)="askDelete('variant', variant.id)" [attr.aria-label]="'Elimina variante ' + variant.name">
+                              <app-icon name="x" [size]="13" />
+                            </button>
+                          }
+                        }
+                      }
+                    </div>
 
                     @if ((variant.pricePlans ?? []).length === 0) {
                       <p class="cat-muted cat-muted-sm">Nessun piano</p>
@@ -160,51 +245,35 @@ function tomorrow(): string {
                             }
                           </span>
                         </div>
-
                         <div class="plan-actions">
                           @if (catalogView() === 'ita') {
-                            <!-- ITA view: solo pulsante link ITA -->
-                            <button
-                              class="btn-link btn-link-ita"
-                              [disabled]="!plan.itaStripePaymentLink"
-                              [attr.aria-label]="'Copia link ITA per ' + plan.name"
-                              (click)="copyLinkIta(plan)"
-                            >
+                            <button class="btn-link btn-link-ita" [disabled]="!plan.itaStripePaymentLink" [attr.aria-label]="'Copia link ITA per ' + plan.name" (click)="copyLinkIta(plan)">
                               <app-icon name="copy" [size]="15" />
                               Copia link
                             </button>
                           } @else {
-                            <!-- UAE view: solo pulsante link UAE -->
-                            <button
-                              class="btn-link"
-                              [disabled]="!plan.stripePaymentLink"
-                              [attr.aria-label]="'Copia link UAE per ' + plan.name"
-                              (click)="copyLink(plan)"
-                            >
+                            <button class="btn-link" [disabled]="!plan.stripePaymentLink" [attr.aria-label]="'Copia link UAE per ' + plan.name" (click)="copyLink(plan)">
                               <app-icon name="copy" [size]="15" />
                               Copia link
                             </button>
                           }
-
-                          <button
-                            class="btn-generate"
-                            [attr.aria-label]="'Genera link per ' + plan.name"
-                            (click)="openGenerateModal(plan)"
-                          >
+                          <button class="btn-generate" [attr.aria-label]="'Genera link per ' + plan.name" (click)="openGenerateModal(plan)">
                             <app-icon name="zap" [size]="15" />
                             Genera link
                           </button>
-
                           @if (isAdmin()) {
-                            <button
-                              class="btn-edit"
-                              [attr.aria-label]="'Modifica ' + plan.name"
-                              [attr.aria-expanded]="editState()?.id === plan.id"
-                              (click)="toggleEdit(plan)"
-                            >
+                            <button class="btn-edit" [attr.aria-label]="'Modifica ' + plan.name" [attr.aria-expanded]="editState()?.id === plan.id" (click)="toggleEdit(plan)">
                               <app-icon name="edit" [size]="15" />
                               Modifica
                             </button>
+                            @if (isConfirming('plan', plan.id)) {
+                              <button class="btn-del-confirm" (click)="deletePlan(plan.id)">Elimina</button>
+                              <button class="btn-cancel-sm" (click)="confirmDelete.set(null)">✕</button>
+                            } @else {
+                              <button class="btn-del" (click)="askDelete('plan', plan.id)" [attr.aria-label]="'Elimina piano ' + plan.name">
+                                <app-icon name="x" [size]="14" />
+                              </button>
+                            }
                           }
                         </div>
                       </div>
@@ -214,106 +283,145 @@ function tomorrow(): string {
                           <div class="edit-grid">
                             <label class="edit-field">
                               <span>Nome</span>
-                              <input
-                                type="text"
-                                [value]="editState()!.name"
-                                (input)="patchEdit('name', $any($event.target).value)"
-                                placeholder="Nome piano"
-                              />
+                              <input type="text" [value]="editState()!.name" (input)="patchEdit('name', $any($event.target).value)" placeholder="Nome piano" />
                             </label>
                             <label class="edit-field">
                               <span>Prezzo base (€)</span>
-                              <input
-                                type="number" min="0"
-                                [value]="editState()!.basePrice"
-                                (input)="patchEdit('basePrice', $any($event.target).value)"
-                                placeholder="0"
-                              />
+                              <input type="number" min="0" [value]="editState()!.basePrice" (input)="patchEdit('basePrice', $any($event.target).value)" placeholder="0" />
                             </label>
                             <label class="edit-field">
                               <span>N. rate</span>
-                              <input
-                                type="number" min="0"
-                                [value]="editState()!.installmentCount"
-                                (input)="patchEdit('installmentCount', $any($event.target).value)"
-                                placeholder="0"
-                              />
+                              <input type="number" min="0" [value]="editState()!.installmentCount" (input)="patchEdit('installmentCount', $any($event.target).value)" placeholder="0" />
                             </label>
                             <label class="edit-field">
                               <span>Importo rata (€)</span>
-                              <input
-                                type="number" min="0"
-                                [value]="editState()!.installmentAmount"
-                                (input)="patchEdit('installmentAmount', $any($event.target).value)"
-                                placeholder="0"
-                              />
+                              <input type="number" min="0" [value]="editState()!.installmentAmount" (input)="patchEdit('installmentAmount', $any($event.target).value)" placeholder="0" />
                             </label>
                             <label class="edit-field">
                               <span>Totale (€)</span>
-                              <input
-                                type="number" min="0"
-                                [value]="editState()!.totalAmount"
-                                (input)="patchEdit('totalAmount', $any($event.target).value)"
-                                placeholder="0"
-                              />
+                              <input type="number" min="0" [value]="editState()!.totalAmount" (input)="patchEdit('totalAmount', $any($event.target).value)" placeholder="0" />
                             </label>
                             <label class="edit-field edit-field-wide">
                               <span>Stripe Payment Link (UAE)</span>
-                              <input
-                                type="url"
-                                [value]="editState()!.stripePaymentLink"
-                                (input)="patchEdit('stripePaymentLink', $any($event.target).value)"
-                                placeholder="https://buy.stripe.com/…"
-                              />
+                              <input type="url" [value]="editState()!.stripePaymentLink" (input)="patchEdit('stripePaymentLink', $any($event.target).value)" placeholder="https://buy.stripe.com/…" />
                             </label>
                             <label class="edit-field edit-field-wide">
                               <span>Stripe Price ID (UAE)</span>
-                              <input
-                                type="text"
-                                [value]="editState()!.stripePriceId"
-                                (input)="patchEdit('stripePriceId', $any($event.target).value)"
-                                placeholder="price_…"
-                              />
+                              <input type="text" [value]="editState()!.stripePriceId" (input)="patchEdit('stripePriceId', $any($event.target).value)" placeholder="price_…" />
                             </label>
                             <label class="edit-field edit-field-wide">
                               <span>Stripe Payment Link (ITA)</span>
-                              <input
-                                type="url"
-                                [value]="editState()!.itaStripePaymentLink"
-                                (input)="patchEdit('itaStripePaymentLink', $any($event.target).value)"
-                                placeholder="https://buy.stripe.com/…"
-                              />
+                              <input type="url" [value]="editState()!.itaStripePaymentLink" (input)="patchEdit('itaStripePaymentLink', $any($event.target).value)" placeholder="https://buy.stripe.com/…" />
                             </label>
                             <label class="edit-field edit-field-wide">
                               <span>Stripe Price ID (ITA)</span>
-                              <input
-                                type="text"
-                                [value]="editState()!.itaStripePriceId"
-                                (input)="patchEdit('itaStripePriceId', $any($event.target).value)"
-                                placeholder="price_…"
-                              />
+                              <input type="text" [value]="editState()!.itaStripePriceId" (input)="patchEdit('itaStripePriceId', $any($event.target).value)" placeholder="price_…" />
                             </label>
                             <label class="edit-field">
                               <span>Tipo pagamento</span>
-                              <select
-                                [value]="editState()!.billingType"
-                                (change)="patchEdit('billingType', $any($event.target).value)"
-                              >
+                              <select [value]="editState()!.billingType" (change)="patchEdit('billingType', $any($event.target).value)">
                                 <option value="recurring">Abbonamento</option>
                                 <option value="one_time">Singolo (una tantum)</option>
                               </select>
                             </label>
                           </div>
                           <div class="edit-footer">
-                            <button class="btn-save" [disabled]="saving()" (click)="savePlan()">
-                              {{ saving() ? 'Salvataggio…' : 'Salva' }}
-                            </button>
+                            <button class="btn-save" [disabled]="saving()" (click)="savePlan()">{{ saving() ? 'Salvataggio…' : 'Salva' }}</button>
                             <button class="btn-cancel" (click)="editState.set(null)">Annulla</button>
                           </div>
                         </div>
                       }
                     }
+
+                    <!-- Add price plan -->
+                    @if (isAdmin()) {
+                      @if (addingPlanVariantId() === variant.id) {
+                        <div class="edit-panel" role="form" aria-label="Nuovo piano">
+                          <div class="edit-grid">
+                            <label class="edit-field">
+                              <span>Nome *</span>
+                              <input type="text" [value]="newPlanState()!.name" (input)="patchNewPlan('name', $any($event.target).value)" placeholder="Nome piano" />
+                            </label>
+                            <label class="edit-field">
+                              <span>Tipo pagamento</span>
+                              <select [value]="newPlanState()!.billingType" (change)="patchNewPlan('billingType', $any($event.target).value)">
+                                <option value="recurring">Abbonamento</option>
+                                <option value="one_time">Singolo (una tantum)</option>
+                              </select>
+                            </label>
+                            <label class="edit-field">
+                              <span>Prezzo base (€)</span>
+                              <input type="number" min="0" [value]="newPlanState()!.basePrice" (input)="patchNewPlan('basePrice', $any($event.target).value)" placeholder="0" />
+                            </label>
+                            <label class="edit-field">
+                              <span>N. rate</span>
+                              <input type="number" min="0" [value]="newPlanState()!.installmentCount" (input)="patchNewPlan('installmentCount', $any($event.target).value)" placeholder="0" />
+                            </label>
+                            <label class="edit-field">
+                              <span>Importo rata (€)</span>
+                              <input type="number" min="0" [value]="newPlanState()!.installmentAmount" (input)="patchNewPlan('installmentAmount', $any($event.target).value)" placeholder="0" />
+                            </label>
+                            <label class="edit-field">
+                              <span>Totale (€)</span>
+                              <input type="number" min="0" [value]="newPlanState()!.totalAmount" (input)="patchNewPlan('totalAmount', $any($event.target).value)" placeholder="0" />
+                            </label>
+                            <label class="edit-field edit-field-wide">
+                              <span>Stripe Payment Link (UAE)</span>
+                              <input type="url" [value]="newPlanState()!.stripePaymentLink" (input)="patchNewPlan('stripePaymentLink', $any($event.target).value)" placeholder="https://buy.stripe.com/…" />
+                            </label>
+                            <label class="edit-field edit-field-wide">
+                              <span>Stripe Price ID (UAE)</span>
+                              <input type="text" [value]="newPlanState()!.stripePriceId" (input)="patchNewPlan('stripePriceId', $any($event.target).value)" placeholder="price_…" />
+                            </label>
+                            <label class="edit-field edit-field-wide">
+                              <span>Stripe Payment Link (ITA)</span>
+                              <input type="url" [value]="newPlanState()!.itaStripePaymentLink" (input)="patchNewPlan('itaStripePaymentLink', $any($event.target).value)" placeholder="https://buy.stripe.com/…" />
+                            </label>
+                            <label class="edit-field edit-field-wide">
+                              <span>Stripe Price ID (ITA)</span>
+                              <input type="text" [value]="newPlanState()!.itaStripePriceId" (input)="patchNewPlan('itaStripePriceId', $any($event.target).value)" placeholder="price_…" />
+                            </label>
+                          </div>
+                          <div class="edit-footer">
+                            <button class="btn-save" [disabled]="!newPlanState()?.name?.trim() || creatingPlan()" (click)="createPlan()">
+                              {{ creatingPlan() ? 'Creazione…' : 'Crea piano' }}
+                            </button>
+                            <button class="btn-cancel" (click)="cancelAddPlan()">Annulla</button>
+                          </div>
+                        </div>
+                      } @else {
+                        <button class="add-plan-btn" (click)="openAddPlan(variant.id)" [attr.aria-label]="'Aggiungi piano a ' + variant.name">
+                          <app-icon name="plus" [size]="13" />
+                          Nuovo piano
+                        </button>
+                      }
+                    }
                   </div>
+                }
+
+                <!-- Add variant -->
+                @if (isAdmin()) {
+                  @if (addingVariantServiceId() === svc.id) {
+                    <div class="add-variant-form" role="form" aria-label="Nuova variante">
+                      <input
+                        class="add-inline-input"
+                        type="text"
+                        placeholder="Nome variante"
+                        [value]="newVariantName()"
+                        (input)="newVariantName.set($any($event.target).value)"
+                        aria-label="Nome nuova variante"
+                      />
+                      <button class="btn-sm-primary" [disabled]="!newVariantName().trim() || creatingVariant()" (click)="createVariant(svc.id)">
+                        {{ creatingVariant() ? '…' : 'Crea' }}
+                      </button>
+                      <button class="btn-sm-ghost" (click)="cancelAddVariant()">Annulla</button>
+                    </div>
+                  } @else {
+                    <button class="add-variant-btn" (click)="openAddVariant(svc.id)" [attr.aria-label]="'Aggiungi variante a ' + svc.name">
+                      <app-icon name="plus" [size]="13" />
+                      Nuova variante
+                    </button>
+                  }
                 }
               </div>
             }
@@ -324,17 +432,9 @@ function tomorrow(): string {
 
     <!-- ── Generate link modal ──────────────────────────────────── -->
     @if (generateModal()) {
-      <div
-        class="modal-overlay"
-        role="dialog"
-        aria-modal="true"
-        [attr.aria-label]="'Genera link per ' + generateModal()!.planName"
-        (click)="closeGenerateModal()"
-        (keydown.escape)="closeGenerateModal()"
-      >
+      <div class="modal-overlay" role="dialog" aria-modal="true" [attr.aria-label]="'Genera link per ' + generateModal()!.planName" (click)="closeGenerateModal()" (keydown.escape)="closeGenerateModal()">
         <div class="modal" (click)="$event.stopPropagation()">
 
-          <!-- Modal header -->
           <div class="modal-head">
             <div class="modal-title-wrap">
               <div class="modal-icon"><app-icon name="zap" [size]="18" /></div>
@@ -349,18 +449,14 @@ function tomorrow(): string {
           </div>
 
           @if (!generateModal()!.hasStripePrice && !generateModal()!.hasItaStripePrice) {
-            <!-- No stripePriceId configured at all -->
             <div class="modal-warning">
               <app-icon name="alertTriangle" [size]="18" />
               <span>Questo piano non ha nessuno <strong>Stripe Price ID</strong> configurato. Aggiungilo prima di generare il link.</span>
             </div>
           } @else if (generatedUrl()) {
-            <!-- Generated URL result -->
             <div class="modal-result">
               <p class="modal-result-label">Link generato con successo</p>
-              <div class="modal-url-box">
-                <span class="modal-url-text">{{ generatedUrl() }}</span>
-              </div>
+              <div class="modal-url-box"><span class="modal-url-text">{{ generatedUrl() }}</span></div>
               <div class="modal-result-actions">
                 <button class="btn-save" (click)="copyGeneratedUrl()">
                   <app-icon name="copy" [size]="15" />
@@ -370,103 +466,46 @@ function tomorrow(): string {
               </div>
             </div>
           } @else {
-            <!-- Form -->
             <div class="modal-body">
-
-              <!-- Account toggle (solo se esiste ita price ID) -->
               @if (generateModal()!.hasItaStripePrice) {
                 <div class="modal-field">
                   <span class="modal-label">Account Stripe</span>
                   <div class="modal-toggle-group" role="group" aria-label="Seleziona account Stripe">
-                    <button
-                      class="toggle-btn"
-                      [class.active]="stripeAccount() === 'uae'"
-                      (click)="setStripeAccount('uae')"
-                    >
-                      🇦🇪 UAE
-                    </button>
-                    <button
-                      class="toggle-btn"
-                      [class.active]="stripeAccount() === 'ita'"
-                      (click)="setStripeAccount('ita')"
-                    >
-                      🇮🇹 Italia (CF)
-                    </button>
+                    <button class="toggle-btn" [class.active]="stripeAccount() === 'uae'" (click)="setStripeAccount('uae')">🇦🇪 UAE</button>
+                    <button class="toggle-btn" [class.active]="stripeAccount() === 'ita'" (click)="setStripeAccount('ita')">🇮🇹 Italia (CF)</button>
                   </div>
                 </div>
               }
-
-              <!-- Toggle prova gratuita (solo per abbonamenti) -->
               @if (generateModal()!.billingType !== 'one_time') {
                 <div class="modal-field modal-field-row">
                   <label class="modal-label" for="toggle-trial">Con prova gratuita</label>
-                  <input
-                    id="toggle-trial"
-                    type="checkbox"
-                    class="modal-checkbox"
-                    [checked]="withTrial()"
-                    (change)="withTrial.set($any($event.target).checked)"
-                    aria-label="Abilita prova gratuita"
-                  />
+                  <input id="toggle-trial" type="checkbox" class="modal-checkbox" [checked]="withTrial()" (change)="withTrial.set($any($event.target).checked)" aria-label="Abilita prova gratuita" />
                 </div>
-
-                <!-- Date picker (visibile solo se prova abilitata) -->
                 @if (withTrial()) {
                   <label class="modal-field">
                     <span class="modal-label">Data fine prova</span>
-                    <input
-                      type="date"
-                      class="modal-date-input"
-                      [min]="minDate"
-                      [value]="trialDate()"
-                      (input)="trialDate.set($any($event.target).value)"
-                      aria-label="Data fine prova gratuita"
-                    />
+                    <input type="date" class="modal-date-input" [min]="minDate" [value]="trialDate()" (input)="trialDate.set($any($event.target).value)" aria-label="Data fine prova gratuita" />
                   </label>
                 }
               }
-
-              <!-- Toggle Codice Fiscale -->
               <div class="modal-field modal-field-row">
                 <label class="modal-label" for="toggle-cf">Richiedi Codice Fiscale</label>
-                <input
-                  id="toggle-cf"
-                  type="checkbox"
-                  class="modal-checkbox"
-                  [checked]="withCf()"
-                  (change)="withCf.set($any($event.target).checked)"
-                  aria-label="Richiedi Codice Fiscale al checkout"
-                />
+                <input id="toggle-cf" type="checkbox" class="modal-checkbox" [checked]="withCf()" (change)="withCf.set($any($event.target).checked)" aria-label="Richiedi Codice Fiscale al checkout" />
               </div>
-
               @if (isAdmin()) {
                 <label class="modal-field">
                   <span class="modal-label">ID Venditore</span>
-                  <input
-                    type="number"
-                    class="modal-date-input"
-                    min="1"
-                    placeholder="es. 3"
-                    [value]="sellerIdOverride()"
-                    (input)="sellerIdOverride.set($any($event.target).value)"
-                    aria-label="ID Venditore"
-                  />
+                  <input type="number" class="modal-date-input" min="1" placeholder="es. 3" [value]="sellerIdOverride()" (input)="sellerIdOverride.set($any($event.target).value)" aria-label="ID Venditore" />
                 </label>
               }
             </div>
-
             <div class="modal-footer">
               <button
                 class="btn-save"
                 [disabled]="generating() || (generateModal()!.billingType !== 'one_time' && withTrial() && !trialDate()) || !resolvedSellerId() || !canGenerate()"
                 (click)="generateLink()"
               >
-                @if (generating()) {
-                  Generazione…
-                } @else {
-                  <app-icon name="zap" [size]="15" />
-                  Genera link {{ stripeAccount() === 'ita' ? '(ITA)' : '' }}
-                }
+                @if (generating()) { Generazione… } @else { <app-icon name="zap" [size]="15" /> Genera link {{ stripeAccount() === 'ita' ? '(ITA)' : '' }} }
               </button>
               <button class="btn-cancel" (click)="closeGenerateModal()">Annulla</button>
               @if (isAdmin() && !resolvedSellerId()) {
@@ -496,14 +535,11 @@ export class CatalogComponent {
   readonly selectedClientId = signal<number | null>(null);
   readonly searchQuery = signal('');
 
-  readonly clientsResource = rxResource({
-    stream: () => this.catalogApi.getClients(),
-  });
+  readonly clientsResource = rxResource({ stream: () => this.catalogApi.getClients() });
 
   readonly catalogResource = rxResource({
     params: () => this.selectedClientId(),
-    stream: ({ params: clientId }) =>
-      this.catalogApi.getCatalog(clientId ?? undefined),
+    stream: ({ params: clientId }) => this.catalogApi.getCatalog(clientId ?? undefined),
   });
 
   readonly eur = (v: number | null) => v != null ? eurFmt(v) : '—';
@@ -532,7 +568,6 @@ export class CatalogComponent {
 
     const planMatchesView = (plan: CatalogPricePlan): boolean => {
       if (view === 'ita') return !!(plan.itaStripePriceId || plan.itaStripePaymentLink);
-      // UAE: piani con config UAE oppure senza nessuna config (visibili per poterli configurare)
       return !!(plan.stripePriceId || plan.stripePaymentLink) ||
         (!plan.itaStripePriceId && !plan.itaStripePaymentLink);
     };
@@ -543,22 +578,22 @@ export class CatalogComponent {
           .map(svc => {
             const viewFilteredVariants = (svc.variants ?? [])
               .map(v => {
-                const viewPlans = (v.pricePlans ?? []).filter(planMatchesView);
+                const plans = v.pricePlans ?? [];
+                // varianti senza piani: sempre visibili (es. appena create)
+                if (plans.length === 0) return v;
+                const viewPlans = plans.filter(planMatchesView);
                 return viewPlans.length > 0 ? { ...v, pricePlans: viewPlans } : null;
               })
               .filter((v): v is CatalogVariant => v !== null);
 
             const svcMatches = !q || svc.name?.toLowerCase().includes(q);
-            if (svcMatches && viewFilteredVariants.length > 0) {
-              return { ...svc, variants: viewFilteredVariants };
+            // servizi senza varianti: sempre visibili se il nome matcha (o nessuna ricerca)
+            if (svcMatches) return { ...svc, variants: viewFilteredVariants };
+            if (q) {
+              const filtered = viewFilteredVariants.filter(v => v.name?.toLowerCase().includes(q));
+              return filtered.length > 0 ? { ...svc, variants: filtered } : null;
             }
-            if (!svcMatches && q) {
-              const searchFiltered = viewFilteredVariants.filter(v =>
-                v.name?.toLowerCase().includes(q),
-              );
-              return searchFiltered.length > 0 ? { ...svc, variants: searchFiltered } : null;
-            }
-            return viewFilteredVariants.length > 0 ? { ...svc, variants: viewFilteredVariants } : null;
+            return { ...svc, variants: viewFilteredVariants };
           })
           .filter((s): s is CatalogService => s !== null);
         return matchingServices.length > 0 ? { ...group, services: matchingServices } : null;
@@ -566,11 +601,295 @@ export class CatalogComponent {
       .filter((g): g is ClientGroup => g !== null);
   });
 
-  // ── Edit state (admin) ───────────────────────────────────────
+  // ── Confirm delete ───────────────────────────────────────────
+  readonly confirmDelete = signal<{ type: 'service' | 'variant' | 'plan'; id: number } | null>(null);
+
+  isConfirming(type: 'service' | 'variant' | 'plan', id: number): boolean {
+    const c = this.confirmDelete();
+    return c?.type === type && c?.id === id;
+  }
+
+  askDelete(type: 'service' | 'variant' | 'plan', id: number): void {
+    this.confirmDelete.set({ type, id });
+  }
+
+  // ── Edit plan (existing) ─────────────────────────────────────
   readonly editState = signal<EditState | null>(null);
   readonly saving = signal(false);
 
-  // ── Generate modal state ─────────────────────────────────────
+  toggleEdit(plan: CatalogPricePlan): void {
+    this.addingPlanVariantId.set(null);
+    this.newPlanState.set(null);
+    if (this.editState()?.id === plan.id) {
+      this.editState.set(null);
+      return;
+    }
+    this.editState.set({
+      id: plan.id,
+      name: plan.name ?? '',
+      basePrice: plan.basePrice != null ? String(plan.basePrice) : '',
+      installmentCount: plan.installmentCount != null ? String(plan.installmentCount) : '',
+      installmentAmount: plan.installmentAmount != null ? String(plan.installmentAmount) : '',
+      totalAmount: plan.totalAmount != null ? String(plan.totalAmount) : '',
+      stripePaymentLink: plan.stripePaymentLink ?? '',
+      stripePriceId: plan.stripePriceId ?? '',
+      itaStripePriceId: plan.itaStripePriceId ?? '',
+      itaStripePaymentLink: plan.itaStripePaymentLink ?? '',
+      billingType: plan.billingType ?? 'recurring',
+    });
+  }
+
+  patchEdit(field: keyof Omit<EditState, 'id'>, value: string): void {
+    const s = this.editState();
+    if (!s) return;
+    this.editState.set({ ...s, [field]: value });
+  }
+
+  savePlan(): void {
+    const s = this.editState();
+    if (!s) return;
+    this.saving.set(true);
+    this.catalogApi.updatePricePlan(s.id, {
+      name: s.name || undefined,
+      basePrice: s.basePrice !== '' ? Number(s.basePrice) : undefined,
+      installmentCount: s.installmentCount !== '' ? Number(s.installmentCount) : undefined,
+      installmentAmount: s.installmentAmount !== '' ? Number(s.installmentAmount) : undefined,
+      totalAmount: s.totalAmount !== '' ? Number(s.totalAmount) : undefined,
+      stripePaymentLink: s.stripePaymentLink || undefined,
+      stripePriceId: s.stripePriceId || undefined,
+      itaStripePriceId: s.itaStripePriceId || undefined,
+      itaStripePaymentLink: s.itaStripePaymentLink || undefined,
+      billingType: s.billingType,
+    }).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.editState.set(null);
+        this.catalogResource.reload();
+        this.toast.success('Piano aggiornato');
+      },
+      error: () => {
+        this.saving.set(false);
+        this.toast.error('Errore nel salvataggio');
+      },
+    });
+  }
+
+  // ── Add price plan ────────────────────────────────────────────
+  readonly addingPlanVariantId = signal<number | null>(null);
+  readonly newPlanState = signal<EditState | null>(null);
+  readonly creatingPlan = signal(false);
+
+  openAddPlan(variantId: number): void {
+    this.editState.set(null);
+    this.addingPlanVariantId.set(variantId);
+    this.newPlanState.set(emptyEditState());
+  }
+
+  cancelAddPlan(): void {
+    this.addingPlanVariantId.set(null);
+    this.newPlanState.set(null);
+  }
+
+  patchNewPlan(field: keyof Omit<EditState, 'id'>, value: string): void {
+    const s = this.newPlanState();
+    if (!s) return;
+    this.newPlanState.set({ ...s, [field]: value });
+  }
+
+  createPlan(): void {
+    const variantId = this.addingPlanVariantId();
+    const s = this.newPlanState();
+    if (!variantId || !s || !s.name.trim()) return;
+    this.creatingPlan.set(true);
+    this.catalogApi.createPricePlan({
+      name: s.name.trim(),
+      serviceVariantId: Number(variantId),
+      billingType: s.billingType,
+      ...(s.basePrice !== '' ? { basePrice: Number(s.basePrice) } : {}),
+      ...(s.installmentCount !== '' ? { installmentCount: Number(s.installmentCount) } : {}),
+      ...(s.installmentAmount !== '' ? { installmentAmount: Number(s.installmentAmount) } : {}),
+      ...(s.totalAmount !== '' ? { totalAmount: Number(s.totalAmount) } : {}),
+      ...(s.stripePaymentLink ? { stripePaymentLink: s.stripePaymentLink } : {}),
+      ...(s.stripePriceId ? { stripePriceId: s.stripePriceId } : {}),
+      ...(s.itaStripePriceId ? { itaStripePriceId: s.itaStripePriceId } : {}),
+      ...(s.itaStripePaymentLink ? { itaStripePaymentLink: s.itaStripePaymentLink } : {}),
+    }).subscribe({
+      next: () => {
+        this.creatingPlan.set(false);
+        this.cancelAddPlan();
+        this.catalogResource.reload();
+        this.toast.success('Piano creato');
+      },
+      error: () => {
+        this.creatingPlan.set(false);
+        this.toast.error('Errore nella creazione del piano');
+      },
+    });
+  }
+
+  deletePlan(id: number): void {
+    this.catalogApi.deletePricePlan(id).subscribe({
+      next: () => {
+        this.confirmDelete.set(null);
+        this.catalogResource.reload();
+        this.toast.success('Piano eliminato');
+      },
+      error: () => this.toast.error("Errore nell'eliminazione del piano"),
+    });
+  }
+
+  // ── Service CRUD ─────────────────────────────────────────────
+  readonly addingServiceClientKey = signal<string | null>(null);
+  readonly newServiceName = signal('');
+  readonly creatingService = signal(false);
+  readonly editServiceId = signal<number | null>(null);
+  readonly editServiceNameVal = signal('');
+  readonly editServiceActiveVal = signal(true);
+  readonly savingService = signal(false);
+
+  openAddService(key: string): void {
+    this.addingServiceClientKey.set(key);
+    this.newServiceName.set('');
+  }
+
+  cancelAddService(): void {
+    this.addingServiceClientKey.set(null);
+  }
+
+  createService(group: ClientGroup): void {
+    const name = this.newServiceName().trim();
+    if (!name) return;
+    this.creatingService.set(true);
+    this.catalogApi.createService({ name, ...(group.client ? { clientId: Number(group.client.id) } : {}) }).subscribe({
+      next: () => {
+        this.creatingService.set(false);
+        this.cancelAddService();
+        this.catalogResource.reload();
+        this.clientsResource.reload();
+        this.toast.success('Servizio creato');
+      },
+      error: () => {
+        this.creatingService.set(false);
+        this.toast.error('Errore nella creazione del servizio');
+      },
+    });
+  }
+
+  startEditService(svc: CatalogService): void {
+    this.editServiceId.set(svc.id);
+    this.editServiceNameVal.set(svc.name ?? '');
+    this.editServiceActiveVal.set(svc.isActive);
+    this.confirmDelete.set(null);
+  }
+
+  cancelEditService(): void {
+    this.editServiceId.set(null);
+  }
+
+  saveService(): void {
+    const id = this.editServiceId();
+    if (!id) return;
+    this.savingService.set(true);
+    this.catalogApi.updateService(Number(id), { name: this.editServiceNameVal().trim() || undefined, isActive: this.editServiceActiveVal() }).subscribe({
+      next: () => {
+        this.savingService.set(false);
+        this.editServiceId.set(null);
+        this.catalogResource.reload();
+        this.toast.success('Servizio aggiornato');
+      },
+      error: () => {
+        this.savingService.set(false);
+        this.toast.error('Errore nel salvataggio');
+      },
+    });
+  }
+
+  deleteService(id: number): void {
+    this.catalogApi.deleteService(id).subscribe({
+      next: () => {
+        this.confirmDelete.set(null);
+        this.catalogResource.reload();
+        this.toast.success('Servizio eliminato');
+      },
+      error: () => this.toast.error("Errore nell'eliminazione del servizio"),
+    });
+  }
+
+  // ── Variant CRUD ─────────────────────────────────────────────
+  readonly addingVariantServiceId = signal<number | null>(null);
+  readonly newVariantName = signal('');
+  readonly creatingVariant = signal(false);
+  readonly editVariantId = signal<number | null>(null);
+  readonly editVariantNameVal = signal('');
+  readonly savingVariant = signal(false);
+
+  openAddVariant(serviceId: number): void {
+    this.addingVariantServiceId.set(serviceId);
+    this.newVariantName.set('');
+  }
+
+  cancelAddVariant(): void {
+    this.addingVariantServiceId.set(null);
+  }
+
+  createVariant(serviceId: number): void {
+    const name = this.newVariantName().trim();
+    if (!name) return;
+    this.creatingVariant.set(true);
+    this.catalogApi.createVariant({ name, serviceId: Number(serviceId) }).subscribe({
+      next: () => {
+        this.creatingVariant.set(false);
+        this.cancelAddVariant();
+        this.catalogResource.reload();
+        this.toast.success('Variante creata');
+      },
+      error: () => {
+        this.creatingVariant.set(false);
+        this.toast.error('Errore nella creazione della variante');
+      },
+    });
+  }
+
+  startEditVariant(variant: CatalogVariant): void {
+    this.editVariantId.set(variant.id);
+    this.editVariantNameVal.set(variant.name ?? '');
+    this.confirmDelete.set(null);
+  }
+
+  cancelEditVariant(): void {
+    this.editVariantId.set(null);
+  }
+
+  saveVariant(): void {
+    const id = this.editVariantId();
+    if (!id) return;
+    this.savingVariant.set(true);
+    this.catalogApi.updateVariant(Number(id), { name: this.editVariantNameVal().trim() }).subscribe({
+      next: () => {
+        this.savingVariant.set(false);
+        this.editVariantId.set(null);
+        this.catalogResource.reload();
+        this.toast.success('Variante aggiornata');
+      },
+      error: () => {
+        this.savingVariant.set(false);
+        this.toast.error('Errore nel salvataggio');
+      },
+    });
+  }
+
+  deleteVariant(id: number): void {
+    this.catalogApi.deleteVariant(id).subscribe({
+      next: () => {
+        this.confirmDelete.set(null);
+        this.catalogResource.reload();
+        this.toast.success('Variante eliminata');
+      },
+      error: () => this.toast.error("Errore nell'eliminazione della variante"),
+    });
+  }
+
+  // ── Generate modal ───────────────────────────────────────────
   readonly generateModal = signal<GenerateModal | null>(null);
   readonly stripeAccount = signal<'uae' | 'ita'>('uae');
   readonly withTrial = signal(true);
@@ -594,37 +913,26 @@ export class CatalogComponent {
     return n > 0 ? n : null;
   });
 
-  /** Vero se il price ID dell'account selezionato è configurato */
   readonly canGenerate = computed(() => {
     const modal = this.generateModal();
     if (!modal) return false;
     return this.stripeAccount() === 'ita' ? modal.hasItaStripePrice : modal.hasStripePrice;
   });
 
-  // ── Copy standard link ───────────────────────────────────────
   copyLink(plan: CatalogPricePlan): void {
     if (!plan.stripePaymentLink) return;
     const sid = this.sellerId();
-    const url = sid != null
-      ? `${plan.stripePaymentLink}?client_reference_id=${sid}`
-      : plan.stripePaymentLink;
-    navigator.clipboard.writeText(url).then(() => {
-      this.toast.success('Link UAE copiato!');
-    });
+    const url = sid != null ? `${plan.stripePaymentLink}?client_reference_id=${sid}` : plan.stripePaymentLink;
+    navigator.clipboard.writeText(url).then(() => this.toast.success('Link UAE copiato!'));
   }
 
   copyLinkIta(plan: CatalogPricePlan): void {
     if (!plan.itaStripePaymentLink) return;
     const sid = this.sellerId();
-    const url = sid != null
-      ? `${plan.itaStripePaymentLink}?client_reference_id=${sid}`
-      : plan.itaStripePaymentLink;
-    navigator.clipboard.writeText(url).then(() => {
-      this.toast.success('Link ITA copiato!');
-    });
+    const url = sid != null ? `${plan.itaStripePaymentLink}?client_reference_id=${sid}` : plan.itaStripePaymentLink;
+    navigator.clipboard.writeText(url).then(() => this.toast.success('Link ITA copiato!'));
   }
 
-  // ── Generate modal ───────────────────────────────────────────
   openGenerateModal(plan: CatalogPricePlan): void {
     const isOneTime = plan.billingType === 'one_time';
     this.generateModal.set({
@@ -634,8 +942,7 @@ export class CatalogComponent {
       hasItaStripePrice: !!plan.itaStripePriceId,
       billingType: plan.billingType,
     });
-    const defaultAccount = this.catalogView();
-    this.stripeAccount.set(defaultAccount);
+    this.stripeAccount.set(this.catalogView());
     this.withTrial.set(!isOneTime);
     this.withCf.set(false);
     this.trialDate.set('');
@@ -668,7 +975,6 @@ export class CatalogComponent {
     if (!isOneTime && this.withTrial() && !this.trialDate()) return;
 
     const isIta = this.stripeAccount() === 'ita';
-
     this.generating.set(true);
     this.catalogApi.createCheckoutSession({
       pricePlanId: Number(modal.planId),
@@ -694,65 +1000,6 @@ export class CatalogComponent {
     navigator.clipboard.writeText(url).then(() => {
       this.urlCopied.set(true);
       setTimeout(() => this.urlCopied.set(false), 2000);
-    });
-  }
-
-  // ── Edit plan (admin) ────────────────────────────────────────
-  toggleEdit(plan: CatalogPricePlan): void {
-    if (this.editState()?.id === plan.id) {
-      this.editState.set(null);
-      return;
-    }
-    this.editState.set({
-      id: plan.id,
-      name: plan.name ?? '',
-      basePrice: plan.basePrice != null ? String(plan.basePrice) : '',
-      installmentCount: plan.installmentCount != null ? String(plan.installmentCount) : '',
-      installmentAmount: plan.installmentAmount != null ? String(plan.installmentAmount) : '',
-      totalAmount: plan.totalAmount != null ? String(plan.totalAmount) : '',
-      stripePaymentLink: plan.stripePaymentLink ?? '',
-      stripePriceId: plan.stripePriceId ?? '',
-      itaStripePriceId: plan.itaStripePriceId ?? '',
-      itaStripePaymentLink: plan.itaStripePaymentLink ?? '',
-      billingType: plan.billingType ?? 'recurring',
-    });
-  }
-
-  patchEdit(field: keyof Omit<EditState, 'id'>, value: string): void {
-    const s = this.editState();
-    if (!s) return;
-    this.editState.set({ ...s, [field]: value });
-  }
-
-  savePlan(): void {
-    const s = this.editState();
-    if (!s) return;
-    this.saving.set(true);
-
-    const dto = {
-      name: s.name || undefined,
-      basePrice: s.basePrice !== '' ? Number(s.basePrice) : undefined,
-      installmentCount: s.installmentCount !== '' ? Number(s.installmentCount) : undefined,
-      installmentAmount: s.installmentAmount !== '' ? Number(s.installmentAmount) : undefined,
-      totalAmount: s.totalAmount !== '' ? Number(s.totalAmount) : undefined,
-      stripePaymentLink: s.stripePaymentLink || undefined,
-      stripePriceId: s.stripePriceId || undefined,
-      itaStripePriceId: s.itaStripePriceId || undefined,
-      itaStripePaymentLink: s.itaStripePaymentLink || undefined,
-      billingType: s.billingType,
-    };
-
-    this.catalogApi.updatePricePlan(s.id, dto).subscribe({
-      next: () => {
-        this.saving.set(false);
-        this.editState.set(null);
-        this.catalogResource.reload();
-        this.toast.success('Piano aggiornato');
-      },
-      error: () => {
-        this.saving.set(false);
-        this.toast.error('Errore nel salvataggio');
-      },
     });
   }
 }
