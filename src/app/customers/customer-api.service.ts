@@ -49,6 +49,22 @@ export interface OnboardingFormStatusDto {
   prefillName: string | null;
 }
 
+export interface OnboardingSubmissionDto {
+  id: number;
+  token: string;
+  status: 'pending' | 'completed';
+  formLinkSentAt: string | null;
+  unlockSentAt: string | null;
+  submittedAt: string | null;
+  createdAt: string;
+  customer: { id: number; name: string | null; surname: string | null; email: string | null } | null;
+  installment: {
+    id: number;
+    installmentNumber: number;
+    sale: { id: number; seller: { id: number; name: string | null; lastName: string | null } | null } | null;
+  } | null;
+}
+
 export interface SubmitOnboardingFormDto {
   fullName: string;
   codiceFiscale: string;
@@ -79,5 +95,9 @@ export class OnboardingFormApiService {
 
   submit(token: string, dto: SubmitOnboardingFormDto): Observable<void> {
     return this.http.post<void>(`${API}/onboarding-form/${token}/submit`, dto);
+  }
+
+  getSubmissions(): Observable<OnboardingSubmissionDto[]> {
+    return this.http.get<OnboardingSubmissionDto[]>(`${API}/onboarding-form`);
   }
 }
