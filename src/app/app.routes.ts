@@ -12,6 +12,12 @@ export const routes: Routes = [
     title: 'Accedi',
   },
   {
+    path: 'form/:token',
+    loadComponent: () =>
+      import('./features/onboarding-form/onboarding-form.component').then(m => m.OnboardingFormComponent),
+    title: 'Form onboarding',
+  },
+  {
     path: '',
     loadComponent: () =>
       import('./features/shell/shell.component').then(m => m.ShellComponent),

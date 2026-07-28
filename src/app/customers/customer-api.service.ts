@@ -29,11 +29,35 @@ export interface CustomerSale {
 export interface CustomerDto {
   id: number;
   name: string | null;
-  lastName: string | null;
+  surname: string | null;
   email: string | null;
   phone: string | null;
   telegramId: string | null;
+  codiceFiscale: string | null;
+  address: string | null;
+  city: string | null;
+  province: string | null;
+  cap: string | null;
+  startDate: string | null;
   sale: CustomerSale | null;
+}
+
+export interface OnboardingFormStatusDto {
+  status: 'pending' | 'completed';
+  customerName: string | null;
+  productName: string | null;
+  prefillName: string | null;
+}
+
+export interface SubmitOnboardingFormDto {
+  fullName: string;
+  codiceFiscale: string;
+  address: string;
+  city: string;
+  province: string;
+  cap: string;
+  startDate: string;
+  termsAccepted: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -42,5 +66,18 @@ export class CustomerApiService {
 
   getAll(): Observable<CustomerDto[]> {
     return this.http.get<CustomerDto[]>(`${API}/customers`);
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class OnboardingFormApiService {
+  private readonly http = inject(HttpClient);
+
+  getForm(token: string): Observable<OnboardingFormStatusDto> {
+    return this.http.get<OnboardingFormStatusDto>(`${API}/onboarding-form/${token}`);
+  }
+
+  submit(token: string, dto: SubmitOnboardingFormDto): Observable<void> {
+    return this.http.post<void>(`${API}/onboarding-form/${token}/submit`, dto);
   }
 }

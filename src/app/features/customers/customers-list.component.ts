@@ -47,6 +47,7 @@ import { IconComponent } from '../../shared/icon.component';
             <span role="columnheader">Telefono</span>
             <span role="columnheader">Venditore</span>
             <span role="columnheader">Prodotto</span>
+            <span role="columnheader">Inizio affiancamento</span>
             <span role="columnheader">Stato</span>
           </div>
           @for (c of filtered(); track c.id) {
@@ -55,8 +56,8 @@ import { IconComponent } from '../../shared/icon.component';
                 <div class="client-mono" [attr.aria-hidden]="true">{{ initials(c) }}</div>
                 <span>
                   <span class="td-strong">{{ fullName(c) }}</span>
-                  @if (c.telegramId) {
-                    <span class="td-contact">TG: {{ c.telegramId }}</span>
+                  @if (c.codiceFiscale) {
+                    <span class="td-contact">CF: {{ c.codiceFiscale }}</span>
                   }
                 </span>
               </div>
@@ -64,6 +65,7 @@ import { IconComponent } from '../../shared/icon.component';
               <span class="td-contact">{{ c.phone || '—' }}</span>
               <span class="td-seller">{{ sellerName(c.sale?.seller ?? null) }}</span>
               <span class="small muted">{{ productName(c) }}</span>
+              <span class="td-contact">{{ c.startDate || '—' }}</span>
               <span>
                 @if (c.sale) {
                   <span
@@ -99,19 +101,19 @@ export class CustomersListComponent {
     if (!q) return all;
     return all.filter(c =>
       (c.name ?? '').toLowerCase().includes(q) ||
-      (c.lastName ?? '').toLowerCase().includes(q) ||
+      (c.surname ?? '').toLowerCase().includes(q) ||
       (c.email ?? '').toLowerCase().includes(q) ||
       (c.phone ?? '').toLowerCase().includes(q),
     );
   });
 
   fullName(c: CustomerDto): string {
-    return [c.name, c.lastName].filter(Boolean).join(' ') || '—';
+    return [c.name, c.surname].filter(Boolean).join(' ') || '—';
   }
 
   initials(c: CustomerDto): string {
     const n = (c.name ?? '').charAt(0).toUpperCase();
-    const l = (c.lastName ?? '').charAt(0).toUpperCase();
+    const l = (c.surname ?? '').charAt(0).toUpperCase();
     return (n + l) || '?';
   }
 
