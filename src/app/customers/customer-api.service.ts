@@ -32,7 +32,6 @@ export interface CustomerDto {
   surname: string | null;
   email: string | null;
   phone: string | null;
-  telegramId: string | null;
   codiceFiscale: string | null;
   address: string | null;
   city: string | null;
