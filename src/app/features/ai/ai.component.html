@@ -1,0 +1,109 @@
+<div class="ai-page">
+
+  <div class="ai-header">
+    <div class="ai-header-left">
+      <app-icon name="zap" [size]="20" />
+      <h1>AI Assistant</h1>
+    </div>
+    @if (messages().length > 0) {
+      <button class="btn-ghost-sm" (click)="clearChat()" aria-label="Nuova conversazione">
+        <app-icon name="plus" [size]="15" />
+        Nuova chat
+      </button>
+    }
+  </div>
+
+  <div class="ai-body">
+
+    @if (messages().length === 0) {
+      <div class="ai-empty">
+        <div class="ai-empty-icon">
+          <app-icon name="zap" [size]="36" />
+        </div>
+        <h2>Come posso aiutarti?</h2>
+        <p>Puoi chiedermi di generare link di pagamento, vedere gli appuntamenti di oggi, controllare provvigioni e molto altro.</p>
+        <div class="ai-suggestions">
+          <button class="suggestion-chip" (click)="input.set('Quali piani di pagamento abbiamo disponibili?'); send()">
+            Piani disponibili
+          </button>
+          <button class="suggestion-chip" (click)="input.set('Mostrami gli appuntamenti di oggi'); send()">
+            Appuntamenti oggi
+          </button>
+          <button class="suggestion-chip" (click)="input.set('Genera un link di pagamento Stripe'); send()">
+            Genera link pagamento
+          </button>
+          <button class="suggestion-chip" (click)="input.set('Mostrami le ultime vendite'); send()">
+            Ultime vendite
+          </button>
+        </div>
+      </div>
+    }
+
+    <div class="ai-messages" aria-live="polite" aria-label="Conversazione">
+      @for (msg of messages(); track $index) {
+        <div class="msg-row" [class.msg-row--user]="msg.role === 'user'" [class.msg-row--ai]="msg.role === 'assistant'">
+          @if (msg.role === 'assistant') {
+            <div class="msg-avatar" aria-hidden="true">
+              <app-icon name="zap" [size]="14" />
+            </div>
+          }
+          <div class="msg-bubble" [class.msg-bubble--user]="msg.role === 'user'" [class.msg-bubble--ai]="msg.role === 'assistant'">
+            @if (msg.role === 'user') {
+              {{ msg.content }}
+            } @else {
+              @if (msg.content) {
+                <span [innerHTML]="formatMessage(msg.content)"></span>
+              }
+              @if (msg.streaming && !msg.content) {
+                @if (activeToolName()) {
+                  <span class="inline-tool-status" role="status">
+                    <span class="tool-spinner"></span>
+                    {{ toolLabel[activeToolName()!] ?? activeToolName() }}
+                  </span>
+                } @else {
+                  <span class="typing-dots" aria-label="Sto scrivendo">
+                    <span></span><span></span><span></span>
+                  </span>
+                }
+              }
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    @if (error()) {
+      <div class="ai-error" role="alert">
+        <app-icon name="alertTriangle" [size]="16" />
+        {{ error() }}
+      </div>
+    }
+
+  </div>
+
+  <div class="ai-input-bar">
+    <textarea
+      class="ai-textarea"
+      [value]="input()"
+      (input)="input.set($any($event.target).value)"
+      (keydown)="onKeydown($event)"
+      placeholder="Scrivi un messaggio… (⌘+Invio per inviare)"
+      rows="1"
+      [disabled]="loading()"
+      aria-label="Messaggio"
+    ></textarea>
+    <button
+      class="ai-send-btn"
+      (click)="send()"
+      [disabled]="!canSend()"
+      aria-label="Invia messaggio"
+    >
+      @if (loading()) {
+        <span class="send-spinner"></span>
+      } @else {
+        <app-icon name="send" [size]="18" />
+      }
+    </button>
+  </div>
+
+</div>

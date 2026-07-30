@@ -87,6 +87,12 @@ export const routes: Routes = [
           import('./features/leads/leads-list.component').then(m => m.LeadsListComponent),
         title: 'Lead',
       },
+      {
+        path: 'ai',
+        loadComponent: () =>
+          import('./features/ai/ai.component').then(m => m.AiComponent),
+        title: 'AI Assistant',
+      },
     ],
   },
 ];
