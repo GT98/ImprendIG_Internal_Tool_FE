@@ -182,9 +182,20 @@ function todayIso(): string {
                   />
                 </div>
               }
+              <div class="field checkbox-field">
+                <label class="checkbox-label">
+                  <input type="checkbox" formControlName="hasTrial" />
+                  Prova gratuita (prima rata non ancora pagata)
+                </label>
+              </div>
               <div class="field">
-                <label for="ms-date">Data prima rata</label>
+                <label for="ms-date">
+                  @if (form.value.hasTrial) { Fine prova / prima rata } @else { Data prima rata }
+                </label>
                 <input id="ms-date" type="date" formControlName="firstInstallmentDate" />
+                @if (form.value.hasTrial) {
+                  <span class="field-hint">Le rate saranno create come "da pagare" — il sistema le aggiornerà quando Stripe le incassa.</span>
+                }
               </div>
             </fieldset>
 
@@ -371,6 +382,7 @@ export class CreateSaleModalComponent {
     pricePlanId: [null as number | null, Validators.required],
     includeDeposit: [false],
     depositAmount: [null as number | null],
+    hasTrial: [false],
     firstInstallmentDate: [todayIso()],
     paymentMethod: ['stripe' as 'stripe' | 'stripe_ita' | 'bonifico'],
   });
@@ -443,6 +455,7 @@ export class CreateSaleModalComponent {
       setterId: v.setterId != null ? Number(v.setterId) : undefined,
       includeDeposit: v.includeDeposit || undefined,
       depositAmount: v.depositAmount ?? undefined,
+      hasTrial: v.hasTrial || undefined,
       firstInstallmentDate: v.firstInstallmentDate || undefined,
       paymentMethod: v.paymentMethod,
     }).subscribe({
@@ -470,6 +483,7 @@ export class CreateSaleModalComponent {
       pricePlanId: null,
       includeDeposit: false,
       depositAmount: null,
+      hasTrial: false,
       firstInstallmentDate: todayIso(),
       paymentMethod: 'stripe' as 'stripe' | 'stripe_ita' | 'bonifico',
     });
