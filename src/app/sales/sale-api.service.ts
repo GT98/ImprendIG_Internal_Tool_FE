@@ -50,6 +50,7 @@ export interface CreateManualSaleDto {
   leadId?: number;
   includeDeposit?: boolean;
   depositAmount?: number;
+  hasTrial?: boolean;
   firstInstallmentDate?: string;
   paymentMethod?: 'stripe' | 'stripe_ita' | 'bonifico';
 }
