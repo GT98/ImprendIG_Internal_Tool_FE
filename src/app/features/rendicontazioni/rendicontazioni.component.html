@@ -125,7 +125,7 @@
                       <div class="ts-seller-name">{{ sellerName(ts) }}</div>
                       <div class="ts-card-meta">
                         {{ ts.items.length }} voci · € {{ formatAmount(adminTsTotal(ts)) }}
-                        @if (ts.submittedAt) { · inviato {{ ts.submittedAt | slice:0:10 }} }
+                        @if (ts.submittedAt) { · inviato {{ ts.submittedAt.toString().slice(0, 10) }} }
                       </div>
                     </div>
                   </div>

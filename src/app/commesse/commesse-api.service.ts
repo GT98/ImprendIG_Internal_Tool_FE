@@ -36,8 +36,8 @@ export class CommesseApiService {
   private readonly http = inject(HttpClient);
 
   findAll(includeInactive = false): Observable<CommessaDto[]> {
-    const params = includeInactive ? { all: 'true' } : {};
-    return this.http.get<CommessaDto[]>(`${API_URL}/commesse`, { params });
+    const url = includeInactive ? `${API_URL}/commesse?all=true` : `${API_URL}/commesse`;
+    return this.http.get<CommessaDto[]>(url);
   }
 
   create(dto: CreateCommessaPayload): Observable<CommessaDto> {
