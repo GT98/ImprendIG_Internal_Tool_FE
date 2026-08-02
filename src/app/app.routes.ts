@@ -94,8 +94,13 @@ export const routes: Routes = [
         title: 'AI Assistant',
       },
       {
+        path: 'commesse',
+        loadComponent: () =>
+          import('./features/commesse/commesse.component').then(m => m.CommesseComponent),
+        title: 'Commesse',
+      },
+      {
         path: 'rendicontazioni',
-        canActivate: [adminGuard],
         loadComponent: () =>
           import('./features/rendicontazioni/rendicontazioni.component').then(m => m.RendicontazioniComponent),
         title: 'Rendicontazioni',

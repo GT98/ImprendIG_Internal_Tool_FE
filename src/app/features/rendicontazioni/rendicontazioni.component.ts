@@ -1,18 +1,19 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import { catchError, combineLatest, EMPTY, filter, forkJoin, switchMap } from 'rxjs';
 import { IconComponent } from '../../shared/icon.component';
 import { ToastService } from '../../shared/toast.service';
+import { AuthService } from '../../auth/auth.service';
 import {
   ReportingApiService,
   MonthlyReportDto,
-  WorkOrderDto,
-  WorkOrderListItem,
+  TimesheetItemLine,
   EmployeeInfo,
-  CreateWorkOrderPayload,
   ReportSummaryItem,
 } from '../../reporting/reporting-api.service';
-import { WorkOrderModalComponent } from './work-order-modal.component';
+import { TimesheetApiService, TimesheetDto, TimesheetStatus, AdminTimesheetSummary } from '../../timesheet/timesheet-api.service';
+import { CommesseApiService, CommessaDto } from '../../commesse/commesse-api.service';
 import { BalanceModalComponent } from './balance-modal.component';
 
 function currentMonthIso(): string {
@@ -35,13 +36,18 @@ function shiftMonth(iso: string, delta: number): string {
 
 @Component({
   selector: 'app-rendicontazioni',
-  imports: [IconComponent, WorkOrderModalComponent, BalanceModalComponent],
+  imports: [IconComponent, BalanceModalComponent, FormsModule],
   templateUrl: './rendicontazioni.component.html',
   styleUrl: './rendicontazioni.component.css',
 })
 export class RendicontazioniComponent {
   private readonly api = inject(ReportingApiService);
+  private readonly timesheetApi = inject(TimesheetApiService);
+  private readonly commesseApi = inject(CommesseApiService);
   private readonly toast = inject(ToastService);
+  readonly auth = inject(AuthService);
+
+  readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'admin');
 
   // ── Mese ──────────────────────────────────────────────────────
   readonly month = signal(currentMonthIso());
@@ -49,10 +55,10 @@ export class RendicontazioniComponent {
   prevMonth() { this.month.update(m => shiftMonth(m, -1)); }
   nextMonth() { this.month.update(m => shiftMonth(m, +1)); }
 
-  // ── Tab ───────────────────────────────────────────────────────
-  readonly activeTab = signal<'riepilogo' | 'commesse'>('riepilogo');
+  // ── Admin: Tab ─────────────────────────────────────────────────
+  readonly activeTab = signal<'riepilogo' | 'timesheets'>('riepilogo');
 
-  // ── Riepilogo (summary) ───────────────────────────────────────
+  // ── Admin: Riepilogo ───────────────────────────────────────────
   readonly summaryItems   = signal<ReportSummaryItem[]>([]);
   readonly summaryLoading = signal(true);
   readonly summaryError   = signal(false);
@@ -61,71 +67,203 @@ export class RendicontazioniComponent {
     this.summaryItems().map(s => s.employee),
   );
 
-  // ── Commesse tab ──────────────────────────────────────────────
-  readonly workOrderItems   = signal<WorkOrderListItem[]>([]);
-  readonly workOrderLoading = signal(false);
-  readonly workOrderError   = signal(false);
+  // ── Admin: Timesheets tab ──────────────────────────────────────
+  readonly adminTimesheets   = signal<AdminTimesheetSummary[]>([]);
+  readonly tsTabLoading      = signal(false);
+  readonly tsTabError        = signal(false);
+  readonly approvingId       = signal<number | null>(null);
+  readonly revisionId        = signal<number | null>(null);
+  readonly revisionNotes     = signal('');
+  readonly showRevisionForm  = signal<number | null>(null);
+
+  // ── Employee: timesheet ────────────────────────────────────────
+  readonly myReport        = signal<MonthlyReportDto | null>(null);
+  readonly myReportLoading = signal(false);
+  readonly myReportError   = signal(false);
+  readonly myTimesheet     = signal<TimesheetDto | null>(null);
+  readonly myTsLoading     = signal(false);
+  readonly myTsError       = signal(false);
+  readonly submitting      = signal(false);
+
+  readonly catalog     = signal<CommessaDto[]>([]);
+  readonly showCatalog = signal(false);
+  readonly addingId    = signal<number | null>(null);
+  readonly removingId  = signal<number | null>(null);
 
   constructor() {
-    // Re-fetch summary whenever month changes (switchMap cancels in-flight requests)
+    if (this.isAdmin()) {
+      this.initAdminStreams();
+    } else {
+      this.initEmployeeStreams();
+    }
+  }
+
+  private initAdminStreams() {
     toObservable(this.month).pipe(
       switchMap(m => {
         this.summaryLoading.set(true);
         this.summaryError.set(false);
         return this.api.getSummary(m).pipe(
-          catchError(() => {
-            this.summaryError.set(true);
-            this.summaryLoading.set(false);
-            return EMPTY;
-          }),
+          catchError(() => { this.summaryError.set(true); this.summaryLoading.set(false); return EMPTY; }),
         );
       }),
       takeUntilDestroyed(),
-    ).subscribe(data => {
-      this.summaryItems.set(data);
-      this.summaryLoading.set(false);
-    });
+    ).subscribe(data => { this.summaryItems.set(data); this.summaryLoading.set(false); });
 
-    // Re-fetch work orders when month changes OR when switching to 'commesse' tab
     combineLatest([toObservable(this.month), toObservable(this.activeTab)]).pipe(
-      filter(([, tab]) => tab === 'commesse'),
+      filter(([, tab]) => tab === 'timesheets'),
       switchMap(([m]) => {
-        this.workOrderLoading.set(true);
-        this.workOrderError.set(false);
-        return this.api.getWorkOrders(m).pipe(
-          catchError(() => {
-            this.workOrderError.set(true);
-            this.workOrderLoading.set(false);
-            return EMPTY;
-          }),
+        this.tsTabLoading.set(true);
+        this.tsTabError.set(false);
+        return this.timesheetApi.listAll(m).pipe(
+          catchError(() => { this.tsTabError.set(true); this.tsTabLoading.set(false); return EMPTY; }),
         );
       }),
       takeUntilDestroyed(),
-    ).subscribe(data => {
-      this.workOrderItems.set(data);
-      this.workOrderLoading.set(false);
+    ).subscribe(data => { this.adminTimesheets.set(data); this.tsTabLoading.set(false); });
+  }
+
+  private initEmployeeStreams() {
+    const user = this.auth.currentUser();
+    const sellerId = user?.sellerId;
+    if (!sellerId) return;
+
+    toObservable(this.month).pipe(
+      switchMap(m => {
+        this.myReportLoading.set(true);
+        this.myTsLoading.set(true);
+        this.myReportError.set(false);
+        this.myTsError.set(false);
+        return forkJoin([
+          this.api.getReport('seller', sellerId, m).pipe(catchError(() => { this.myReportError.set(true); return EMPTY; })),
+          this.timesheetApi.getMy(m).pipe(catchError(() => { this.myTsError.set(true); return EMPTY; })),
+        ]);
+      }),
+      takeUntilDestroyed(),
+    ).subscribe(([report, ts]) => {
+      this.myReport.set(report);
+      this.myReportLoading.set(false);
+      this.myTimesheet.set(ts);
+      this.myTsLoading.set(false);
+    });
+  }
+
+  reloadEmployee() {
+    const sellerId = this.auth.currentUser()?.sellerId;
+    if (!sellerId) return;
+    const m = this.month();
+    forkJoin([this.api.getReport('seller', sellerId, m), this.timesheetApi.getMy(m)]).subscribe({
+      next: ([report, ts]) => { this.myReport.set(report); this.myTimesheet.set(ts); },
     });
   }
 
   reloadSummary() {
     this.summaryLoading.set(true);
-    this.summaryError.set(false);
     this.api.getSummary(this.month()).subscribe({
       next: data => { this.summaryItems.set(data); this.summaryLoading.set(false); },
       error: () => { this.summaryError.set(true); this.summaryLoading.set(false); },
     });
   }
 
-  reloadWorkOrders() {
-    this.workOrderLoading.set(true);
-    this.workOrderError.set(false);
-    this.api.getWorkOrders(this.month()).subscribe({
-      next: data => { this.workOrderItems.set(data); this.workOrderLoading.set(false); },
-      error: () => { this.workOrderError.set(true); this.workOrderLoading.set(false); },
+  reloadTsTab() {
+    this.tsTabLoading.set(true);
+    this.timesheetApi.listAll(this.month()).subscribe({
+      next: data => { this.adminTimesheets.set(data); this.tsTabLoading.set(false); },
+      error: () => { this.tsTabError.set(true); this.tsTabLoading.set(false); },
     });
   }
 
-  // ── Dettaglio dipendente ──────────────────────────────────────
+  // ── Admin: approve / request revision ─────────────────────────
+  approveTimesheet(ts: AdminTimesheetSummary) {
+    this.approvingId.set(ts.id);
+    this.timesheetApi.updateStatus(ts.id, 'approved').subscribe({
+      next: () => { this.approvingId.set(null); this.toast.success('Timesheet approvato'); this.reloadTsTab(); this.reloadSummary(); },
+      error: () => { this.approvingId.set(null); this.toast.error('Errore'); },
+    });
+  }
+
+  openRevisionForm(tsId: number) {
+    this.revisionNotes.set('');
+    this.showRevisionForm.set(tsId);
+  }
+
+  submitRevision(ts: AdminTimesheetSummary) {
+    this.revisionId.set(ts.id);
+    this.timesheetApi.updateStatus(ts.id, 'revision', this.revisionNotes()).subscribe({
+      next: () => {
+        this.revisionId.set(null);
+        this.showRevisionForm.set(null);
+        this.toast.success('Revisione richiesta');
+        this.reloadTsTab();
+        this.reloadSummary();
+      },
+      error: () => { this.revisionId.set(null); this.toast.error('Errore'); },
+    });
+  }
+
+  // ── Employee: timesheet status ─────────────────────────────────
+  readonly tsStatusLabel: Record<TimesheetStatus, string> = {
+    draft: 'Bozza',
+    ready: 'In revisione',
+    approved: 'Approvato',
+    revision: 'Richiesta revisione',
+  };
+
+  submitTimesheet() {
+    const ts = this.myTimesheet();
+    if (!ts) return;
+    this.submitting.set(true);
+    this.timesheetApi.updateStatus(ts.id, 'ready').subscribe({
+      next: updated => { this.submitting.set(false); this.myTimesheet.set(updated); this.toast.success('Timesheet inviato per revisione'); },
+      error: () => { this.submitting.set(false); this.toast.error('Errore durante l\'invio'); },
+    });
+  }
+
+  recallTimesheet() {
+    const ts = this.myTimesheet();
+    if (!ts) return;
+    this.timesheetApi.updateStatus(ts.id, 'draft').subscribe({
+      next: updated => { this.myTimesheet.set(updated); this.toast.success('Timesheet riportato in bozza'); },
+      error: () => this.toast.error('Errore'),
+    });
+  }
+
+  // ── Employee: catalog / add items ──────────────────────────────
+  openCatalog() {
+    if (this.catalog().length === 0) {
+      this.commesseApi.findAll().subscribe({
+        next: items => { this.catalog.set(items); this.showCatalog.set(true); },
+        error: () => this.toast.error('Errore nel caricamento catalogo'),
+      });
+    } else {
+      this.showCatalog.set(true);
+    }
+  }
+
+  addCatalogItem(item: CommessaDto) {
+    let baseAmount: number | undefined;
+    if (item.type === 'percentage') {
+      const raw = window.prompt(`Base di calcolo (€) per "${item.title}":`, String(item.baseAmount ?? ''));
+      if (raw === null) return;
+      baseAmount = parseFloat(raw);
+      if (isNaN(baseAmount)) { this.toast.error('Importo non valido'); return; }
+    }
+    this.addingId.set(item.id);
+    this.timesheetApi.addItem(this.month(), item.id, baseAmount).subscribe({
+      next: () => { this.addingId.set(null); this.toast.success(`"${item.title}" aggiunta`); this.showCatalog.set(false); this.reloadEmployee(); },
+      error: err => { this.addingId.set(null); this.toast.error(err?.error?.message ?? 'Errore durante l\'aggiunta'); },
+    });
+  }
+
+  removeTimesheetItem(itemId: number) {
+    this.removingId.set(itemId);
+    this.timesheetApi.removeItem(this.month(), itemId).subscribe({
+      next: () => { this.removingId.set(null); this.reloadEmployee(); },
+      error: () => { this.removingId.set(null); this.toast.error('Errore durante l\'eliminazione'); },
+    });
+  }
+
+  // ── Admin: Dettaglio dipendente ────────────────────────────────
   readonly selectedEmployee = signal<EmployeeInfo | null>(null);
   readonly reportData    = signal<MonthlyReportDto | null>(null);
   readonly reportLoading = signal(false);
@@ -137,11 +275,7 @@ export class RendicontazioniComponent {
     this.loadReport(emp);
   }
 
-  closeDetail() {
-    this.selectedEmployee.set(null);
-    this.reportData.set(null);
-    this.reportError.set(false);
-  }
+  closeDetail() { this.selectedEmployee.set(null); this.reportData.set(null); this.reportError.set(false); }
 
   private loadReport(emp: EmployeeInfo) {
     this.reportLoading.set(true);
@@ -158,118 +292,56 @@ export class RendicontazioniComponent {
     if (emp) this.loadReport(emp);
   }
 
-  // ── Work order modal (da dettaglio: singolo dipendente) ───────
-  readonly showWorkOrderModal = signal(false);
-  readonly editingWorkOrder   = signal<WorkOrderDto | null>(null);
-
-  openAddWorkOrder() { this.editingWorkOrder.set(null); this.showWorkOrderModal.set(true); }
-  openEditWorkOrder(wo: WorkOrderDto) { this.editingWorkOrder.set(wo); this.showWorkOrderModal.set(true); }
-
-  onWorkOrderSaved() {
-    this.showWorkOrderModal.set(false);
-    this.editingWorkOrder.set(null);
-    this.reloadReport();
-    this.reloadSummary();
-    this.reloadWorkOrders();
-  }
-
-  // ── Work order modal (da tab commesse: multi-dipendente) ──────
-  readonly showMultiModal  = signal(false);
-  readonly multiSaving     = signal(false);
-  readonly selectedEmpKeys = signal<Set<string>>(new Set());
-
-  openMultiModal() {
-    this.selectedEmpKeys.set(new Set());
-    this.showMultiModal.set(true);
-  }
-
-  toggleEmp(emp: EmployeeInfo) {
-    const key = `${emp.type}/${emp.id}`;
-    this.selectedEmpKeys.update(s => {
-      const n = new Set(s);
-      n.has(key) ? n.delete(key) : n.add(key);
-      return n;
-    });
-  }
-
-  submitMultiWorkOrder(payload: Omit<CreateWorkOrderPayload, 'sellerId' | 'setterId'>) {
-    const keys = [...this.selectedEmpKeys()];
-    if (!keys.length) { this.toast.error('Seleziona almeno un dipendente'); return; }
-
-    const requests = keys.map(k => {
-      const [type, id] = k.split('/');
-      const dto: CreateWorkOrderPayload = {
-        ...payload,
-        ...(type === 'seller' ? { sellerId: Number(id) } : { setterId: Number(id) }),
-      };
-      return this.api.createWorkOrder(dto);
-    });
-
-    this.multiSaving.set(true);
-    forkJoin(requests).subscribe({
-      next: () => {
-        this.multiSaving.set(false);
-        this.showMultiModal.set(false);
-        this.toast.success(`Commessa assegnata a ${keys.length} dipendente/i`);
-        this.reloadWorkOrders();
-        this.reloadSummary();
-        this.reloadReport();
-      },
-      error: () => {
-        this.multiSaving.set(false);
-        this.toast.error('Errore durante il salvataggio');
-      },
-    });
-  }
-
-  // ── Delete work order ─────────────────────────────────────────
-  readonly deletingId = signal<number | null>(null);
-
-  deleteWorkOrder(id: number) {
-    this.deletingId.set(id);
-    this.api.deleteWorkOrder(id).subscribe({
-      next: () => {
-        this.deletingId.set(null);
-        this.toast.success('Commessa eliminata');
-        this.reloadReport();
-        this.reloadSummary();
-        this.reloadWorkOrders();
-      },
-      error: () => {
-        this.deletingId.set(null);
-        this.toast.error('Errore durante l\'eliminazione');
-      },
-    });
-  }
-
-  // ── Balance modal ─────────────────────────────────────────────
+  // ── Balance modal ──────────────────────────────────────────────
   readonly showBalanceModal = signal(false);
 
-  onBalanceSaved() {
-    this.showBalanceModal.set(false);
-    this.reloadReport();
-    this.reloadSummary();
-  }
+  onBalanceSaved() { this.showBalanceModal.set(false); this.reloadReport(); this.reloadSummary(); }
 
-  // ── Print ─────────────────────────────────────────────────────
+  // ── Print ──────────────────────────────────────────────────────
   openPrint() {
     const emp = this.selectedEmployee();
     if (!emp) return;
     window.open(`/rendicontazioni/print?type=${emp.type}&id=${emp.id}&month=${this.month()}`, '_blank');
   }
 
+  openMyPrint() {
+    const user = this.auth.currentUser();
+    if (!user?.sellerId) return;
+    window.open(`/rendicontazioni/print?type=seller&id=${user.sellerId}&month=${this.month()}`, '_blank');
+  }
+
   // ── Helpers ───────────────────────────────────────────────────
-  formatAmount(n: number | null | undefined): string {
-    return Number(n ?? 0).toFixed(2);
-  }
+  formatAmount(n: number | null | undefined): string { return Number(n ?? 0).toFixed(2); }
+  balanceClass(b: number): string { return b < 0 ? 'neg' : b > 0 ? 'pos' : 'zero'; }
 
-  balanceClass(b: number): string {
-    return b < 0 ? 'neg' : b > 0 ? 'pos' : 'zero';
-  }
-
-  woLabel(wo: WorkOrderDto): string {
-    return wo.type === 'percentage'
-      ? `${wo.percentageRate}% di €${Number(wo.baseAmount ?? 0).toFixed(2)}`
+  tsItemLabel(item: TimesheetItemLine): string {
+    return item.type === 'percentage'
+      ? `${item.percentageRate}% di €${Number(item.baseAmount ?? 0).toFixed(2)}`
       : 'Fisso';
   }
+
+  tsSubtotal = computed(() =>
+    (this.myTimesheet()?.items ?? []).reduce((s, i) => s + Number(i.computedAmount), 0),
+  );
+
+  myGrossTotal = computed(() => {
+    const r = this.myReport();
+    return Math.round((Number(r?.subtotalCommissions ?? 0) + this.tsSubtotal()) * 100) / 100;
+  });
+
+  adminTsTotal(ts: AdminTimesheetSummary): number {
+    return (ts.items ?? []).reduce((s, i) => s + Number(i.computedAmount), 0);
+  }
+
+  sellerName(ts: AdminTimesheetSummary): string {
+    if (!ts.seller) return '—';
+    return [ts.seller.name, ts.seller.lastName].filter(Boolean).join(' ') || ts.seller.email || '—';
+  }
+
+  readonly adminTsStatusLabel: Record<string, string> = {
+    draft: 'Bozza',
+    ready: 'Pronto per revisione',
+    approved: 'Approvato',
+    revision: 'Revisione richiesta',
+  };
 }

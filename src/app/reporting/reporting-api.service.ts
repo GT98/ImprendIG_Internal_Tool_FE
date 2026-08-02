@@ -23,7 +23,7 @@ export interface CommissionLineItem {
   percentage: number | null;
 }
 
-export interface WorkOrderDto {
+export interface TimesheetItemLine {
   id: number;
   description: string;
   type: 'fixed' | 'percentage';
@@ -31,6 +31,7 @@ export interface WorkOrderDto {
   percentageRate: number | null;
   baseAmount: number | null;
   computedAmount: number;
+  notes: string | null;
 }
 
 export interface BalanceDto {
@@ -43,9 +44,11 @@ export interface MonthlyReportDto {
   employee: EmployeeInfo;
   month: string;
   commissions: CommissionLineItem[];
-  workOrders: WorkOrderDto[];
+  timesheetItems: TimesheetItemLine[];
+  timesheetId: number | null;
+  timesheetStatus: string | null;
   subtotalCommissions: number;
-  subtotalWorkOrders: number;
+  subtotalTimesheetItems: number;
   grossTotal: number;
   balance: BalanceDto;
   netPayable: number;
@@ -56,25 +59,10 @@ export interface ReportSummaryItem {
   employee: EmployeeInfo;
   grossTotal: number;
   subtotalCommissions: number;
-  subtotalWorkOrders: number;
+  subtotalTimesheetItems: number;
   balance: number;
   netPayable: number;
-}
-
-export interface WorkOrderListItem extends WorkOrderDto {
-  month: string;
-  employee: EmployeeInfo | null;
-}
-
-export interface CreateWorkOrderPayload {
-  month: string;
-  description: string;
-  type: 'fixed' | 'percentage';
-  fixedAmount?: number;
-  percentageRate?: number;
-  baseAmount?: number;
-  sellerId?: number;
-  setterId?: number;
+  timesheetStatus: string | null;
 }
 
 export interface AdjustBalancePayload {
@@ -94,22 +82,6 @@ export class ReportingApiService {
     return this.http.get<MonthlyReportDto>(`${API_URL}/reporting/report`, {
       params: { type, id: String(id), month },
     });
-  }
-
-  getWorkOrders(month: string): Observable<WorkOrderListItem[]> {
-    return this.http.get<WorkOrderListItem[]>(`${API_URL}/reporting/work-orders`, { params: { month } });
-  }
-
-  createWorkOrder(dto: CreateWorkOrderPayload): Observable<WorkOrderDto> {
-    return this.http.post<WorkOrderDto>(`${API_URL}/reporting/work-orders`, dto);
-  }
-
-  updateWorkOrder(id: number, dto: Partial<CreateWorkOrderPayload>): Observable<WorkOrderDto> {
-    return this.http.patch<WorkOrderDto>(`${API_URL}/reporting/work-orders/${id}`, dto);
-  }
-
-  deleteWorkOrder(id: number): Observable<void> {
-    return this.http.delete<void>(`${API_URL}/reporting/work-orders/${id}`);
   }
 
   adjustBalance(type: string, id: number, dto: AdjustBalancePayload): Observable<{ balance: number; notes: string | null }> {

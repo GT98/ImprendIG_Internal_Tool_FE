@@ -21,6 +21,8 @@ const BASE_NAV = [
   { path: 'catalogo', label: 'Catalogo', icon: 'grid' },
   { path: 'leads', label: 'Lead', icon: 'target' },
   { path: 'ai', label: 'AI', icon: 'zap' },
+  { path: 'commesse', label: 'Commesse', icon: 'edit' },
+  { path: 'rendicontazioni', label: 'Rendicontazioni', icon: 'receipt' },
 ];
 const ADMIN_NAV = [
   { path: 'dashboard', label: 'Dashboard', icon: 'home' },
@@ -28,7 +30,6 @@ const ADMIN_NAV = [
   { path: 'customers', label: 'Clienti', icon: 'users' },
   { path: 'onboarding', label: 'Onboarding', icon: 'send' },
   { path: 'team', label: 'Team', icon: 'users' },
-  { path: 'rendicontazioni', label: 'Rendicontazioni', icon: 'receipt' },
 ];
 
 @Component({
