@@ -29,20 +29,19 @@ function makeDisplaySetter(s: SaleDto['setter'], colorIdx: number): Seller {
   return { id: String(s?.id ?? 0), name, initials, color: SETTER_COLORS[colorIdx % SETTER_COLORS.length], role: 'Setter' };
 }
 
-function derivePayStatus(installments: InstallmentDto[]): 'pagato' | 'pending' | 'fallito' {
-  const bal = installments.filter(i => i.type === 'balance');
-  if (bal.some(i => i.status === 'failed')) return 'fallito';
-  if (bal.some(i => i.status === 'paid')) return 'pagato';
-  // sale con solo acconto (deposit_paid): nessun balance, controlla il deposit
-  if (bal.length === 0) {
-    const deposit = installments.find(i => i.type === 'deposit');
-    if (deposit?.status === 'paid') return 'pagato';
-    if (deposit?.status === 'failed') return 'fallito';
-  }
+// Status based on the installment(s) in the selected month:
+// paid → pagato, draft → pending, failed → fallito
+function derivePayStatus(installments: InstallmentDto[], month: string): 'pagato' | 'pending' | 'fallito' {
+  const monthInsts = installments.filter(i =>
+    i.dueDate?.startsWith(month) || i.paymentDate?.startsWith(month)
+  );
+  if (monthInsts.some(i => i.status === 'failed')) return 'fallito';
+  if (monthInsts.some(i => i.status === 'draft'))  return 'pending';
+  if (monthInsts.some(i => i.status === 'paid'))   return 'pagato';
   return 'pending';
 }
 
-function saleToClient(sale: SaleDto): Client {
+function saleToClient(sale: SaleDto, month: string): Client {
   const paid = sale.installments.filter(i => i.status === 'paid');
   const nextDraft = sale.installments
     .filter(i => i.status === 'draft' && i.type === 'balance')
@@ -59,7 +58,7 @@ function saleToClient(sale: SaleDto): Client {
     contact: sale.customer?.email ?? '—',
     plan: sale.pricePlan?.name ?? '—',
     mrr: Number(sale.pricePlan?.installmentAmount ?? 0),
-    payStatus: derivePayStatus(sale.installments),
+    payStatus: derivePayStatus(sale.installments, month),
     lastPay: lastPaid?.paymentDate ?? '',
     nextPay: nextDraft?.dueDate ?? '',
     stripe: sale.stripeSubscriptionId ?? '',
@@ -452,7 +451,7 @@ export class ClientDrawerComponent {
         <app-stat-card icon="check" label="Incassato (MRR)" [value]="eurIncassato()" [trend]="6" [accent]="true" />
         <app-stat-card icon="clock" label="In attesa" [value]="eurAttesa()" [sub]="pendingCount() + ' fatture'" />
         <app-stat-card icon="x" label="Pagamenti falliti" [value]="fallitiCount()" sub="da recuperare" />
-        <app-stat-card icon="card" label="MRR totale" [value]="eurMrr()" [sub]="allClients().length + ' clienti attivi'" />
+        <app-stat-card icon="card" label="Volume mese" [value]="eurMrr()" [sub]="allClients().length + ' vendite'" />
       </div>
 
       <app-month-nav [(selected)]="selectedMonth" />
@@ -467,6 +466,19 @@ export class ClientDrawerComponent {
             aria-label="Cerca"
           />
         </div>
+        @if (isAdmin() && availableClients().length > 0) {
+          <select
+            class="client-filter-select"
+            [value]="clientF()"
+            (change)="clientF.set($any($event.target).value)"
+            aria-label="Filtra per azienda"
+          >
+            <option value="all">Tutte le aziende</option>
+            @for (c of availableClients(); track c.id) {
+              <option [value]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        }
         <app-segmented [value]="payF()" [options]="payOptions" (changed)="payF.set($event)" />
       </div>
 
@@ -520,6 +532,9 @@ export class ClientDrawerComponent {
                       <span>
                         <span class="td-strong">{{ row.client.name }}</span>
                         <span class="td-contact">{{ row.client.contact }}</span>
+                        @if (row.sale.client?.name) {
+                          <span class="org-tag">{{ row.sale.client!.name }}</span>
+                        }
                       </span>
                     </span>
                     @if (isAdmin()) {
@@ -627,13 +642,38 @@ export class ClientsComponent {
   readonly salesResource = rxResource({ stream: () => this.saleApiService.getAll() });
 
   readonly selectedMonth = signal(isoCurrentMonth());
+  readonly clientF = signal<string>('all');
 
+  // Sales that have at least one installment (paid or due) in the selected month
   readonly monthSales = computed(() => {
     const m = this.selectedMonth();
-    return (this.salesResource.value() ?? []).filter(s => s.createdAt.startsWith(m));
+    return (this.salesResource.value() ?? []).filter(s =>
+      s.installments.some(i => i.paymentDate?.startsWith(m) || i.dueDate?.startsWith(m))
+    );
   });
 
-  readonly allClients = computed(() => this.monthSales().map(saleToClient));
+  // Unique client entities (from clients table) for the filter dropdown
+  readonly availableClients = computed(() => {
+    const map = new Map<string, string>();
+    for (const s of (this.salesResource.value() ?? [])) {
+      if (s.client?.id) map.set(String(s.client.id), s.client.name ?? String(s.client.id));
+    }
+    return [...map.entries()]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  });
+
+  // Sales filtered by month AND client
+  readonly monthClientSales = computed(() => {
+    const cf = this.clientF();
+    const base = this.monthSales();
+    return cf === 'all' ? base : base.filter(s => String(s.client?.id) === cf);
+  });
+
+  readonly allClients = computed(() => {
+    const m = this.selectedMonth();
+    return this.monthClientSales().map(s => saleToClient(s, m));
+  });
 
   readonly displaySellersById = computed<Record<string, Seller>>(() => {
     const sales = this.salesResource.value() ?? [];
@@ -683,11 +723,15 @@ export class ClientsComponent {
     this.salesResource.reload();
   }
 
-  readonly saleToClientFn = saleToClient;
+  saleToClientFn = (sale: SaleDto): Client => saleToClient(sale, this.selectedMonth());
   readonly sortedInstsFn = sortedInstallments;
-  readonly isCurrentMonthInstFn = isCurrentMonthInst;
   readonly balanceTotalFn = balanceTotal;
   readonly instStatusLabelFn = instStatusLabel;
+
+  isCurrentMonthInstFn = (inst: InstallmentDto): boolean => {
+    const m = this.selectedMonth();
+    return !!(inst.dueDate?.startsWith(m) || inst.paymentDate?.startsWith(m));
+  };
   readonly eurFmt = eur;
   readonly fmtDate = fmtDate;
   readonly String = String;
@@ -701,8 +745,9 @@ export class ClientsComponent {
 
   readonly filteredRows = computed(() => {
     const q = this.q().toLowerCase();
-    return this.monthSales()
-      .map(sale => ({ sale, client: saleToClient(sale) }))
+    const m = this.selectedMonth();
+    return this.monthClientSales()
+      .map(sale => ({ sale, client: saleToClient(sale, m) }))
       .filter(({ client: c }) => {
         if (this.payF() !== 'tutti' && c.payStatus !== this.payF()) return false;
         if (q && !(c.name + c.contact).toLowerCase().includes(q)) return false;
@@ -722,13 +767,46 @@ export class ClientsComponent {
     return this.expandedRows().has(id);
   }
 
-  readonly eurIncassato = computed(() =>
-    eur(this.allClients().filter(c => c.payStatus === 'pagato').reduce((s, c) => s + c.mrr, 0))
-  );
-  readonly eurAttesa = computed(() =>
-    eur(this.allClients().filter(c => c.payStatus === 'pending').reduce((s, c) => s + c.mrr, 0))
-  );
-  readonly fallitiCount = computed(() => this.allClients().filter(c => c.payStatus === 'fallito').length);
-  readonly pendingCount = computed(() => this.allClients().filter(c => c.payStatus === 'pending').length);
-  readonly eurMrr = computed(() => eur(this.allClients().reduce((s, c) => s + c.mrr, 0)));
+  // Actual cash received this month (sum of paid installments in selected month)
+  readonly eurIncassato = computed(() => {
+    const m = this.selectedMonth();
+    const total = this.monthClientSales()
+      .flatMap(s => s.installments)
+      .filter(i => i.status === 'paid' && i.paymentDate?.startsWith(m))
+      .reduce((sum, i) => sum + Number(i.amount ?? 0), 0);
+    return eur(total);
+  });
+
+  // Sum of draft installments due in selected month
+  readonly eurAttesa = computed(() => {
+    const m = this.selectedMonth();
+    const total = this.monthClientSales()
+      .flatMap(s => s.installments)
+      .filter(i => i.status === 'draft' && i.dueDate?.startsWith(m))
+      .reduce((sum, i) => sum + Number(i.amount ?? 0), 0);
+    return eur(total);
+  });
+
+  readonly fallitiCount = computed(() => {
+    const m = this.selectedMonth();
+    return this.monthClientSales()
+      .filter(s => s.installments.some(i => i.status === 'failed' && (i.dueDate?.startsWith(m) || i.paymentDate?.startsWith(m))))
+      .length;
+  });
+
+  readonly pendingCount = computed(() => {
+    const m = this.selectedMonth();
+    return this.monthClientSales()
+      .filter(s => s.installments.some(i => i.status === 'draft' && i.dueDate?.startsWith(m)))
+      .length;
+  });
+
+  readonly eurMrr = computed(() => {
+    const m = this.selectedMonth();
+    const total = this.monthClientSales()
+      .flatMap(s => s.installments)
+      .filter(i => i.paymentDate?.startsWith(m) || i.dueDate?.startsWith(m))
+      .reduce((sum, i) => sum + Number(i.amount ?? 0), 0);
+    return eur(total);
+  });
 }

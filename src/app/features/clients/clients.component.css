@@ -1,3 +1,20 @@
+/* ---------- CLIENT FILTER SELECT ---------- */
+.client-filter-select {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: border-color .15s;
+}
+.client-filter-select:focus { border-color: var(--accent); }
+
 /* ---------- TABLE TREE ---------- */
 .tr-group { display: contents; }
 
