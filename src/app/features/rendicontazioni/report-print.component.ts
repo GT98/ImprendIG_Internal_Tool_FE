@@ -90,10 +90,10 @@ function formatMonth(iso: string): string {
             </div>
           }
 
-          <!-- Sezione 2: Commesse -->
-          @if (r.workOrders.length > 0) {
+          <!-- Sezione 2: Commesse (timesheet) -->
+          @if (r.timesheetItems.length > 0) {
             <div class="bp-section">
-              <div class="section-title">Commesse aggiuntive</div>
+              <div class="section-title">Commesse</div>
               <table class="bp-table">
                 <thead>
                   <tr>
@@ -103,24 +103,21 @@ function formatMonth(iso: string): string {
                   </tr>
                 </thead>
                 <tbody>
-                  @for (wo of r.workOrders; track wo.id) {
+                  @for (item of r.timesheetItems; track item.id) {
                     <tr>
-                      <td>{{ wo.description }}</td>
+                      <td>{{ item.description }}</td>
                       <td class="muted">
-                        @if (wo.type === 'fixed') {
-                          Fisso
-                        } @else {
-                          {{ wo.percentageRate }}% di €{{ fmt(wo.baseAmount ?? 0) }}
-                        }
+                        @if (item.type === 'fixed') { Fisso }
+                        @else { {{ item.percentageRate }}% di €{{ fmt(item.baseAmount ?? 0) }} }
                       </td>
-                      <td class="text-right">€ {{ fmt(wo.computedAmount) }}</td>
+                      <td class="text-right">€ {{ fmt(item.computedAmount) }}</td>
                     </tr>
                   }
                 </tbody>
                 <tfoot>
                   <tr class="subtotal-row">
                     <td colspan="2">Subtotale commesse</td>
-                    <td class="text-right">€ {{ fmt(r.subtotalWorkOrders) }}</td>
+                    <td class="text-right">€ {{ fmt(r.subtotalTimesheetItems) }}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -135,7 +132,7 @@ function formatMonth(iso: string): string {
             </div>
             <div class="summary-line">
               <span>Totale commesse</span>
-              <span>€ {{ fmt(r.subtotalWorkOrders) }}</span>
+              <span>€ {{ fmt(r.subtotalTimesheetItems) }}</span>
             </div>
             <div class="summary-line gross-line">
               <span>Totale lordo</span>
