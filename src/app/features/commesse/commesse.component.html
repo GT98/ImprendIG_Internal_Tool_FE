@@ -46,7 +46,9 @@
         <div class="catalog-card" [class.inactive]="!item.isActive">
           <div class="card-header">
             <span class="card-title">{{ item.title }}</span>
-            <span class="type-badge" [class]="item.type">
+            <span class="type-badge"
+                  [class.fixed]="item.type === 'fixed'"
+                  [class.percentage]="item.type === 'percentage'">
               {{ item.type === 'fixed' ? 'Fisso' : 'Percentuale' }}
             </span>
           </div>

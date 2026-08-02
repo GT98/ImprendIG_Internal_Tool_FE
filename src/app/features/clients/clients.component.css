@@ -253,3 +253,25 @@
 .inst-toggle-btn.paid { border-color: #fca5a5; color: #b91c1c; }
 .inst-toggle-btn.paid:hover:not(:disabled) { background: #fee2e2; }
 .inst-toggle-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── Mobile ─────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  /* Hide Setter and Tot.incassato columns on mobile */
+  .col-setter,
+  .col-total { display: none !important; }
+
+  /* Redefine admin grid without those 2 columns (6 instead of 8) */
+  .table-clients.adm .tr {
+    grid-template-columns: 1.6fr .9fr 1.4fr .65fr .8fr .9fr;
+  }
+
+  /* Client filter select: full width row on mobile */
+  .client-filter-select { flex: 1 1 100%; order: -1; }
+
+  /* Compact installment panel */
+  .inst-summary-row {
+    grid-template-columns: 1fr auto auto;
+    gap: 8px;
+  }
+  .inst-summary-row .inst-date { display: none; }
+}

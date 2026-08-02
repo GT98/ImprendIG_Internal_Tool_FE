@@ -590,4 +590,34 @@ app-root { display: block; height: 100%; }
   .stat-value { font-size: 21px; }
   .drawer { width: 100%; }
   .table { min-width: 540px; }
+
+  /* Touch momentum scroll for tables */
+  .table-scroll { -webkit-overflow-scrolling: touch; }
+
+  /* Compact card padding to give tables more room */
+  .card { padding: 12px 12px; }
+
+  /* Force table min-widths so they overflow and scroll */
+  .table-clients { min-width: 560px; }
+  .table-clients.adm { min-width: 620px; }
+  .table-deals.adm { min-width: 660px; }
+
+  /* Stat cards: 2 columns, smaller font */
+  .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-card { padding: 14px 12px; }
+
+  /* Page head: stack on mobile */
+  .page-head { flex-direction: column; align-items: flex-start; gap: 6px; }
+
+  /* Search + toolbar wrap nicely */
+  .search-box { flex: 1 1 100%; }
+  .toolbar { gap: 8px; }
+}
+
+@media print {
+  .sidebar,
+  .topbar,
+  .mobile-nav { display: none !important; }
+
+  .main { padding: 0 !important; }
 }

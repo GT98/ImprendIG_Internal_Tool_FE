@@ -284,6 +284,7 @@
 }
 
 .btn-outline:hover { background: var(--surface, #f3f4f6); }
+.btn-outline.btn-sm { padding: 4px 10px; font-size: 12px; border-radius: 6px; }
 
 .emp-detail-head {
   display: flex;
@@ -301,6 +302,7 @@
   border-radius: 14px;
   border: 1px solid var(--border, #e5e7eb);
   padding: 18px 20px;
+  margin-bottom: 20px;
 }
 
 .section-title {

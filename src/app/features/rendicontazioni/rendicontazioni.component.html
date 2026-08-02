@@ -131,6 +131,11 @@
                   </div>
                   <div class="ts-card-right">
                     <span class="ts-pill" [class]="ts.status">{{ adminTsStatusLabel[ts.status] }}</span>
+                    @if (ts.seller) {
+                      <button class="btn-outline btn-sm" (click)="selectEmployee({ id: ts.seller.id, type: 'seller', name: sellerName(ts), email: ts.seller.email })">
+                        Vedi dettaglio
+                      </button>
+                    }
                     @if (ts.status === 'ready') {
                       <button class="btn-primary" (click)="approveTimesheet(ts)" [disabled]="approvingId() === ts.id">
                         @if (approvingId() === ts.id) { <span class="spinner-sm"></span> } @else { Approva }

@@ -496,12 +496,12 @@ export class ClientDrawerComponent {
               <!-- header -->
               <div class="tr th">
                 <span>Cliente</span>
-                @if (isAdmin()) { <span>Venditore</span> }
-                @if (isAdmin()) { <span>Setter</span> }
+                @if (isAdmin()) { <span class="col-seller">Venditore</span> }
+                @if (isAdmin()) { <span class="col-setter">Setter</span> }
                 <span>Servizio</span>
                 <span>Piano</span>
                 <span class="r">MRR</span>
-                <span class="r">Tot. incassato</span>
+                <span class="r col-total">Tot. incassato</span>
                 <span class="r">Stato</span>
               </div>
 
@@ -538,13 +538,13 @@ export class ClientDrawerComponent {
                       </span>
                     </span>
                     @if (isAdmin()) {
-                      <span class="td-seller">
+                      <span class="td-seller col-seller">
                         <app-avatar [seller]="displaySellersById()[row.client.sellerId]" [size]="24" />
                         {{ (displaySellersById()[row.client.sellerId]?.name ?? '—').split(' ')[0] }}
                       </span>
                     }
                     @if (isAdmin()) {
-                      <span class="td-seller">
+                      <span class="td-seller col-setter">
                         @if (row.client.setterId && displaySettersById()[row.client.setterId]) {
                           <app-avatar [seller]="displaySettersById()[row.client.setterId]" [size]="24" />
                           {{ displaySettersById()[row.client.setterId].name.split(' ')[0] }}
@@ -568,7 +568,7 @@ export class ClientDrawerComponent {
                       }
                     </span>
                     <span class="r mono strong">{{ eurFmt(row.client.mrr) }}</span>
-                    <span class="r mono muted">{{ eurFmt(row.client.totalPaid) }}</span>
+                    <span class="r mono muted col-total">{{ eurFmt(row.client.totalPaid) }}</span>
                     <span class="r"><app-status-badge [status]="row.client.payStatus" kind="pay" /></span>
                   </div>
 

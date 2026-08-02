@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { jsPDF } from 'jspdf';
 import { ReportingApiService, MonthlyReportDto } from '../../reporting/reporting-api.service';
 
 function formatMonth(iso: string): string {
@@ -439,48 +440,222 @@ export class ReportPrintComponent implements OnInit {
     });
   }
 
-  async savePdf() {
+  savePdf() {
+    const r = this.report();
+    if (!r) return;
     this.downloading.set(true);
+
     try {
-      // Dynamic imports bypass TypeScript module resolution —
-      // falls back to window.print() if packages aren't installed yet.
-      const [h2cMod, jpdfMod] = await Promise.all([
-        new Function('return import("html2canvas")')(),
-        new Function('return import("jspdf")')(),
-      ]);
-      const html2canvas = h2cMod.default as (el: HTMLElement, opts?: object) => Promise<HTMLCanvasElement>;
-      const jsPDF = jpdfMod.default as new (o?: string, u?: string, f?: string | [number, number]) => {
-        internal: { pageSize: { getWidth(): number; getHeight(): number } };
-        addImage(d: string, t: string, x: number, y: number, w: number, h: number): void;
-        addPage(): void;
-        save(name: string): void;
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const L = 18;
+      const R = 192;
+      const W = R - L;
+      const ACCENT: [number, number, number] = [79, 70, 229];
+      const INK: [number, number, number] = [17, 24, 39];
+      const MUTED: [number, number, number] = [107, 114, 128];
+      const BORDER: [number, number, number] = [229, 231, 235];
+
+      let y = 22;
+
+      // ── Header ──────────────────────────────────────────────
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.setTextColor(...INK);
+      doc.text('Imprendig', L, y);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...MUTED);
+      doc.text('REPORT COMPENSO MENSILE', L, y + 5);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(...ACCENT);
+      doc.text(this.monthLabel(), R, y, { align: 'right' });
+
+      y += 11;
+      doc.setDrawColor(...BORDER);
+      doc.setLineWidth(0.3);
+      doc.line(L, y, R, y);
+
+      y += 11;
+
+      // ── Dipendente ──────────────────────────────────────────
+      doc.setFillColor(...ACCENT);
+      doc.circle(L + 6, y, 6, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(255, 255, 255);
+      doc.text(r.employee.name.charAt(0).toUpperCase(), L + 6, y + 1, { align: 'center' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(...INK);
+      doc.text(r.employee.name, L + 15, y - 1);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(...MUTED);
+      const roleLabel = r.employee.type === 'seller' ? 'Venditore' : 'Setter';
+      const metaLine = r.employee.email ? `${roleLabel} · ${r.employee.email}` : roleLabel;
+      doc.text(metaLine, L + 15, y + 5);
+
+      y += 17;
+
+      // ── Helper: section table ──────────────────────────────
+      const ROW_H = 7;
+
+      const drawTable = (
+        title: string,
+        headers: string[],
+        rows: string[][],
+        colWidths: number[],
+        aligns: Array<'left' | 'right'>,
+        subtotalLabel: string,
+        subtotalValue: string,
+      ) => {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(...MUTED);
+        doc.text(title, L, y);
+        y += 5;
+
+        // Header row
+        doc.setFillColor(249, 250, 251);
+        doc.setDrawColor(...BORDER);
+        doc.setLineWidth(0.2);
+        doc.rect(L, y, W, ROW_H, 'FD');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(...MUTED);
+        let x = L;
+        headers.forEach((h, i) => {
+          const xPos = aligns[i] === 'right' ? x + colWidths[i] - 2 : x + 2;
+          doc.text(h, xPos, y + 4.5, { align: aligns[i] });
+          x += colWidths[i];
+        });
+        y += ROW_H;
+
+        // Data rows
+        rows.forEach(row => {
+          doc.setDrawColor(...BORDER);
+          doc.setLineWidth(0.2);
+          doc.rect(L, y, W, ROW_H, 'D');
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.setTextColor(...INK);
+          let x2 = L;
+          row.forEach((cell, i) => {
+            if (i > 0) doc.setTextColor(...MUTED);
+            else doc.setTextColor(...INK);
+            const xPos = aligns[i] === 'right' ? x2 + colWidths[i] - 2 : x2 + 2;
+            doc.text(cell, xPos, y + 4.5, { align: aligns[i] });
+            x2 += colWidths[i];
+          });
+          y += ROW_H;
+        });
+
+        // Subtotal row
+        doc.setFillColor(238, 240, 251);
+        doc.rect(L, y, W, ROW_H, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(...ACCENT);
+        doc.text(subtotalLabel, L + 2, y + 4.5);
+        doc.text(subtotalValue, R - 2, y + 4.5, { align: 'right' });
+        y += ROW_H + 10;
       };
 
-      const element = document.getElementById('bp-content') as HTMLElement;
-      if (!element) { window.print(); return; }
-
-      const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const margin = 10;
-      const printW = pageW - margin * 2;
-      const imgH = (canvas.height * printW) / canvas.width;
-      let remaining = imgH;
-
-      pdf.addImage(imgData, 'PNG', margin, margin, printW, imgH);
-      remaining -= pageH - margin * 2;
-
-      while (remaining > 0) {
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', margin, margin - (imgH - remaining), printW, imgH);
-        remaining -= pageH - margin * 2;
+      // ── Provvigioni ─────────────────────────────────────────
+      if (r.commissions.length > 0) {
+        drawTable(
+          'PROVVIGIONI SU VENDITE',
+          ['CLIENTE', 'PIANO', 'RATA', 'IMPORTO'],
+          r.commissions.map(c => [
+            c.customerName,
+            c.planName,
+            c.installmentNumber ? `${c.installmentNumber}/${c.totalInstallments ?? '?'}` : '—',
+            `€ ${this.fmt(c.amount)}`,
+          ]),
+          [58, 58, 20, W - 136],
+          ['left', 'left', 'left', 'right'],
+          'Subtotale provvigioni',
+          `€ ${this.fmt(r.subtotalCommissions)}`,
+        );
       }
 
-      pdf.save(`report-${this.empName.replace(/\s+/g, '_')}-${this.month}.pdf`);
-    } catch {
-      window.print();
+      // ── Commesse (timesheet) ────────────────────────────────
+      if (r.timesheetItems.length > 0) {
+        drawTable(
+          'COMMESSE',
+          ['DESCRIZIONE', 'TIPO', 'IMPORTO'],
+          r.timesheetItems.map(item => [
+            item.description,
+            item.type === 'fixed'
+              ? 'Fisso'
+              : `${item.percentageRate}% di €${this.fmt(item.baseAmount ?? 0)}`,
+            `€ ${this.fmt(item.computedAmount)}`,
+          ]),
+          [90, W - 90 - 30, 30],
+          ['left', 'left', 'right'],
+          'Subtotale commesse',
+          `€ ${this.fmt(r.subtotalTimesheetItems)}`,
+        );
+      }
+
+      // ── Riepilogo ────────────────────────────────────────────
+      const hasBalance = r.balance.current !== 0;
+      const summaryRows = 3 + (hasBalance ? 1 : 0);
+      const summaryH = summaryRows * ROW_H + 14;
+      doc.setDrawColor(...BORDER);
+      doc.setFillColor(249, 250, 251);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(L, y, W, summaryH, 2, 2, 'FD');
+
+      const sumLine = (label: string, value: string, bold = false, color: [number, number, number] = MUTED) => {
+        doc.setFont('helvetica', bold ? 'bold' : 'normal');
+        doc.setFontSize(9.5);
+        doc.setTextColor(...(bold ? INK : MUTED));
+        doc.text(label, L + 4, y + 5);
+        doc.setTextColor(...color);
+        doc.text(value, R - 4, y + 5, { align: 'right' });
+        y += ROW_H;
+      };
+
+      sumLine('Totale provvigioni', `€ ${this.fmt(r.subtotalCommissions)}`);
+      sumLine('Totale commesse', `€ ${this.fmt(r.subtotalTimesheetItems)}`);
+      sumLine('Totale lordo', `€ ${this.fmt(r.grossTotal)}`, true, INK);
+      if (hasBalance) {
+        const bColor: [number, number, number] = r.balance.current >= 0 ? [21, 128, 61] : [185, 28, 28];
+        const bLabel = `Saldo residuo${r.balance.notes ? ` (${r.balance.notes})` : ''}`;
+        const bValue = `${r.balance.current >= 0 ? '+' : ''}€ ${this.fmt(r.balance.current)}`;
+        sumLine(bLabel, bValue, false, bColor);
+      }
+
+      y += 3;
+      doc.setDrawColor(...BORDER);
+      doc.setLineWidth(0.3);
+      doc.line(L + 4, y, R - 4, y);
+      y += 5;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(...INK);
+      doc.text('NETTO DA PAGARE', L + 4, y);
+      doc.setFontSize(13);
+      doc.setTextColor(...ACCENT);
+      doc.text(`€ ${this.fmt(r.netPayable)}`, R - 4, y, { align: 'right' });
+      y += 16;
+
+      // ── Footer ───────────────────────────────────────────────
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...MUTED);
+      doc.text(`Documento generato il ${this.today()} · Imprendig`, 105, y, { align: 'center' });
+
+      doc.save(`${r.employee.name.replace(/\s+/g, '_')}_${this.month}.pdf`);
+    } catch (e) {
+      console.error('PDF generation failed', e);
     } finally {
       this.downloading.set(false);
     }
