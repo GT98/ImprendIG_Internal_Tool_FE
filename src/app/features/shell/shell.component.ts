@@ -28,6 +28,7 @@ const ADMIN_NAV = [
   { path: 'customers', label: 'Clienti', icon: 'users' },
   { path: 'onboarding', label: 'Onboarding', icon: 'send' },
   { path: 'team', label: 'Team', icon: 'users' },
+  { path: 'rendicontazioni', label: 'Rendicontazioni', icon: 'receipt' },
 ];
 
 @Component({

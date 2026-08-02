@@ -34,6 +34,9 @@ const ICONS: Record<string, string | string[]> = {
   activity:      'M22 12h-4l-3 9L9 3l-3 9H2',
   swap:          ['M7 16V4m0 0L3 8m4-4l4 4', 'M17 8v12m0 0l4-4m-4 4l-4-4'],
   send:          ['M22 2L11 13', 'M22 2L15 22 11 13 2 9Z'],
+  receipt:       ['M4 4h16v16H4z', 'M4 9h16', 'M8 4v5', 'M16 4v5', 'M8 14h4', 'M8 17h8'],
+  trash:         ['M3 6h18', 'M8 6V4h8v2', 'M19 6l-1 14H6L5 6'],
+  wallet:        ['M20 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z', 'M16 13a1 1 0 100-2 1 1 0 000 2z', 'M2 10h20'],
 };
 
 @Component({

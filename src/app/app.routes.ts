@@ -93,6 +93,19 @@ export const routes: Routes = [
           import('./features/ai/ai.component').then(m => m.AiComponent),
         title: 'AI Assistant',
       },
+      {
+        path: 'rendicontazioni',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/rendicontazioni/rendicontazioni.component').then(m => m.RendicontazioniComponent),
+        title: 'Rendicontazioni',
+      },
+      {
+        path: 'rendicontazioni/print',
+        loadComponent: () =>
+          import('./features/rendicontazioni/report-print.component').then(m => m.ReportPrintComponent),
+        title: 'Report PDF',
+      },
     ],
   },
 ];

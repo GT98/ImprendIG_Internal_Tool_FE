@@ -1,0 +1,355 @@
+<div class="page">
+
+  <!-- ── Header ────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <app-icon name="receipt" [size]="20" />
+      <h1>Rendicontazioni</h1>
+    </div>
+    <div class="month-nav">
+      <button class="nav-btn" (click)="prevMonth()" aria-label="Mese precedente">
+        <app-icon name="chevronL" [size]="18" />
+      </button>
+      <span class="month-label">{{ monthLabel() }}</span>
+      <button class="nav-btn" (click)="nextMonth()" aria-label="Mese successivo">
+        <app-icon name="chevron" [size]="18" />
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Tabs (solo in vista lista) ────────────────────────────── -->
+  @if (!selectedEmployee()) {
+    <div class="tabs">
+      <button class="tab-btn" [class.active]="activeTab() === 'riepilogo'" (click)="activeTab.set('riepilogo')">
+        <app-icon name="users" [size]="15" />
+        Riepilogo dipendenti
+      </button>
+      <button class="tab-btn" [class.active]="activeTab() === 'commesse'" (click)="activeTab.set('commesse')">
+        <app-icon name="edit" [size]="15" />
+        Commesse del mese
+      </button>
+    </div>
+  }
+
+  <!-- ── Body ──────────────────────────────────────────────────── -->
+  <div class="page-body">
+
+    <!-- ════════════════════════════════════════════════════════
+         VISTA LISTA
+    ═════════════════════════════════════════════════════════ -->
+    @if (!selectedEmployee()) {
+
+      <!-- ── TAB: RIEPILOGO ─────────────────────────────────── -->
+      @if (activeTab() === 'riepilogo') {
+        @if (summaryLoading()) {
+          <div class="loading-state"><span class="spinner"></span> Caricamento…</div>
+        } @else if (summaryError()) {
+          <div class="error-banner"><app-icon name="alertTriangle" [size]="16" />Errore nel caricamento dati</div>
+        } @else {
+          <div class="table-wrap">
+            <table class="summary-table">
+              <thead>
+                <tr>
+                  <th>Dipendente</th>
+                  <th>Ruolo</th>
+                  <th class="text-right">Provvigioni</th>
+                  <th class="text-right">Commesse</th>
+                  <th class="text-right">Lordo</th>
+                  <th class="text-right">Saldo</th>
+                  <th class="text-right">Net da pagare</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of summaryItems(); track item.employee.id + item.employee.type) {
+                  <tr class="emp-row">
+                    <td>
+                      <div class="emp-cell">
+                        <div class="avatar" [class]="item.employee.type">
+                          {{ item.employee.name.charAt(0).toUpperCase() }}
+                        </div>
+                        <span class="emp-name">{{ item.employee.name }}</span>
+                      </div>
+                    </td>
+                    <td><span class="role-badge" [class]="item.employee.type">{{ item.employee.type === 'seller' ? 'Venditore' : 'Setter' }}</span></td>
+                    <td class="text-right mono">€ {{ formatAmount(item.subtotalCommissions) }}</td>
+                    <td class="text-right mono">€ {{ formatAmount(item.subtotalWorkOrders) }}</td>
+                    <td class="text-right mono font-600">€ {{ formatAmount(item.grossTotal) }}</td>
+                    <td class="text-right">
+                      @if (item.balance !== 0) {
+                        <span class="balance-chip" [class]="balanceClass(item.balance)">
+                          {{ item.balance > 0 ? '+' : '' }}€ {{ formatAmount(item.balance) }}
+                        </span>
+                      } @else {
+                        <span class="muted">—</span>
+                      }
+                    </td>
+                    <td class="text-right">
+                      <strong class="net-value">€ {{ formatAmount(item.netPayable) }}</strong>
+                    </td>
+                    <td>
+                      <button class="btn-detail" (click)="selectEmployee(item.employee)">
+                        Dettaglio <app-icon name="chevron" [size]="13" />
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+
+      <!-- ── TAB: COMMESSE ──────────────────────────────────── -->
+      @if (activeTab() === 'commesse') {
+        <div class="commesse-toolbar">
+          <p class="commesse-hint">
+            Le commesse sono attività extra-provvigioni. Puoi assegnarle a uno o più dipendenti in un colpo solo.
+          </p>
+          <button class="btn-primary" (click)="openMultiModal()">
+            <app-icon name="plus" [size]="15" />
+            Nuova commessa
+          </button>
+        </div>
+
+        @if (workOrderLoading()) {
+          <div class="loading-state"><span class="spinner"></span> Caricamento…</div>
+        } @else if (workOrderError()) {
+          <div class="error-banner"><app-icon name="alertTriangle" [size]="16" />Errore nel caricamento</div>
+        } @else if (workOrderItems().length === 0) {
+          <div class="empty-page">
+            <app-icon name="edit" [size]="32" />
+            <p>Nessuna commessa per {{ monthLabel() }}</p>
+            <button class="btn-primary" (click)="openMultiModal()">
+              <app-icon name="plus" [size]="15" /> Nuova commessa
+            </button>
+          </div>
+        } @else {
+          <div class="table-wrap">
+            <table class="summary-table">
+              <thead>
+                <tr>
+                  <th>Descrizione</th>
+                  <th>Tipo</th>
+                  <th class="text-right">Importo</th>
+                  <th>Dipendente</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (wo of workOrderItems(); track wo.id) {
+                  <tr class="emp-row">
+                    <td class="font-500">{{ wo.description }}</td>
+                    <td class="muted">{{ woLabel(wo) }}</td>
+                    <td class="text-right mono font-600">€ {{ formatAmount(wo.computedAmount) }}</td>
+                    <td>
+                      @if (wo.employee) {
+                        <div class="emp-cell">
+                          <div class="avatar small" [class]="wo.employee.type">
+                            {{ wo.employee.name.charAt(0).toUpperCase() }}
+                          </div>
+                          <span>{{ wo.employee.name }}</span>
+                        </div>
+                      } @else {
+                        <span class="muted">—</span>
+                      }
+                    </td>
+                    <td>
+                      <div class="actions-cell">
+                        @if (wo.employee) {
+                          <button class="icon-btn" (click)="selectEmployee(wo.employee!)" title="Vai al dettaglio">
+                            <app-icon name="chevron" [size]="14" />
+                          </button>
+                        }
+                        <button class="icon-btn danger"
+                                (click)="deleteWorkOrder(wo.id)"
+                                [disabled]="deletingId() === wo.id"
+                                title="Elimina">
+                          <app-icon name="trash" [size]="14" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+
+    } @else {
+
+      <!-- ════════════════════════════════════════════════════════
+           VISTA DETTAGLIO DIPENDENTE
+      ═════════════════════════════════════════════════════════ -->
+      @if (reportLoading()) {
+        <div class="loading-state"><span class="spinner"></span> Caricamento…</div>
+      } @else if (reportError()) {
+        <div class="error-banner">
+          <app-icon name="alertTriangle" [size]="16" />
+          Errore nel caricamento del report
+          <button class="back-btn" style="margin-left:auto" (click)="closeDetail()">← Lista</button>
+        </div>
+      } @else if (reportData(); as r) {
+        <div class="detail-view">
+          <div class="detail-header">
+            <button class="back-btn" (click)="closeDetail()">
+              <app-icon name="chevronL" [size]="16" /> Tutti i dipendenti
+            </button>
+            <div class="detail-actions">
+              <button class="btn-outline" (click)="showBalanceModal.set(true)">
+                <app-icon name="wallet" [size]="15" /> Saldo
+              </button>
+              <button class="btn-outline" (click)="openPrint()">
+                <app-icon name="external" [size]="15" /> Stampa PDF
+              </button>
+            </div>
+          </div>
+
+          <div class="emp-detail-head">
+            <div class="avatar large" [class]="r.employee.type">
+              {{ r.employee.name.charAt(0).toUpperCase() }}
+            </div>
+            <div>
+              <div class="emp-detail-name">{{ r.employee.name }}</div>
+              <div class="emp-detail-meta">
+                {{ r.employee.type === 'seller' ? 'Venditore' : 'Setter' }} · {{ r.employee.email }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Provvigioni -->
+          <section class="detail-section">
+            <div class="section-title">
+              <app-icon name="euro" [size]="15" />
+              Provvigioni vendite
+              <span class="badge">{{ r.commissions.length }}</span>
+            </div>
+            @if (r.commissions.length === 0) {
+              <div class="empty-rows">Nessuna provvigione per questo mese</div>
+            } @else {
+              <table class="data-table">
+                <thead><tr><th>Cliente</th><th>Piano</th><th>Rata</th><th class="text-right">Importo</th></tr></thead>
+                <tbody>
+                  @for (c of r.commissions; track c.id) {
+                    <tr>
+                      <td>{{ c.customerName }}</td>
+                      <td class="muted">{{ c.planName }}</td>
+                      <td class="muted">
+                        @if (c.installmentNumber) { {{ c.installmentNumber }}/{{ c.totalInstallments ?? '?' }} }
+                      </td>
+                      <td class="text-right amount">€ {{ formatAmount(c.amount) }}</td>
+                    </tr>
+                  }
+                </tbody>
+                <tfoot>
+                  <tr><td colspan="3" class="subtotal-label">Subtotale provvigioni</td><td class="text-right subtotal">€ {{ formatAmount(r.subtotalCommissions) }}</td></tr>
+                </tfoot>
+              </table>
+            }
+          </section>
+
+          <!-- Commesse dipendente -->
+          <section class="detail-section">
+            <div class="section-title">
+              <app-icon name="edit" [size]="15" />
+              Commesse aggiuntive
+              <span class="badge">{{ r.workOrders.length }}</span>
+              <button class="btn-add-inline" (click)="openAddWorkOrder()">
+                <app-icon name="plus" [size]="13" /> Aggiungi
+              </button>
+            </div>
+            @if (r.workOrders.length === 0) {
+              <div class="empty-rows">
+                Nessuna commessa — <button class="link-btn" (click)="openAddWorkOrder()">aggiungi la prima</button>
+              </div>
+            } @else {
+              <table class="data-table">
+                <thead><tr><th>Descrizione</th><th>Calcolo</th><th class="text-right">Importo</th><th></th></tr></thead>
+                <tbody>
+                  @for (wo of r.workOrders; track wo.id) {
+                    <tr>
+                      <td>{{ wo.description }}</td>
+                      <td class="muted">{{ woLabel(wo) }}</td>
+                      <td class="text-right amount">€ {{ formatAmount(wo.computedAmount) }}</td>
+                      <td>
+                        <div class="actions-cell">
+                          <button class="icon-btn" (click)="openEditWorkOrder(wo)" title="Modifica"><app-icon name="edit" [size]="14" /></button>
+                          <button class="icon-btn danger" (click)="deleteWorkOrder(wo.id)" [disabled]="deletingId() === wo.id" title="Elimina">
+                            <app-icon name="trash" [size]="14" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+                <tfoot>
+                  <tr><td colspan="2" class="subtotal-label">Subtotale commesse</td><td class="text-right subtotal">€ {{ formatAmount(r.subtotalWorkOrders) }}</td><td></td></tr>
+                </tfoot>
+              </table>
+            }
+          </section>
+
+          <!-- Riepilogo -->
+          <section class="summary-box">
+            <div class="summary-row"><span>Provvigioni</span><span>€ {{ formatAmount(r.subtotalCommissions) }}</span></div>
+            <div class="summary-row"><span>Commesse</span><span>€ {{ formatAmount(r.subtotalWorkOrders) }}</span></div>
+            <div class="summary-row gross-row"><span>Totale lordo</span><span>€ {{ formatAmount(r.grossTotal) }}</span></div>
+            @if (r.balance.current !== 0) {
+              <div class="summary-row balance-row" [class]="balanceClass(r.balance.current)">
+                <span>Saldo residuo @if (r.balance.notes) { <small>({{ r.balance.notes }})</small> }</span>
+                <span>{{ r.balance.current >= 0 ? '+' : '' }}€ {{ formatAmount(r.balance.current) }}</span>
+              </div>
+            }
+            <div class="summary-divider"></div>
+            <div class="summary-row net-row">
+              <strong>NET DA PAGARE</strong>
+              <strong class="net-amount">€ {{ formatAmount(r.netPayable) }}</strong>
+            </div>
+            @if (r.balanceAfterPayment !== 0) {
+              <div class="summary-note">
+                Saldo dopo il pagamento:
+                <span [class]="balanceClass(r.balanceAfterPayment)">
+                  {{ r.balanceAfterPayment >= 0 ? '+' : '' }}€ {{ formatAmount(r.balanceAfterPayment) }}
+                </span>
+              </div>
+            }
+          </section>
+        </div>
+      }
+
+    }
+  </div>
+
+  <!-- ── Modal: commessa singola (da dettaglio) ─────────────────── -->
+  @if (selectedEmployee()) {
+    <app-work-order-modal
+      [visible]="showWorkOrderModal()"
+      [employee]="selectedEmployee()!"
+      [month]="month()"
+      [editItem]="editingWorkOrder()"
+      (saved)="onWorkOrderSaved()"
+      (closed)="showWorkOrderModal.set(false)" />
+
+    <app-balance-modal
+      [visible]="showBalanceModal()"
+      [employee]="selectedEmployee()!"
+      [currentBalance]="reportData()?.balance?.current ?? 0"
+      (saved)="onBalanceSaved()"
+      (closed)="showBalanceModal.set(false)" />
+  }
+
+  <!-- ── Modal: nuova commessa multi-dipendente ─────────────────── -->
+  @if (showMultiModal()) {
+    <app-work-order-modal
+      [visible]="true"
+      [employees]="allEmployees()"
+      [selectedEmpKeys]="selectedEmpKeys()"
+      [month]="month()"
+      [saving]="multiSaving()"
+      (toggleEmployee)="toggleEmp($event)"
+      (multiSaved)="submitMultiWorkOrder($event)"
+      (closed)="showMultiModal.set(false)" />
+  }
+
+</div>
