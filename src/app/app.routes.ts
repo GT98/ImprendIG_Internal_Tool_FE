@@ -95,6 +95,7 @@ export const routes: Routes = [
       },
       {
         path: 'commesse',
+        canActivate: [adminGuard],
         loadComponent: () =>
           import('./features/commesse/commesse.component').then(m => m.CommesseComponent),
         title: 'Commesse',

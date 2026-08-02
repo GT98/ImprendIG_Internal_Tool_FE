@@ -176,7 +176,7 @@ export class RendicontazioniComponent {
   // ── Admin: approve / request revision ─────────────────────────
   approveTimesheet(ts: AdminTimesheetSummary) {
     this.approvingId.set(ts.id);
-    this.timesheetApi.updateStatus(ts.id, 'approved').subscribe({
+    this.timesheetApi.updateStatus(Number(ts.id), 'approved').subscribe({
       next: () => { this.approvingId.set(null); this.toast.success('Timesheet approvato'); this.reloadTsTab(); this.reloadSummary(); },
       error: () => { this.approvingId.set(null); this.toast.error('Errore'); },
     });
@@ -189,7 +189,7 @@ export class RendicontazioniComponent {
 
   submitRevision(ts: AdminTimesheetSummary) {
     this.revisionId.set(ts.id);
-    this.timesheetApi.updateStatus(ts.id, 'revision', this.revisionNotes()).subscribe({
+    this.timesheetApi.updateStatus(Number(ts.id), 'revision', this.revisionNotes()).subscribe({
       next: () => {
         this.revisionId.set(null);
         this.showRevisionForm.set(null);
@@ -213,7 +213,7 @@ export class RendicontazioniComponent {
     const ts = this.myTimesheet();
     if (!ts) return;
     this.submitting.set(true);
-    this.timesheetApi.updateStatus(ts.id, 'ready').subscribe({
+    this.timesheetApi.updateStatus(Number(ts.id), 'ready').subscribe({
       next: updated => { this.submitting.set(false); this.myTimesheet.set(updated); this.toast.success('Timesheet inviato per revisione'); },
       error: () => { this.submitting.set(false); this.toast.error('Errore durante l\'invio'); },
     });
@@ -222,7 +222,7 @@ export class RendicontazioniComponent {
   recallTimesheet() {
     const ts = this.myTimesheet();
     if (!ts) return;
-    this.timesheetApi.updateStatus(ts.id, 'draft').subscribe({
+    this.timesheetApi.updateStatus(Number(ts.id), 'draft').subscribe({
       next: updated => { this.myTimesheet.set(updated); this.toast.success('Timesheet riportato in bozza'); },
       error: () => this.toast.error('Errore'),
     });
@@ -242,14 +242,14 @@ export class RendicontazioniComponent {
 
   addCatalogItem(item: CommessaDto) {
     let baseAmount: number | undefined;
-    if (item.type === 'percentage') {
+    if (item.type === 'percentage' && item.formulaType !== 'client_revenue') {
       const raw = window.prompt(`Base di calcolo (€) per "${item.title}":`, String(item.baseAmount ?? ''));
       if (raw === null) return;
       baseAmount = parseFloat(raw);
       if (isNaN(baseAmount)) { this.toast.error('Importo non valido'); return; }
     }
     this.addingId.set(item.id);
-    this.timesheetApi.addItem(this.month(), item.id, baseAmount).subscribe({
+    this.timesheetApi.addItem(this.month(), Number(item.id), baseAmount).subscribe({
       next: () => { this.addingId.set(null); this.toast.success(`"${item.title}" aggiunta`); this.showCatalog.set(false); this.reloadEmployee(); },
       error: err => { this.addingId.set(null); this.toast.error(err?.error?.message ?? 'Errore durante l\'aggiunta'); },
     });

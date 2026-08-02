@@ -5,6 +5,8 @@ import { environment } from '../../environments/environment';
 
 const API_URL = environment.apiUrl;
 
+export type FormulaType = 'manual' | 'client_revenue';
+
 export interface CommessaDto {
   id: number;
   title: string;
@@ -14,6 +16,8 @@ export interface CommessaDto {
   percentageRate: number | null;
   baseAmount: number | null;
   computedAmount: number;
+  formulaType: FormulaType;
+  formulaClientId: number | null;
   isActive: boolean;
   createdAt: string;
 }
@@ -25,15 +29,26 @@ export interface CreateCommessaPayload {
   fixedAmount?: number;
   percentageRate?: number;
   baseAmount?: number;
+  formulaType?: FormulaType;
+  formulaClientId?: number;
 }
 
 export interface UpdateCommessaPayload extends Partial<CreateCommessaPayload> {
   isActive?: boolean;
 }
 
+export interface ClientDto {
+  id: number;
+  name: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class CommesseApiService {
   private readonly http = inject(HttpClient);
+
+  findClients(): Observable<ClientDto[]> {
+    return this.http.get<ClientDto[]>(`${API_URL}/clients`);
+  }
 
   findAll(includeInactive = false): Observable<CommessaDto[]> {
     const url = includeInactive ? `${API_URL}/commesse?all=true` : `${API_URL}/commesse`;

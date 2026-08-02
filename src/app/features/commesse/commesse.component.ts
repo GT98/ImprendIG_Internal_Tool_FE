@@ -5,7 +5,7 @@ import { switchMap, catchError, EMPTY } from 'rxjs';
 import { IconComponent } from '../../shared/icon.component';
 import { ToastService } from '../../shared/toast.service';
 import { AuthService } from '../../auth/auth.service';
-import { CommesseApiService, CommessaDto, CreateCommessaPayload } from '../../commesse/commesse-api.service';
+import { CommesseApiService, CommessaDto, ClientDto, CreateCommessaPayload } from '../../commesse/commesse-api.service';
 import { TimesheetApiService } from '../../timesheet/timesheet-api.service';
 
 function currentMonthIso(): string {
@@ -65,14 +65,14 @@ export class CommesseComponent {
     this.addingId.set(item.id);
 
     let baseAmount: number | undefined;
-    if (item.type === 'percentage') {
+    if (item.type === 'percentage' && item.formulaType !== 'client_revenue') {
       const raw = window.prompt(`Base di calcolo (€) per "${item.title}":`, String(item.baseAmount ?? ''));
       if (raw === null) { this.addingId.set(null); return; }
       baseAmount = parseFloat(raw);
       if (isNaN(baseAmount)) { this.toast.error('Importo non valido'); this.addingId.set(null); return; }
     }
 
-    this.timesheetApi.addItem(this.month(), item.id, baseAmount).subscribe({
+    this.timesheetApi.addItem(this.month(), Number(item.id), baseAmount).subscribe({
       next: () => {
         this.addingId.set(null);
         this.toast.success(`"${item.title}" aggiunta al tuo timesheet`);
@@ -89,6 +89,7 @@ export class CommesseComponent {
   readonly showForm = signal(false);
   readonly editingItem = signal<CommessaDto | null>(null);
   readonly saving = signal(false);
+  readonly clients = signal<ClientDto[]>([]);
 
   form: CreateCommessaPayload & { isActive?: boolean } = {
     title: '',
@@ -97,11 +98,14 @@ export class CommesseComponent {
     fixedAmount: undefined,
     percentageRate: undefined,
     baseAmount: undefined,
+    formulaType: 'manual',
+    formulaClientId: undefined,
   };
 
   openCreate() {
     this.editingItem.set(null);
-    this.form = { title: '', description: '', type: 'fixed', fixedAmount: undefined, percentageRate: undefined, baseAmount: undefined };
+    this.form = { title: '', description: '', type: 'fixed', fixedAmount: undefined, percentageRate: undefined, baseAmount: undefined, formulaType: 'manual', formulaClientId: undefined };
+    this.loadClients();
     this.showForm.set(true);
   }
 
@@ -114,9 +118,17 @@ export class CommesseComponent {
       fixedAmount: item.fixedAmount ?? undefined,
       percentageRate: item.percentageRate ?? undefined,
       baseAmount: item.baseAmount ?? undefined,
+      formulaType: item.formulaType ?? 'manual',
+      formulaClientId: item.formulaClientId ?? undefined,
       isActive: item.isActive,
     };
+    this.loadClients();
     this.showForm.set(true);
+  }
+
+  private loadClients() {
+    if (this.clients().length > 0) return;
+    this.api.findClients().subscribe({ next: list => this.clients.set(list) });
   }
 
   closeForm() { this.showForm.set(false); }
@@ -166,6 +178,8 @@ export class CommesseComponent {
   }
 
   // ── Helpers ───────────────────────────────────────────────────
+  readonly Number = Number;
+
   computedPreview(): number {
     if (this.form.type === 'fixed') return this.form.fixedAmount ?? 0;
     return Math.round((this.form.baseAmount ?? 0) * (this.form.percentageRate ?? 0) / 100 * 100) / 100;
@@ -176,8 +190,11 @@ export class CommesseComponent {
   }
 
   typeLabel(item: CommessaDto): string {
-    return item.type === 'fixed'
-      ? 'Fisso'
-      : `${item.percentageRate}% di €${Number(item.baseAmount ?? 0).toFixed(2)}`;
+    if (item.type === 'fixed') return 'Fisso';
+    if (item.formulaType === 'client_revenue') {
+      const clientName = this.clients().find(c => Number(c.id) === Number(item.formulaClientId))?.name ?? `cliente #${item.formulaClientId}`;
+      return `${item.percentageRate}% fatturato ${clientName}`;
+    }
+    return `${item.percentageRate}% di €${Number(item.baseAmount ?? 0).toFixed(2)}`;
   }
 }
