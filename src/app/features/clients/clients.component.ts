@@ -11,6 +11,7 @@ import { StatCardComponent } from '../../shared/stat-card.component';
 import { StatusBadgeComponent } from '../../shared/badge.component';
 import { SegmentedComponent } from '../../shared/segmented.component';
 import { CreateSaleModalComponent } from './create-sale-modal.component';
+import { MonthNavComponent } from '../commissions/month-nav.component';
 import { eur, fmtDate } from '../../utils';
 
 const SELLER_COLORS = ['#4f46e5', '#0d9488', '#db8c0e', '#be185d', '#059669'];
@@ -420,7 +421,7 @@ export class ClientDrawerComponent {
 // ---- CLIENTS PAGE -----------------------------------------------
 @Component({
   selector: 'app-clients',
-  imports: [IconComponent, AvatarComponent, StatCardComponent, StatusBadgeComponent, SegmentedComponent, ClientDrawerComponent, CreateSaleModalComponent],
+  imports: [IconComponent, AvatarComponent, StatCardComponent, StatusBadgeComponent, SegmentedComponent, ClientDrawerComponent, CreateSaleModalComponent, MonthNavComponent],
   styleUrl: './clients.component.css',
   template: `
     <div class="page">
@@ -453,6 +454,8 @@ export class ClientDrawerComponent {
         <app-stat-card icon="x" label="Pagamenti falliti" [value]="fallitiCount()" sub="da recuperare" />
         <app-stat-card icon="card" label="MRR totale" [value]="eurMrr()" [sub]="allClients().length + ' clienti attivi'" />
       </div>
+
+      <app-month-nav [(selected)]="selectedMonth" />
 
       <div class="toolbar">
         <div class="search-box">
@@ -623,7 +626,14 @@ export class ClientsComponent {
   readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'admin');
   readonly salesResource = rxResource({ stream: () => this.saleApiService.getAll() });
 
-  readonly allClients = computed(() => (this.salesResource.value() ?? []).map(saleToClient));
+  readonly selectedMonth = signal(isoCurrentMonth());
+
+  readonly monthSales = computed(() => {
+    const m = this.selectedMonth();
+    return (this.salesResource.value() ?? []).filter(s => s.createdAt.startsWith(m));
+  });
+
+  readonly allClients = computed(() => this.monthSales().map(saleToClient));
 
   readonly displaySellersById = computed<Record<string, Seller>>(() => {
     const sales = this.salesResource.value() ?? [];
@@ -691,7 +701,7 @@ export class ClientsComponent {
 
   readonly filteredRows = computed(() => {
     const q = this.q().toLowerCase();
-    return (this.salesResource.value() ?? [])
+    return this.monthSales()
       .map(sale => ({ sale, client: saleToClient(sale) }))
       .filter(({ client: c }) => {
         if (this.payF() !== 'tutti' && c.payStatus !== this.payF()) return false;

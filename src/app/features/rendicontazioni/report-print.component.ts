@@ -149,7 +149,7 @@ function formatMonth(iso: string): string {
             }
             <div class="summary-divider"></div>
             <div class="summary-line net-line">
-              <span>NET DA PAGARE</span>
+              <span>NETTO DA PAGARE</span>
               <span class="net-amount">€ {{ fmt(r.netPayable) }}</span>
             </div>
             @if (r.balanceAfterPayment !== 0) {

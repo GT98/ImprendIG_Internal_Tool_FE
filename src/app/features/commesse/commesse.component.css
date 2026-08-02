@@ -59,12 +59,13 @@
 .catalog-card.inactive { opacity: 0.5; }
 
 .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-.card-title { font-weight: 600; font-size: 15px; }
+.card-title { font-weight: 600; font-size: 15px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .type-badge {
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 20px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .type-badge.fixed { background: #e8f5e9; color: #2e7d32; }
 .type-badge.percentage { background: #e3f2fd; color: #1565c0; }

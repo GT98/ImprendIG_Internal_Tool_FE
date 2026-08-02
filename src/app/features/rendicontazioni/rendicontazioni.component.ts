@@ -90,6 +90,9 @@ export class RendicontazioniComponent {
   readonly addingId    = signal<number | null>(null);
   readonly removingId  = signal<number | null>(null);
 
+  readonly baseAmountPendingItem = signal<CommessaDto | null>(null);
+  baseAmountInput = '';
+
   constructor() {
     if (this.isAdmin()) {
       this.initAdminStreams();
@@ -241,18 +244,35 @@ export class RendicontazioniComponent {
   }
 
   addCatalogItem(item: CommessaDto) {
-    let baseAmount: number | undefined;
     if (item.type === 'percentage' && item.formulaType !== 'client_revenue') {
-      const raw = window.prompt(`Base di calcolo (€) per "${item.title}":`, String(item.baseAmount ?? ''));
-      if (raw === null) return;
-      baseAmount = parseFloat(raw);
-      if (isNaN(baseAmount)) { this.toast.error('Importo non valido'); return; }
+      this.baseAmountInput = '';
+      this.baseAmountPendingItem.set(item);
+      return;
     }
-    this.addingId.set(item.id);
+    this.doAddItem(item, undefined);
+  }
+
+  confirmBaseAmount() {
+    const item = this.baseAmountPendingItem();
+    if (!item) return;
+    const v = parseFloat(this.baseAmountInput);
+    if (isNaN(v) || v < 0) { this.toast.error('Inserisci un importo valido'); return; }
+    this.baseAmountPendingItem.set(null);
+    this.doAddItem(item, v);
+  }
+
+  private doAddItem(item: CommessaDto, baseAmount: number | undefined) {
+    this.addingId.set(Number(item.id));
     this.timesheetApi.addItem(this.month(), Number(item.id), baseAmount).subscribe({
       next: () => { this.addingId.set(null); this.toast.success(`"${item.title}" aggiunta`); this.showCatalog.set(false); this.reloadEmployee(); },
       error: err => { this.addingId.set(null); this.toast.error(err?.error?.message ?? 'Errore durante l\'aggiunta'); },
     });
+  }
+
+  baseAmountPreview(): string {
+    const item = this.baseAmountPendingItem();
+    if (!item) return '0.00';
+    return ((parseFloat(this.baseAmountInput) || 0) * Number(item.percentageRate ?? 0) / 100).toFixed(2);
   }
 
   removeTimesheetItem(itemId: number) {

@@ -59,19 +59,30 @@ export class CommesseComponent {
 
   // ── Add to timesheet (employee) ───────────────────────────────
   readonly addingId = signal<number | null>(null);
+  readonly baseAmountPendingItem = signal<CommessaDto | null>(null);
+  baseAmountInput = '';
 
   addToTimesheet(item: CommessaDto) {
     if (this.addingId() !== null) return;
-    this.addingId.set(item.id);
-
-    let baseAmount: number | undefined;
     if (item.type === 'percentage' && item.formulaType !== 'client_revenue') {
-      const raw = window.prompt(`Base di calcolo (€) per "${item.title}":`, String(item.baseAmount ?? ''));
-      if (raw === null) { this.addingId.set(null); return; }
-      baseAmount = parseFloat(raw);
-      if (isNaN(baseAmount)) { this.toast.error('Importo non valido'); this.addingId.set(null); return; }
+      this.baseAmountInput = '';
+      this.baseAmountPendingItem.set(item);
+      return;
     }
+    this.doAddToTimesheet(item, undefined);
+  }
 
+  confirmBaseAmount() {
+    const item = this.baseAmountPendingItem();
+    if (!item) return;
+    const v = parseFloat(this.baseAmountInput);
+    if (isNaN(v) || v < 0) { this.toast.error('Inserisci un importo valido'); return; }
+    this.baseAmountPendingItem.set(null);
+    this.doAddToTimesheet(item, v);
+  }
+
+  private doAddToTimesheet(item: CommessaDto, baseAmount: number | undefined) {
+    this.addingId.set(Number(item.id));
     this.timesheetApi.addItem(this.month(), Number(item.id), baseAmount).subscribe({
       next: () => {
         this.addingId.set(null);
@@ -79,10 +90,15 @@ export class CommesseComponent {
       },
       error: (err) => {
         this.addingId.set(null);
-        const msg = err?.error?.message ?? 'Errore durante l\'aggiunta';
-        this.toast.error(msg);
+        this.toast.error(err?.error?.message ?? 'Errore durante l\'aggiunta');
       },
     });
+  }
+
+  baseAmountPreview(): string {
+    const item = this.baseAmountPendingItem();
+    if (!item) return '0.00';
+    return ((parseFloat(this.baseAmountInput) || 0) * Number(item.percentageRate ?? 0) / 100).toFixed(2);
   }
 
   // ── Admin: create / edit ──────────────────────────────────────

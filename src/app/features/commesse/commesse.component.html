@@ -62,13 +62,17 @@
               <button
                 class="btn-add"
                 (click)="addToTimesheet(item)"
-                [disabled]="addingId() === item.id">
+                [disabled]="addingId() !== null">
                 @if (addingId() === item.id) {
                   <span class="spinner-sm"></span>
                 } @else {
                   <app-icon name="plus" [size]="14" />
                 }
-                Aggiungi al timesheet
+                @if (item.type === 'percentage' && item.formulaType !== 'client_revenue') {
+                  Aggiungi (inserisci base)
+                } @else {
+                  Aggiungi al timesheet
+                }
               </button>
             } @else {
               <button class="icon-btn" (click)="openEdit(item)" title="Modifica">
@@ -84,6 +88,40 @@
           </div>
         </div>
       }
+    </div>
+  }
+
+  <!-- Modal: base amount per commesse percentuali manuali -->
+  @if (baseAmountPendingItem(); as item) {
+    <div class="modal-overlay" (click)="baseAmountPendingItem.set(null)">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>{{ item.title }}</h2>
+          <button class="icon-btn" (click)="baseAmountPendingItem.set(null)"><app-icon name="x" [size]="18" /></button>
+        </div>
+        <div class="modal-body">
+          @if (item.description) {
+            <p class="hint-text">{{ item.description }}</p>
+          }
+          <label class="field">
+            <span>Importo base per il calcolo del {{ item.percentageRate }}% (€)</span>
+            <input
+              type="number"
+              [(ngModel)]="baseAmountInput"
+              min="0"
+              step="0.01"
+              placeholder="es. 1200.00"
+              (keydown.enter)="confirmBaseAmount()" />
+          </label>
+          <div class="preview-row">
+            Risultato: <strong>€ {{ baseAmountPreview() }}</strong>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-outline" (click)="baseAmountPendingItem.set(null)">Annulla</button>
+          <button class="btn-primary" (click)="confirmBaseAmount()">Aggiungi al timesheet</button>
+        </div>
+      </div>
     </div>
   }
 
