@@ -84,6 +84,10 @@ export class ReportingApiService {
     });
   }
 
+  getBalance(type: string, id: number): Observable<BalanceDto> {
+    return this.http.get<BalanceDto>(`${API_URL}/reporting/balance/${type}/${id}`);
+  }
+
   adjustBalance(type: string, id: number, dto: AdjustBalancePayload): Observable<{ balance: number; notes: string | null }> {
     return this.http.patch<{ balance: number; notes: string | null }>(
       `${API_URL}/reporting/balance/${type}/${id}`,

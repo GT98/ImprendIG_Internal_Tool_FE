@@ -112,6 +112,18 @@ export const routes: Routes = [
           import('./features/rendicontazioni/report-print.component').then(m => m.ReportPrintComponent),
         title: 'Report PDF',
       },
+      {
+        path: 'bot-log',
+        loadComponent: () =>
+          import('./features/bot-log/bot-log.component').then(m => m.BotLogComponent),
+        title: 'Attività Bot',
+      },
+      {
+        path: 'profile',
+        loadComponent: () =>
+          import('./features/profile/profile.component').then(m => m.ProfileComponent),
+        title: 'Il mio profilo',
+      },
     ],
   },
 ];

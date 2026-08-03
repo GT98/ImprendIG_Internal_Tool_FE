@@ -67,7 +67,7 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
-.type-badge.fixed { background: #e8f5e9; color: #2e7d32; }
+.type-badge.fixed-price { background: #e8f5e9; color: #2e7d32; }
 .type-badge.percentage { background: #e3f2fd; color: #1565c0; }
 
 .card-desc { font-size: 13px; color: #666; margin: 0; }

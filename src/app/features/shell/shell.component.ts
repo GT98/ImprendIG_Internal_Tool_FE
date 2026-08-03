@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import {
   NavigationEnd,
   Router,
@@ -30,6 +30,7 @@ const ADMIN_NAV = [
   { path: 'customers', label: 'Clienti', icon: 'users' },
   { path: 'onboarding', label: 'Onboarding', icon: 'send' },
   { path: 'team', label: 'Team', icon: 'users' },
+  { path: 'bot-log', label: 'Attività Bot', icon: 'activity' },
 ];
 
 @Component({
@@ -43,9 +44,16 @@ export class ShellComponent {
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
+  readonly dropdownOpen = signal(false);
+
   readonly nav = computed(() =>
     this.auth.currentUser()?.role === 'admin' ? ADMIN_NAV : BASE_NAV
   );
+
+  readonly userRoleLabel = computed(() => {
+    const role = this.auth.currentUser()?.role ?? '';
+    return role.charAt(0).toUpperCase() + role.slice(1);
+  });
 
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
@@ -59,6 +67,9 @@ export class ShellComponent {
     const url = this.currentUrl();
     return this.nav().find(n => url.includes(n.path))?.label ?? 'Chiamate';
   });
+
+  toggleDropdown(): void { this.dropdownOpen.update(v => !v); }
+  closeDropdown(): void { this.dropdownOpen.set(false); }
 
   constructor() {
     effect(() => {
