@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { IconComponent } from '../../shared/icon.component';
 import { BotLogApiService, BotLogItem, BotLogPage, BotLogType } from '../../bot-log/bot-log-api.service';
+import { SellerApiService } from '../../seller/seller-api.service';
 
 const TYPE_META: Record<BotLogType, { label: string; color: string; icon: string }> = {
   seller_verified: { label: 'Venditore verificato',  color: 'green',  icon: 'check' },
@@ -72,6 +73,11 @@ const PAGE_SIZE = 50;
                   @if (item.telegramUserId) {
                     <span class="meta-chip">
                       <app-icon name="phone" [size]="11" /> {{ item.telegramUserId }}
+                    </span>
+                  }
+                  @if (sellerName(item.sellerId); as name) {
+                    <span class="meta-chip seller-chip">
+                      <app-icon name="users" [size]="11" /> {{ name }}
                     </span>
                   }
                   @if (item.channelId) {
@@ -182,6 +188,7 @@ const PAGE_SIZE = 50;
       border-radius: 6px; padding: 1px 6px;
     }
     .meta-chip.warn { background: #fef3c7; border-color: #fcd34d; color: #92400e; }
+    .meta-chip.seller-chip { background: #ede9fe; border-color: #c4b5fd; color: #5b21b6; font-weight: 600; }
 
     .log-time {
       flex-shrink: 0; font-size: 11.5px; color: var(--ink-3);
@@ -221,6 +228,22 @@ const PAGE_SIZE = 50;
 })
 export class BotLogComponent {
   private readonly api = inject(BotLogApiService);
+  private readonly sellerApi = inject(SellerApiService);
+
+  readonly sellers = rxResource({ stream: () => this.sellerApi.getAll() });
+
+  private readonly sellerMap = computed(() => {
+    const map = new Map<number, string>();
+    for (const s of this.sellers.value() ?? []) {
+      map.set(Number(s.id), [s.name, s.lastName].filter(v => !!v).join(' ') || s.email || `#${s.id}`);
+    }
+    return map;
+  });
+
+  sellerName(id: number | null): string | null {
+    if (!id) return null;
+    return this.sellerMap().get(Number(id)) ?? null;
+  }
 
   readonly typeFilter = signal<string>('');
   readonly page = signal(0);
