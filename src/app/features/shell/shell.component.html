@@ -100,7 +100,7 @@
 
   <!-- MOBILE NAV -->
   <nav class="mobile-nav" aria-label="Navigazione principale">
-    @for (n of allNavItems(); track n.path) {
+    @for (n of primaryMobileItems(); track n.path) {
       <a
         routerLinkActive="active"
         [routerLink]="n.path"
@@ -111,7 +111,44 @@
         {{ n.label }}
       </a>
     }
+    @if (allNavItems().length > 4) {
+      <button
+        class="mobile-more-btn"
+        [class.active]="moreSheetOpen()"
+        (click)="moreSheetOpen.set(true)"
+        aria-label="Altro"
+        [attr.aria-expanded]="moreSheetOpen()"
+      >
+        <app-icon name="grid" [size]="21" />
+        Altro
+      </button>
+    }
   </nav>
+
+  <!-- MOBILE MORE SHEET -->
+  @if (moreSheetOpen()) {
+    <div class="more-backdrop" (click)="moreSheetOpen.set(false)" aria-hidden="true"></div>
+    <div class="more-sheet" role="dialog" aria-label="Tutte le sezioni">
+      <div class="more-sheet-handle"></div>
+      @for (group of visibleGroups(); track group.id) {
+        <p class="more-sheet-group-label">{{ group.label }}</p>
+        <div class="more-sheet-items">
+          @for (n of group.items; track n.path) {
+            <a
+              class="more-sheet-item"
+              routerLinkActive="active"
+              [routerLink]="n.path"
+              [routerLinkActiveOptions]="{ exact: false }"
+              (click)="moreSheetOpen.set(false)"
+            >
+              <app-icon [name]="n.icon" [size]="22" />
+              {{ n.label }}
+            </a>
+          }
+        </div>
+      }
+    </div>
+  }
 
   <!-- DROPDOWN (fuori dalla topbar per evitare backdrop-filter stacking context) -->
   @if (dropdownOpen()) {

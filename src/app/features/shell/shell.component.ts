@@ -70,6 +70,7 @@ export class ShellComponent {
   private readonly router = inject(Router);
 
   readonly dropdownOpen = signal(false);
+  readonly moreSheetOpen = signal(false);
 
   private readonly _collapsed = signal<Set<string>>(
     new Set(JSON.parse(localStorage.getItem('nav-collapsed') ?? '[]') as string[]),
@@ -81,6 +82,7 @@ export class ShellComponent {
   });
 
   readonly allNavItems = computed(() => this.visibleGroups().flatMap(g => g.items));
+  readonly primaryMobileItems = computed(() => this.allNavItems().slice(0, 4));
 
   readonly userRoleLabel = computed(() => {
     const role = this.auth.currentUser()?.role ?? '';

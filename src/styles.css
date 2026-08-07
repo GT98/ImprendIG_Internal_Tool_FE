@@ -622,12 +622,46 @@ app-root { display: block; height: 100%; }
     backdrop-filter: blur(12px); border-top: 1px solid var(--border);
     padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
   }
-  .mobile-nav a {
+  .mobile-nav a,
+  .mobile-more-btn {
     flex: 1; display: flex; flex-direction: column; align-items: center;
     gap: 3px; padding: 6px; font-size: 10.5px; font-weight: 700;
     color: var(--ink-3); border-radius: 9px;
   }
-  .mobile-nav a.active { color: var(--accent); }
+  .mobile-nav a.active,
+  .mobile-more-btn.active { color: var(--accent); }
+
+  /* More bottom sheet */
+  .more-backdrop {
+    position: fixed; inset: 0; z-index: 60;
+    background: rgba(20,22,40,.45); backdrop-filter: blur(3px);
+  }
+  .more-sheet {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 61;
+    background: var(--surface); border-radius: 20px 20px 0 0;
+    padding: 12px 20px calc(24px + env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 40px rgba(20,22,40,.14);
+    max-height: 80vh; overflow-y: auto;
+  }
+  .more-sheet-handle {
+    width: 36px; height: 4px; background: var(--border);
+    border-radius: 2px; margin: 0 auto 20px;
+  }
+  .more-sheet-group-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--ink-3); margin: 0 0 8px;
+  }
+  .more-sheet-items {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    margin-bottom: 20px;
+  }
+  .more-sheet-item {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 6px; padding: 14px 8px; border-radius: var(--radius-sm);
+    background: var(--bg); font-size: 11px; font-weight: 600;
+    color: var(--ink-2); text-align: center;
+  }
+  .more-sheet-item.active { background: var(--accent-soft); color: var(--accent); }
   .call-row { grid-template-columns: 48px 1fr auto auto; }
   .call-value, .call-status { display: none; }
   .agenda-day { grid-template-columns: 1fr; gap: 8px; }
@@ -662,7 +696,9 @@ app-root { display: block; height: 100%; }
 @media print {
   .sidebar,
   .topbar,
-  .mobile-nav { display: none !important; }
+  .mobile-nav,
+  .more-backdrop,
+  .more-sheet { display: none !important; }
 
   .main { padding: 0 !important; }
 }
