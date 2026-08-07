@@ -5,18 +5,36 @@
       <div class="brand-mark">I</div>
       <div class="brand-name">IMPREND<span>IG</span></div>
     </div>
-    <div class="nav-label">Menu</div>
-    @for (n of nav(); track n.path) {
-      <a
-        class="nav-item"
-        routerLinkActive="active"
-        [routerLink]="n.path"
-        [routerLinkActiveOptions]="{ exact: false }"
-        [attr.aria-current]="null"
+    @for (group of visibleGroups(); track group.id) {
+      <button
+        class="nav-group-header"
+        (click)="toggleGroup(group.id)"
+        [attr.aria-expanded]="!isCollapsed(group.id)"
+        [attr.aria-controls]="'nav-group-' + group.id"
       >
-        <app-icon [name]="n.icon" [size]="18" />
-        {{ n.label }}
-      </a>
+        <span>{{ group.label }}</span>
+        <app-icon
+          name="chevronD"
+          [size]="13"
+          [style.transform]="isCollapsed(group.id) ? 'rotate(-90deg)' : 'rotate(0deg)'"
+          style="transition:transform .2s;flex-shrink:0"
+        />
+      </button>
+      @if (!isCollapsed(group.id)) {
+        <div [id]="'nav-group-' + group.id" role="group" [attr.aria-label]="group.label">
+          @for (n of group.items; track n.path) {
+            <a
+              class="nav-item"
+              routerLinkActive="active"
+              [routerLink]="n.path"
+              [routerLinkActiveOptions]="{ exact: false }"
+            >
+              <app-icon [name]="n.icon" [size]="18" />
+              {{ n.label }}
+            </a>
+          }
+        </div>
+      }
     }
     <div class="sidebar-spacer"></div>
   </aside>
@@ -82,7 +100,7 @@
 
   <!-- MOBILE NAV -->
   <nav class="mobile-nav" aria-label="Navigazione principale">
-    @for (n of nav(); track n.path) {
+    @for (n of allNavItems(); track n.path) {
       <a
         routerLinkActive="active"
         [routerLink]="n.path"

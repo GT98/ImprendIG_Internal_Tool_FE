@@ -15,23 +15,47 @@ import { AvatarComponent } from '../../shared/avatar.component';
 import { ToastContainerComponent } from '../../shared/toast.component';
 import { AiChatbotComponent } from '../ai/ai-chatbot.component';
 
-const BASE_NAV = [
-  { path: 'chiamate', label: 'Chiamate', icon: 'phone' },
-  { path: 'provvigioni', label: 'Provvigioni', icon: 'chart' },
-  { path: 'clienti', label: 'Vendite', icon: 'users' },
-  { path: 'catalogo', label: 'Catalogo', icon: 'grid' },
-  { path: 'leads', label: 'Lead', icon: 'target' },
-  { path: 'task-tracker', label: 'Task Tracker', icon: 'checkSquare' },
-  { path: 'rendicontazioni', label: 'Rendicontazioni', icon: 'receipt' },
-];
-const ADMIN_NAV = [
-  { path: 'dashboard', label: 'Dashboard', icon: 'home' },
-  ...BASE_NAV,
-  { path: 'commesse', label: 'Commesse', icon: 'edit' },
-  { path: 'customers', label: 'Clienti', icon: 'users' },
-  { path: 'onboarding', label: 'Onboarding', icon: 'send' },
-  { path: 'team', label: 'Team', icon: 'users' },
-  { path: 'bot-log', label: 'Attività Bot', icon: 'activity' },
+interface NavItem  { path: string; label: string; icon: string }
+interface NavGroup { id: string; label: string; items: NavItem[]; adminOnly?: boolean }
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    id: 'commerciale', label: 'Commerciale',
+    items: [
+      { path: 'chiamate', label: 'Chiamate', icon: 'phone' },
+      { path: 'leads', label: 'Lead', icon: 'target' },
+      { path: 'clienti', label: 'Vendite', icon: 'users' },
+    ],
+  },
+  {
+    id: 'finanza', label: 'Finanza',
+    items: [
+      { path: 'provvigioni', label: 'Provvigioni', icon: 'chart' },
+      { path: 'rendicontazioni', label: 'Rendicontazioni', icon: 'receipt' },
+    ],
+  },
+  {
+    id: 'strumenti', label: 'Strumenti',
+    items: [
+      { path: 'catalogo', label: 'Link pagamento', icon: 'card' },
+      { path: 'task-tracker', label: 'Task Tracker', icon: 'checkSquare' },
+    ],
+  },
+  {
+    id: 'formazione', label: 'Formazione',
+    items: [], // pronto per Tutorial, Guide, ecc.
+  },
+  {
+    id: 'amministrazione', label: 'Amministrazione', adminOnly: true,
+    items: [
+      { path: 'dashboard', label: 'Dashboard', icon: 'home' },
+      { path: 'commesse', label: 'Commesse', icon: 'edit' },
+      { path: 'customers', label: 'Clienti', icon: 'users' },
+      { path: 'onboarding', label: 'Onboarding', icon: 'send' },
+      { path: 'team', label: 'Team', icon: 'users' },
+      { path: 'bot-log', label: 'Attività Bot', icon: 'activity' },
+    ],
+  },
 ];
 
 @Component({
@@ -47,9 +71,16 @@ export class ShellComponent {
 
   readonly dropdownOpen = signal(false);
 
-  readonly nav = computed(() =>
-    this.auth.currentUser()?.role === 'admin' ? ADMIN_NAV : BASE_NAV
+  private readonly _collapsed = signal<Set<string>>(
+    new Set(JSON.parse(localStorage.getItem('nav-collapsed') ?? '[]') as string[]),
   );
+
+  readonly visibleGroups = computed(() => {
+    const isAdmin = this.auth.currentUser()?.role === 'admin';
+    return NAV_GROUPS.filter(g => (!g.adminOnly || isAdmin) && g.items.length > 0);
+  });
+
+  readonly allNavItems = computed(() => this.visibleGroups().flatMap(g => g.items));
 
   readonly userRoleLabel = computed(() => {
     const role = this.auth.currentUser()?.role ?? '';
@@ -66,8 +97,19 @@ export class ShellComponent {
 
   readonly currentPageLabel = computed(() => {
     const url = this.currentUrl();
-    return this.nav().find(n => url.includes(n.path))?.label ?? 'Chiamate';
+    return this.allNavItems().find(n => url.includes(n.path))?.label ?? 'Chiamate';
   });
+
+  isCollapsed(id: string): boolean { return this._collapsed().has(id); }
+
+  toggleGroup(id: string): void {
+    this._collapsed.update(set => {
+      const next = new Set(set);
+      next.has(id) ? next.delete(id) : next.add(id);
+      localStorage.setItem('nav-collapsed', JSON.stringify([...next]));
+      return next;
+    });
+  }
 
   toggleDropdown(): void { this.dropdownOpen.update(v => !v); }
   closeDropdown(): void { this.dropdownOpen.set(false); }
