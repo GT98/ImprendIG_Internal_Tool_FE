@@ -88,10 +88,10 @@ export const routes: Routes = [
         title: 'Lead',
       },
       {
-        path: 'ai',
+        path: 'task-tracker',
         loadComponent: () =>
-          import('./features/ai/ai.component').then(m => m.AiComponent),
-        title: 'AI Assistant',
+          import('./features/tasks/tasks.component').then(m => m.TasksComponent),
+        title: 'Attività',
       },
       {
         path: 'commesse',

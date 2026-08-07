@@ -13,6 +13,7 @@ import { AuthService } from '../../auth/auth.service';
 import { IconComponent } from '../../shared/icon.component';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { ToastContainerComponent } from '../../shared/toast.component';
+import { AiChatbotComponent } from '../ai/ai-chatbot.component';
 
 const BASE_NAV = [
   { path: 'chiamate', label: 'Chiamate', icon: 'phone' },
@@ -20,7 +21,7 @@ const BASE_NAV = [
   { path: 'clienti', label: 'Vendite', icon: 'users' },
   { path: 'catalogo', label: 'Catalogo', icon: 'grid' },
   { path: 'leads', label: 'Lead', icon: 'target' },
-  { path: 'ai', label: 'AI', icon: 'zap' },
+  { path: 'task-tracker', label: 'Task Tracker', icon: 'checkSquare' },
   { path: 'rendicontazioni', label: 'Rendicontazioni', icon: 'receipt' },
 ];
 const ADMIN_NAV = [
@@ -35,7 +36,7 @@ const ADMIN_NAV = [
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent, AvatarComponent, ToastContainerComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent, AvatarComponent, ToastContainerComponent, AiChatbotComponent],
   templateUrl: './shell.component.html',
   host: { style: 'display:block;height:100%' },
 })

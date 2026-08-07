@@ -61,3 +61,26 @@ export type NavRoute = 'chiamate' | 'provvigioni' | 'clienti' | 'catalogo';
 export type Role = 'venditore' | 'admin';
 export type Layout = 'lista' | 'kanban' | 'agenda';
 export type ChartType = 'barre' | 'area' | 'donut';
+
+export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
+export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export interface AssignableUser {
+  id: number;
+  email: string;
+  role: string;
+  seller: { id: number; name: string; lastName: string } | null;
+}
+
+export interface Task {
+  id: number;
+  title: string;
+  description: string | null;
+  status: TaskStatus;
+  priority: TaskPriority;
+  dueDate: string | null;
+  assignedTo: AssignableUser | null;
+  createdBy: AssignableUser | null;
+  createdAt: string;
+  updatedAt: string;
+}
