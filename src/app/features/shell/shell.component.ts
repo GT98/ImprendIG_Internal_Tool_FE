@@ -14,6 +14,7 @@ import { IconComponent } from '../../shared/icon.component';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { ToastContainerComponent } from '../../shared/toast.component';
 import { AiChatbotComponent } from '../ai/ai-chatbot.component';
+import { VoiceRecorderComponent } from '../calls/voice-recorder.component';
 
 interface NavItem  { path: string; label: string; icon: string }
 interface NavGroup { id: string; label: string; items: NavItem[]; adminOnly?: boolean }
@@ -60,7 +61,7 @@ const NAV_GROUPS: NavGroup[] = [
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent, AvatarComponent, ToastContainerComponent, AiChatbotComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent, AvatarComponent, ToastContainerComponent, AiChatbotComponent, VoiceRecorderComponent],
   templateUrl: './shell.component.html',
   host: { style: 'display:block;height:100%' },
 })

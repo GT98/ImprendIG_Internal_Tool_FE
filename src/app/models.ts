@@ -72,6 +72,16 @@ export interface AssignableUser {
   seller: { id: number; name: string; lastName: string } | null;
 }
 
+export interface CallRecording {
+  id: number;
+  leadId: string | null;
+  filename: string;
+  mimeType: string;
+  durationSeconds: number | null;
+  createdAt: string;
+  signedUrl: string;
+}
+
 export interface Task {
   id: number;
   title: string;

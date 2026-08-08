@@ -1,6 +1,6 @@
 import { Component, DestroyRef, computed, inject, input, output, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { switchMap } from 'rxjs';
+import { of, switchMap } from 'rxjs';
 import { Call, Seller } from '../../models';
 import { IconComponent } from '../../shared/icon.component';
 import { AvatarComponent } from '../../shared/avatar.component';
@@ -9,6 +9,9 @@ import { fmtDate, fmtDateTime, eur } from '../../utils';
 import { LeadsService, LeadEventDto } from '../../leads/lead.service';
 import { ToastService } from '../../shared/toast.service';
 import { AuthService } from '../../auth/auth.service';
+import { VoiceRecorderService } from './voice-recorder.service';
+import { CallRecordingApiService } from './call-recording-api.service';
+import { AudioPlayerComponent } from './audio-player.component';
 
 function sellerDisplayName(s: { name: string | null; lastName: string | null } | null): string {
   return [s?.name, s?.lastName].filter(Boolean).join(' ') || '—';
@@ -21,7 +24,7 @@ function parsePayload(raw: string | null): Record<string, string> {
 
 @Component({
   selector: 'app-call-drawer',
-  imports: [IconComponent, AvatarComponent, StatusBadgeComponent, TypeChipComponent],
+  imports: [IconComponent, AvatarComponent, StatusBadgeComponent, TypeChipComponent, AudioPlayerComponent],
   templateUrl: './call-drawer.component.html',
   styleUrl: './call-drawer.component.css',
 })
@@ -34,6 +37,8 @@ export class CallDrawerComponent {
   private readonly leadsService = inject(LeadsService);
   private readonly toast = inject(ToastService);
   private readonly auth = inject(AuthService);
+  readonly recorder = inject(VoiceRecorderService);
+  private readonly recordingApi = inject(CallRecordingApiService);
 
   // ── existing resources ────────────────────────────────────────
   readonly statusOptionsResource = rxResource({
@@ -54,9 +59,21 @@ export class CallDrawerComponent {
     stream: ({ params: id }) => this.leadsService.getEvents(id),
   });
 
+  // Auto-refreshes when the voice recorder saves a new recording (lastSavedAt signal bumped)
+  readonly recordingsResource = rxResource({
+    params: () => ({ leadId: this.call().id, _rev: this.recorder.lastSavedAt() }),
+    stream: ({ params }) => params.leadId ? this.recordingApi.getByLead(params.leadId) : of([]),
+  });
+
+  readonly recordings = computed(() => this.recordingsResource.value() ?? []);
+
   readonly fmtDateTime = fmtDateTime;
   readonly fmtDate = fmtDate;
   readonly eur = eur;
+  fmtRecDuration(s: number): string {
+    const m = Math.floor(s / 60);
+    return m > 0 ? `${m}m ${s % 60}s` : `${s}s`;
+  }
   readonly parsePayload = parsePayload;
   readonly sellerDisplayName = sellerDisplayName;
   readonly Boolean = Boolean;
@@ -185,6 +202,20 @@ export class CallDrawerComponent {
         this.acting.set(false);
         this.toast.error('Impossibile trasferire la chiamata. Riprova.');
       },
+    });
+  }
+
+  startRecording(): void {
+    this.recorder.start(this.call().id);
+  }
+
+  deleteRecording(id: number): void {
+    this.recordingApi.delete(id).subscribe({
+      next: () => {
+        this.toast.success('Registrazione eliminata');
+        this.recordingsResource.reload();
+      },
+      error: () => this.toast.error('Impossibile eliminare la registrazione.'),
     });
   }
 

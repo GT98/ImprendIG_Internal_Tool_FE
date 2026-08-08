@@ -122,6 +122,9 @@
         <button class="btn-ghost half" (click)="openReschedule()" [class.active]="rescheduling()">
           <app-icon name="calendar" [size]="15" />Riprogramma
         </button>
+        <button class="btn-ghost half" (click)="startRecording()">
+          <app-icon name="mic" [size]="15" />Registra
+        </button>
       </div>
     </div>
 
@@ -223,6 +226,28 @@
             @if (acting()) { Salvataggio… } @else { Conferma data }
           </button>
         </div>
+      </div>
+    }
+
+    <!-- ── Recordings ───────────────────────────────────── -->
+    @if (recordingsResource.isLoading()) {
+      <div class="event-history"><span class="muted small">Caricamento registrazioni…</span></div>
+    } @else if (recordings().length > 0) {
+      <div class="event-history">
+        <div class="ds-title">Registrazioni</div>
+        @for (rec of recordings(); track rec.id) {
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <span class="ev-meta">{{ fmtDate(rec.createdAt) }}
+                @if (rec.durationSeconds) { · {{ fmtRecDuration(rec.durationSeconds) }} }
+              </span>
+              <button class="icon-btn" style="color:var(--ink-3)" (click)="deleteRecording(rec.id)" aria-label="Elimina registrazione">
+                <app-icon name="trash" [size]="14" />
+              </button>
+            </div>
+            <app-audio-player [src]="rec.signedUrl" [durationSeconds]="rec.durationSeconds" />
+          </div>
+        }
       </div>
     }
 
