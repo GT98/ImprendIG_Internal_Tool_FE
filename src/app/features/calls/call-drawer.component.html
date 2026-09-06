@@ -122,9 +122,10 @@
         <button class="btn-ghost half" (click)="openReschedule()" [class.active]="rescheduling()">
           <app-icon name="calendar" [size]="15" />Riprogramma
         </button>
-        <button class="btn-ghost half" (click)="startRecording()">
+        <!-- TODO: implementare registrazioni vocali (punto 2: bottone nel drawer) -->
+        <!-- <button class="btn-ghost half" (click)="startRecording()">
           <app-icon name="mic" [size]="15" />Registra
-        </button>
+        </button> -->
       </div>
     </div>
 
@@ -229,8 +230,8 @@
       </div>
     }
 
-    <!-- ── Recordings ───────────────────────────────────── -->
-    @if (recordingsResource.isLoading()) {
+    <!-- TODO: implementare registrazioni vocali (sezione lista nel drawer) -->
+    <!-- @if (recordingsResource.isLoading()) {
       <div class="event-history"><span class="muted small">Caricamento registrazioni…</span></div>
     } @else if (recordings().length > 0) {
       <div class="event-history">
@@ -249,7 +250,7 @@
           </div>
         }
       </div>
-    }
+    } -->
 
     <!-- ── Event history ──────────────────────────────────── -->
     @if (events().length > 0) {

@@ -87,12 +87,13 @@ export const routes: Routes = [
           import('./features/leads/leads-list.component').then(m => m.LeadsListComponent),
         title: 'Lead',
       },
-      {
-        path: 'task-tracker',
-        loadComponent: () =>
-          import('./features/tasks/tasks.component').then(m => m.TasksComponent),
-        title: 'Attività',
-      },
+      // TODO: implementare Task Tracker
+      // {
+      //   path: 'task-tracker',
+      //   loadComponent: () =>
+      //     import('./features/tasks/tasks.component').then(m => m.TasksComponent),
+      //   title: 'Attività',
+      // },
       {
         path: 'commesse',
         canActivate: [adminGuard],
@@ -112,12 +113,13 @@ export const routes: Routes = [
           import('./features/rendicontazioni/report-print.component').then(m => m.ReportPrintComponent),
         title: 'Report PDF',
       },
-      {
-        path: 'bot-log',
-        loadComponent: () =>
-          import('./features/bot-log/bot-log.component').then(m => m.BotLogComponent),
-        title: 'Attività Bot',
-      },
+      // TODO: implementare Bot AI
+      // {
+      //   path: 'bot-log',
+      //   loadComponent: () =>
+      //     import('./features/bot-log/bot-log.component').then(m => m.BotLogComponent),
+      //   title: 'Attività Bot',
+      // },
       {
         path: 'profile',
         loadComponent: () =>

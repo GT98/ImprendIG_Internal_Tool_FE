@@ -39,7 +39,8 @@ const NAV_GROUPS: NavGroup[] = [
     id: 'strumenti', label: 'Strumenti',
     items: [
       { path: 'catalogo', label: 'Link pagamento', icon: 'card' },
-      { path: 'task-tracker', label: 'Task Tracker', icon: 'checkSquare' },
+      // TODO: implementare Task Tracker
+      // { path: 'task-tracker', label: 'Task Tracker', icon: 'checkSquare' },
     ],
   },
   {
@@ -54,7 +55,8 @@ const NAV_GROUPS: NavGroup[] = [
       { path: 'customers', label: 'Clienti', icon: 'users' },
       { path: 'onboarding', label: 'Onboarding', icon: 'send' },
       { path: 'team', label: 'Team', icon: 'users' },
-      { path: 'bot-log', label: 'Attività Bot', icon: 'activity' },
+      // TODO: implementare Bot AI
+      // { path: 'bot-log', label: 'Attività Bot', icon: 'activity' },
     ],
   },
 ];
