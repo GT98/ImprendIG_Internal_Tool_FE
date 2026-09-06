@@ -441,9 +441,6 @@ export class ClientDrawerComponent {
               <app-icon name="plus" [size]="15" />Nuova vendita
             </button>
           }
-          <button class="btn-ghost">
-            <app-icon name="external" [size]="16" />Apri Stripe
-          </button>
         </div>
       </div>
 
