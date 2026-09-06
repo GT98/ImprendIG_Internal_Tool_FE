@@ -72,6 +72,18 @@ export function dayKey(iso: string): string {
   return `${GIORNI_FULL[d.getDay()]} ${d.getDate()} ${MESI[d.getMonth()]}`;
 }
 
+export function fmtMonthISO(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+export function startOfMonth(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
+export function addMonths(d: Date, n: number): Date {
+  return new Date(d.getFullYear(), d.getMonth() + n, 1);
+}
+
 export function atTime(today: Date, dayOffset: number, h: number, m: number): string {
   const d = new Date(today);
   d.setDate(d.getDate() + dayOffset);

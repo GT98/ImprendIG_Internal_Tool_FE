@@ -59,7 +59,7 @@ export interface Client {
 
 export type NavRoute = 'chiamate' | 'provvigioni' | 'clienti' | 'catalogo';
 export type Role = 'venditore' | 'admin';
-export type Layout = 'lista' | 'kanban' | 'agenda';
+export type Layout = 'lista' | 'kanban' | 'agenda' | 'mese';
 export type ChartType = 'barre' | 'area' | 'donut';
 
 export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';

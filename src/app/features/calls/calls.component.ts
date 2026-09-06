@@ -1,6 +1,6 @@
-import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, model, output, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { switchMap } from 'rxjs';
+import { of, switchMap } from 'rxjs';
 import { SalesStateService } from '../../sales-state.service';
 import { AuthService } from '../../auth/auth.service';
 import { LeadsService, SellerBasicDto, CreateLeadDto } from '../../leads/lead.service';
@@ -14,7 +14,7 @@ import { SegmentedComponent } from '../../shared/segmented.component';
 import { CallDrawerComponent } from './call-drawer.component';
 import { DateNavComponent } from './date-nav.component';
 import { ToastService } from '../../shared/toast.service';
-import { dayKey, eur, fmtDate, fmtDateISO, fmtTime, isSameDay, startOfDay } from '../../utils';
+import { addDays, addMonths, dayKey, eur, fmtDate, fmtDateISO, fmtMonthISO, fmtTime, getMonday, isSameDay, startOfDay, startOfMonth } from '../../utils';
 
 // ── Adapter helpers ──────────────────────────────────────────────────────────
 
@@ -628,6 +628,147 @@ export class NewCallModalComponent {
   }
 }
 
+// ── Month calendar view ──────────────────────────────────────────────────────
+
+const DAYS_HEADER = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+const MESI_FULL = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+
+interface CalCell { date: Date; inMonth: boolean; isToday: boolean }
+
+@Component({
+  selector: 'app-month-calendar-view',
+  imports: [IconComponent],
+  styles: [`
+    :host { display: block; }
+    .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .cal-nav-title { font-size: 15px; font-weight: 700; color: var(--ink); }
+    .cal-nav-arrow { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; color: var(--ink-3); transition: background .12s, color .12s; }
+    .cal-nav-arrow:hover { background: var(--surface-2); color: var(--ink); }
+    .cal-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 4px; }
+    .cal-header-day { text-align: center; font-size: 10.5px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: .05em; padding: 4px 0; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-cell {
+      min-height: 80px; border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 6px; background: var(--surface); transition: background .12s;
+      cursor: pointer; display: flex; flex-direction: column; gap: 3px; text-align: left;
+    }
+    .cal-cell:hover:not(.out-month) { background: var(--surface-2); }
+    .cal-cell.out-month { background: transparent; border-color: transparent; cursor: default; }
+    .cal-cell.out-month .cal-day-num { opacity: .3; }
+    .cal-cell.is-today { border-color: var(--accent); }
+    .cal-cell.is-today .cal-day-num { color: var(--accent); font-weight: 800; }
+    .cal-day-num { font-size: 12px; font-weight: 600; color: var(--ink-2); line-height: 1; }
+    .cal-dots { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 2px; }
+    .cal-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .cal-event {
+      font-size: 10px; font-weight: 600; color: var(--ink); background: var(--surface-2);
+      border-radius: 4px; padding: 2px 4px; white-space: nowrap; overflow: hidden;
+      text-overflow: ellipsis; width: 100%;
+    }
+    .cal-event:hover { opacity: .75; }
+    .cal-more { font-size: 9px; font-weight: 700; color: var(--ink-3); }
+    @media (max-width: 600px) {
+      .cal-cell { min-height: 48px; padding: 4px; }
+      .cal-event { display: none; }
+      .cal-more { display: none; }
+    }
+  `],
+  template: `
+    <div class="cal-nav">
+      <button class="cal-nav-arrow" (click)="prevMonth()" aria-label="Mese precedente">
+        <app-icon name="chevronL" [size]="16" [stroke]="2.5" />
+      </button>
+      <span class="cal-nav-title">{{ monthTitle() }}</span>
+      <button class="cal-nav-arrow" (click)="nextMonth()" aria-label="Mese successivo">
+        <app-icon name="chevron" [size]="16" [stroke]="2.5" />
+      </button>
+    </div>
+    <div class="cal-header" role="row">
+      @for (d of daysHeader; track d) {
+        <div class="cal-header-day" role="columnheader">{{ d }}</div>
+      }
+    </div>
+    <div class="cal-grid" role="grid">
+      @for (cell of flatGrid(); track cell.date.getTime()) {
+        <button
+          class="cal-cell"
+          [class.out-month]="!cell.inMonth"
+          [class.is-today]="cell.isToday"
+          [disabled]="!cell.inMonth"
+          (click)="selectDay(cell.date)"
+          [attr.aria-label]="cell.inMonth ? cell.date.getDate() + ' ' + monthTitle() : null"
+          role="gridcell"
+        >
+          <span class="cal-day-num">{{ cell.date.getDate() }}</span>
+          @let dayCalls = cellCalls(cell.date);
+          @if (dayCalls.length > 0) {
+            <div class="cal-dots" aria-hidden="true">
+              @for (c of dayCalls.slice(0, 4); track c.id) {
+                <span class="cal-dot" [style.background]="statusDot(c.status)"></span>
+              }
+            </div>
+            <span class="cal-event" role="button" tabindex="-1"
+                  (click)="$event.stopPropagation(); openCall.emit(dayCalls[0])">
+              {{ dayCalls[0].client }}
+            </span>
+            @if (dayCalls.length > 1) {
+              <span class="cal-more">+{{ dayCalls.length - 1 }} altri</span>
+            }
+          }
+        </button>
+      }
+    </div>
+  `,
+})
+export class MonthCalendarViewComponent {
+  readonly calls = input.required<Call[]>();
+  readonly isAdmin = input.required<boolean>();
+  readonly sellersById = input.required<Record<string, Seller>>();
+  readonly month = model.required<Date>();
+  readonly daySelected = output<Date>();
+  readonly openCall = output<Call>();
+
+  readonly daysHeader = DAYS_HEADER;
+
+  readonly monthTitle = computed(() => {
+    const m = this.month();
+    return `${MESI_FULL[m.getMonth()]} ${m.getFullYear()}`;
+  });
+
+  readonly flatGrid = computed<CalCell[]>(() => {
+    const m = this.month();
+    const firstDay = new Date(m.getFullYear(), m.getMonth(), 1);
+    const gridStart = getMonday(firstDay);
+    const now = new Date();
+    return Array.from({ length: 42 }, (_, i) => {
+      const date = addDays(gridStart, i);
+      return { date, inMonth: date.getMonth() === m.getMonth(), isToday: isSameDay(date, now) };
+    });
+  });
+
+  readonly callsByDay = computed(() => {
+    const map = new Map<string, Call[]>();
+    this.calls().forEach(c => {
+      const k = fmtDateISO(new Date(c.when));
+      if (!map.has(k)) map.set(k, []);
+      map.get(k)!.push(c);
+    });
+    return map;
+  });
+
+  cellCalls(date: Date): Call[] {
+    return this.callsByDay().get(fmtDateISO(date)) ?? [];
+  }
+
+  statusDot(status: string): string {
+    return CALL_STATUS[status]?.dot ?? '#ccc';
+  }
+
+  prevMonth(): void { this.month.update(m => addMonths(m, -1)); }
+  nextMonth(): void { this.month.update(m => addMonths(m, 1)); }
+  selectDay(date: Date): void { this.daySelected.emit(startOfDay(date)); }
+}
+
 // ── Calls page ───────────────────────────────────────────────────────────────
 
 @Component({
@@ -643,6 +784,7 @@ export class NewCallModalComponent {
     ListViewComponent,
     KanbanViewComponent,
     AgendaViewComponent,
+    MonthCalendarViewComponent,
   ],
   templateUrl: './calls.component.html',
 })
@@ -655,11 +797,27 @@ export class CallsComponent {
   readonly layout = this.state.layout;
 
   readonly selectedDate = signal<Date>(startOfDay(new Date()));
+  readonly monthViewDate = signal<Date>(startOfMonth(new Date()));
 
   readonly leadsResource = rxResource<Lead[], string>({
     params: () => fmtDateISO(this.selectedDate()),
     stream: ({ params: date }) => this.leadsService.getByDate(date),
   });
+
+  readonly monthLeadsResource = rxResource<Lead[], string | null>({
+    params: () => this.layout() === 'mese' ? fmtMonthISO(this.monthViewDate()) : null,
+    stream: ({ params }) => params ? this.leadsService.getByMonth(params) : of([]),
+  });
+
+  readonly monthCalls = computed<Call[]>(() =>
+    (this.monthLeadsResource.value() ?? [])
+      .filter(l => l.callStartDate !== null)
+      .map(leadToCall),
+  );
+
+  readonly monthTodo = computed(() => this.monthCalls().filter(c => c.status === 'da-fare').length);
+  readonly monthDone = computed(() => this.monthCalls().filter(c => c.status === 'fatta').length);
+  readonly monthNoShow = computed(() => this.monthCalls().filter(c => c.status === 'no-show').length);
 
   readonly openCall = signal<Call | null>(null);
   readonly quickAction = signal<{ call: Call; type: 'transfer' | 'reschedule' } | null>(null);
@@ -750,5 +908,10 @@ export class CallsComponent {
   onNewCallDone(): void {
     this.showNewCallModal.set(false);
     this.leadsResource.reload();
+  }
+
+  onMonthDaySelected(date: Date): void {
+    this.selectedDate.set(date);
+    this.state.layout.set('lista');
   }
 }

@@ -24,8 +24,8 @@ const NAV_GROUPS: NavGroup[] = [
     id: 'commerciale', label: 'Commerciale',
     items: [
       { path: 'chiamate', label: 'Chiamate', icon: 'phone' },
-      { path: 'leads', label: 'Lead', icon: 'target' },
       { path: 'clienti', label: 'Vendite', icon: 'users' },
+      { path: 'leads', label: 'Lead', icon: 'target' },
     ],
   },
   {

@@ -1,4 +1,4 @@
-import { Component, computed, model, signal } from '@angular/core';
+import { Component, computed, effect, model, signal } from '@angular/core';
 import { IconComponent } from '../../shared/icon.component';
 import { addDays, getMonday, isSameDay, startOfDay } from '../../utils';
 
@@ -45,6 +45,15 @@ export class DateNavComponent {
       };
     });
   });
+
+  constructor() {
+    effect(() => {
+      const selMonday = getMonday(this.selected());
+      if (selMonday.getTime() !== this.weekStart().getTime()) {
+        this.weekStart.set(selMonday);
+      }
+    });
+  }
 
   prevWeek(): void {
     this.weekStart.update(d => addDays(d, -7));

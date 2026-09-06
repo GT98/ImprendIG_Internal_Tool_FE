@@ -51,6 +51,10 @@ export class LeadsService {
     return this.http.get<Lead[]>(`${API_URL}/leads`, { params: { date } });
   }
 
+  getByMonth(month: string) {
+    return this.http.get<Lead[]>(`${API_URL}/leads`, { params: { month } });
+  }
+
   getStatusOptions() {
     return this.http.get<LeadStatusOption[]>(`${API_URL}/lead-status-options`);
   }
