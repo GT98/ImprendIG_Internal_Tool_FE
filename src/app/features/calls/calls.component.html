@@ -17,9 +17,15 @@
         </p>
       }
     </div>
-    <button class="btn-primary" (click)="showNewCallModal.set(true)">
-      <app-icon name="plus" [size]="17" />Nuova chiamata
-    </button>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div class="role-switch" role="group" aria-label="Vista">
+        <button [class.active]="layout() === 'lista'" (click)="layout.set('lista')">Lista</button>
+        <button [class.active]="layout() === 'mese'" (click)="layout.set('mese')">Calendario</button>
+      </div>
+      <button class="btn-primary" (click)="showNewCallModal.set(true)">
+        <app-icon name="plus" [size]="17" />Nuova chiamata
+      </button>
+    </div>
   </div>
 
   <!-- Stats -->

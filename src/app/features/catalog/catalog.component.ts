@@ -8,6 +8,7 @@ import {
   CatalogVariant,
   ITALIAN_STRIPE_CLIENT_ID,
 } from '../../catalog/catalog-api.service';
+import { LeadsService } from '../../leads/lead.service';
 import { ToastService } from '../../shared/toast.service';
 import { IconComponent } from '../../shared/icon.component';
 import { eur as eurFmt } from '../../utils';
@@ -493,10 +494,24 @@ function emptyEditState(): EditState {
                 <input id="toggle-cf" type="checkbox" class="modal-checkbox" [checked]="withCf()" (change)="withCf.set($any($event.target).checked)" aria-label="Richiedi Codice Fiscale al checkout" />
               </div>
               @if (isAdmin()) {
-                <label class="modal-field">
-                  <span class="modal-label">ID Venditore</span>
-                  <input type="number" class="modal-date-input" min="1" placeholder="es. 3" [value]="sellerIdOverride()" (input)="sellerIdOverride.set($any($event.target).value)" aria-label="ID Venditore" />
-                </label>
+                <div class="modal-field">
+                  <span class="modal-label">Venditore</span>
+                  @if (sellersResource.isLoading()) {
+                    <div class="modal-date-input" style="color:var(--ink-3);font-size:13px">Caricamento…</div>
+                  } @else {
+                    <select
+                      class="modal-date-input"
+                      [value]="sellerIdOverride()"
+                      (change)="sellerIdOverride.set($any($event.target).value)"
+                      aria-label="Seleziona venditore"
+                    >
+                      <option value="">— Seleziona venditore —</option>
+                      @for (s of sellersResource.value() ?? []; track s.id) {
+                        <option [value]="s.id">{{ sellerName(s) }}</option>
+                      }
+                    </select>
+                  }
+                </div>
               }
             </div>
             <div class="modal-footer">
@@ -509,7 +524,7 @@ function emptyEditState(): EditState {
               </button>
               <button class="btn-cancel" (click)="closeGenerateModal()">Annulla</button>
               @if (isAdmin() && !resolvedSellerId()) {
-                <span class="modal-hint">Inserisci l'ID venditore per procedere</span>
+                <span class="modal-hint">Seleziona un venditore per procedere</span>
               }
               @if (!canGenerate()) {
                 <span class="modal-hint">Price ID {{ stripeAccount() === 'ita' ? 'ITA' : 'UAE' }} non configurato per questo piano</span>
@@ -525,6 +540,7 @@ function emptyEditState(): EditState {
 export class CatalogComponent {
   private readonly auth = inject(AuthService);
   private readonly catalogApi = inject(CatalogApiService);
+  private readonly leadsService = inject(LeadsService);
   private readonly toast = inject(ToastService);
 
   readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'admin');
@@ -536,6 +552,7 @@ export class CatalogComponent {
   readonly searchQuery = signal('');
 
   readonly clientsResource = rxResource({ stream: () => this.catalogApi.getClients() });
+  readonly sellersResource = rxResource({ stream: () => this.leadsService.getSellers() });
 
   readonly catalogResource = rxResource({
     params: () => this.selectedClientId(),
@@ -901,6 +918,10 @@ export class CatalogComponent {
   readonly urlCopied = signal(false);
 
   readonly minDate = tomorrow();
+
+  sellerName(s: { name: string | null; lastName: string | null }): string {
+    return [s.name, s.lastName].filter(x => !!x).join(' ') || '—';
+  }
 
   readonly resolvedSellerId = computed<number | null>(() => {
     if (this.isAdmin()) {
