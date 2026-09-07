@@ -81,6 +81,7 @@ export class CallDrawerComponent {
   // ── existing signals ──────────────────────────────────────────
   readonly selectedOptionId = signal<number | null>(null);
   readonly notes = signal<string>('');
+  readonly sellerNotes = signal<string>('');
   readonly selectedSetterId = signal<number | null>(null);
   readonly saving = signal(false);
 
@@ -126,6 +127,7 @@ export class CallDrawerComponent {
   ngOnInit(): void {
     this.selectedOptionId.set(this.call().statusOptionId);
     this.notes.set(this.call().notes ?? '');
+    this.sellerNotes.set(this.call().sellerNotes ?? '');
     this.rescheduleDate.set(this.call().when.slice(0, 16));
     this.selectedSetterId.set(this.call().setterId ? parseInt(this.call().setterId!) : null);
   }
@@ -152,8 +154,9 @@ export class CallDrawerComponent {
     this.saving.set(true);
     const statusOptionId = this.selectedOptionId();
     const notes = this.notes().trim() || null;
+    const sellerNotes = this.sellerNotes().trim() || null;
     const setterId = this.isAdmin() ? this.selectedSetterId() : undefined;
-    this.leadsService.patch(this.call().id, { statusOptionId, notes, setterId }).subscribe({
+    this.leadsService.patch(this.call().id, { statusOptionId, notes, sellerNotes, setterId }).subscribe({
       next: () => {
         this.saving.set(false);
         this.toast.success('Esito e note salvati correttamente');

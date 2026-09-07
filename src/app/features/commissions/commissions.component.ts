@@ -179,35 +179,9 @@ function monthLongLabel(isoM: string): string {
           </p>
         </div>
         <div class="head-actions">
-          <div class="mode-toggle" role="group" aria-label="Modalità calcolo provvigioni">
-            <button
-              [class.active]="commMode() === 'per-rata'"
-              (click)="commMode.set('per-rata')"
-              aria-pressed="commMode() === 'per-rata'"
-            >
-              Per rata
-            </button>
-            <button
-              [class.active]="commMode() === 'prima-rata'"
-              (click)="commMode.set('prima-rata')"
-              aria-pressed="commMode() === 'prima-rata'"
-            >
-              Prima rata
-            </button>
-          </div>
           <button class="btn-ghost"><app-icon name="external" [size]="16" />Esporta</button>
         </div>
       </div>
-
-      @if (commMode() === 'prima-rata') {
-        <div class="prima-rata-banner" role="status">
-          <span class="prb-dot"></span>
-          <span>
-            Modalità <strong>Prima rata attiva</strong> — la provvigione totale è attribuita alla
-            prima rata di ogni deal. Le rate successive mostrano €0.
-          </span>
-        </div>
-      }
 
       <app-month-nav [(selected)]="selectedMonth" />
 

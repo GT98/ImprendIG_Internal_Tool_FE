@@ -9,6 +9,7 @@ const API_URL = environment.apiUrl;
 export interface PatchLeadDto {
   statusOptionId?: number | null;
   notes?: string | null;
+  sellerNotes?: string | null;
   sellerId?: number | null;
   setterId?: number | null;
   callStartDate?: string | null;

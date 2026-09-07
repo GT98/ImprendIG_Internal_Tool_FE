@@ -96,13 +96,24 @@
     }
 
     <div class="drawer-section">
-      <label class="ds-title" for="notes-area">Note venditrice</label>
+      <label class="ds-title" for="notes-area">Dati onboarding</label>
       <textarea
         id="notes-area"
         class="note-area"
-        placeholder="Aggiungi note sull'esito della chiamata…"
+        placeholder="Dati raccolti durante l'onboarding…"
         [value]="notes()"
         (input)="notes.set($any($event.target).value)"
+      ></textarea>
+    </div>
+
+    <div class="drawer-section">
+      <label class="ds-title" for="seller-notes-area">Note venditrice</label>
+      <textarea
+        id="seller-notes-area"
+        class="note-area"
+        placeholder="Aggiungi note sull'esito della chiamata…"
+        [value]="sellerNotes()"
+        (input)="sellerNotes.set($any($event.target).value)"
       ></textarea>
     </div>
 

@@ -20,6 +20,7 @@ export interface Call {
   when: string;
   link: string;
   notes: string | null;
+  sellerNotes: string | null;
   formCliente: string | null;
 }
 
