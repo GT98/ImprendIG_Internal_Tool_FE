@@ -16,7 +16,7 @@ import { ToastContainerComponent } from '../../shared/toast.component';
 import { AiChatbotComponent } from '../ai/ai-chatbot.component';
 import { VoiceRecorderComponent } from '../calls/voice-recorder.component';
 
-interface NavItem  { path: string; label: string; icon: string }
+interface NavItem  { path: string; label: string; icon: string; adminOnly?: boolean }
 interface NavGroup { id: string; label: string; items: NavItem[]; adminOnly?: boolean }
 
 const NAV_GROUPS: NavGroup[] = [
@@ -25,7 +25,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { path: 'chiamate', label: 'Chiamate', icon: 'phone' },
       { path: 'clienti', label: 'Vendite', icon: 'users' },
-      { path: 'leads', label: 'Lead', icon: 'target' },
+      { path: 'leads', label: 'Lead', icon: 'target', adminOnly: true },
     ],
   },
   {
@@ -81,7 +81,9 @@ export class ShellComponent {
 
   readonly visibleGroups = computed(() => {
     const isAdmin = this.auth.currentUser()?.role === 'admin';
-    return NAV_GROUPS.filter(g => (!g.adminOnly || isAdmin) && g.items.length > 0);
+    return NAV_GROUPS
+      .map(g => ({ ...g, items: g.items.filter(i => !i.adminOnly || isAdmin) }))
+      .filter(g => (!g.adminOnly || isAdmin) && g.items.length > 0);
   });
 
   readonly allNavItems = computed(() => this.visibleGroups().flatMap(g => g.items));

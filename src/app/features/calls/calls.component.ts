@@ -65,6 +65,7 @@ function leadToCall(lead: Lead): Call {
     when: lead.callStartDate!,
     link: '',
     notes: lead.notes ?? null,
+    sellerNotes: lead.sellerNotes ?? null,
     formCliente: lead.formCliente ?? null,
   };
 }
