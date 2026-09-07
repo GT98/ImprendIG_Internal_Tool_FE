@@ -53,7 +53,8 @@
                     <th class="text-right">Provvigioni</th>
                     <th class="text-right">Commesse</th>
                     <th class="text-right">Lordo</th>
-                    <th class="text-right">Saldo</th>
+                    <!-- TODO: reintrodurre colonna Saldo una volta definiti i dettagli funzionali -->
+                    <!-- <th class="text-right">Saldo</th> -->
                     <th class="text-right">Netto da pagare</th>
                     <th>Timesheet</th>
                     <th></th>
@@ -72,7 +73,8 @@
                       <td class="text-right mono">€ {{ formatAmount(item.subtotalCommissions) }}</td>
                       <td class="text-right mono">€ {{ formatAmount(item.subtotalTimesheetItems) }}</td>
                       <td class="text-right mono font-600">€ {{ formatAmount(item.grossTotal) }}</td>
-                      <td class="text-right">
+                      <!-- TODO: reintrodurre saldo/credito/debito una volta definiti i dettagli funzionali -->
+                      <!-- <td class="text-right">
                         @if (item.balance !== 0) {
                           <span class="balance-chip" [class]="balanceClass(item.balance)">
                             {{ item.balance > 0 ? '+' : '' }}€ {{ formatAmount(item.balance) }}
@@ -80,7 +82,7 @@
                         } @else {
                           <span class="muted">—</span>
                         }
-                      </td>
+                      </td> -->
                       <td class="text-right"><strong class="net-value">€ {{ formatAmount(item.netPayable) }}</strong></td>
                       <td>
                         @if (item.timesheetStatus) {
@@ -185,9 +187,10 @@
                 <app-icon name="chevronL" [size]="16" /> Tutti i dipendenti
               </button>
               <div class="detail-actions">
-                <button class="btn-outline" (click)="showBalanceModal.set(true)">
+                <!-- TODO: reintrodurre saldo/credito/debito una volta definiti i dettagli funzionali -->
+                <!-- <button class="btn-outline" (click)="showBalanceModal.set(true)">
                   <app-icon name="wallet" [size]="15" /> Saldo
-                </button>
+                </button> -->
                 <button class="btn-outline" (click)="openPrint()">
                   <app-icon name="external" [size]="15" /> Stampa PDF
                 </button>
@@ -268,12 +271,13 @@
               <div class="summary-row"><span>Provvigioni</span><span>€ {{ formatAmount(r.subtotalCommissions) }}</span></div>
               <div class="summary-row"><span>Commesse</span><span>€ {{ formatAmount(r.subtotalTimesheetItems) }}</span></div>
               <div class="summary-row gross-row"><span>Totale lordo</span><span>€ {{ formatAmount(r.grossTotal) }}</span></div>
-              @if (r.balance.current !== 0) {
+              <!-- TODO: reintrodurre saldo/credito/debito una volta definiti i dettagli funzionali -->
+              <!-- @if (r.balance.current !== 0) {
                 <div class="summary-row balance-row" [class]="balanceClass(r.balance.current)">
                   <span>Saldo residuo @if (r.balance.notes) { <small>({{ r.balance.notes }})</small> }</span>
                   <span>{{ r.balance.current >= 0 ? '+' : '' }}€ {{ formatAmount(r.balance.current) }}</span>
                 </div>
-              }
+              } -->
               <div class="summary-divider"></div>
               <div class="summary-row net-row">
                 <strong>NETTO DA PAGARE</strong>
@@ -286,14 +290,15 @@
       }
     </div>
 
-    @if (selectedEmployee()) {
+    <!-- TODO: reintrodurre saldo/credito/debito una volta definiti i dettagli funzionali -->
+    <!-- @if (selectedEmployee()) {
       <app-balance-modal
         [visible]="showBalanceModal()"
         [employee]="selectedEmployee()!"
         [currentBalance]="reportData()?.balance?.current ?? 0"
         (saved)="onBalanceSaved()"
         (closed)="showBalanceModal.set(false)" />
-    }
+    } -->
 
   } @else {
 
@@ -420,12 +425,13 @@
             <div class="summary-row"><span>Provvigioni</span><span>€ {{ formatAmount(r.subtotalCommissions) }}</span></div>
             <div class="summary-row"><span>Commesse</span><span>€ {{ formatAmount(tsSubtotal()) }}</span></div>
             <div class="summary-row gross-row"><span>Totale lordo</span><span>€ {{ formatAmount(myGrossTotal()) }}</span></div>
-            @if (r.balance.current !== 0) {
+            <!-- TODO: reintrodurre saldo/credito/debito una volta definiti i dettagli funzionali -->
+            <!-- @if (r.balance.current !== 0) {
               <div class="summary-row balance-row" [class]="balanceClass(r.balance.current)">
                 <span>Saldo residuo</span>
                 <span>{{ r.balance.current >= 0 ? '+' : '' }}€ {{ formatAmount(r.balance.current) }}</span>
               </div>
-            }
+            } -->
             <div class="summary-divider"></div>
             <div class="summary-row net-row">
               <strong>NETTO DA PAGARE</strong>

@@ -14,7 +14,8 @@ import {
 } from '../../reporting/reporting-api.service';
 import { TimesheetApiService, TimesheetDto, TimesheetStatus, AdminTimesheetSummary } from '../../timesheet/timesheet-api.service';
 import { CommesseApiService, CommessaDto } from '../../commesse/commesse-api.service';
-import { BalanceModalComponent } from './balance-modal.component';
+// TODO: reintrodurre saldo/credito/debito una volta definiti i dettagli funzionali
+// import { BalanceModalComponent } from './balance-modal.component';
 
 function currentMonthIso(): string {
   const d = new Date();
@@ -36,7 +37,7 @@ function shiftMonth(iso: string, delta: number): string {
 
 @Component({
   selector: 'app-rendicontazioni',
-  imports: [IconComponent, BalanceModalComponent, FormsModule],
+  imports: [IconComponent, FormsModule],
   templateUrl: './rendicontazioni.component.html',
   styleUrl: './rendicontazioni.component.css',
 })
@@ -313,9 +314,9 @@ export class RendicontazioniComponent {
   }
 
   // ── Balance modal ──────────────────────────────────────────────
-  readonly showBalanceModal = signal(false);
-
-  onBalanceSaved() { this.showBalanceModal.set(false); this.reloadReport(); this.reloadSummary(); }
+  // TODO: reintrodurre saldo/credito/debito una volta definiti i dettagli funzionali
+  // readonly showBalanceModal = signal(false);
+  // onBalanceSaved() { this.showBalanceModal.set(false); this.reloadReport(); this.reloadSummary(); }
 
   // ── Print ──────────────────────────────────────────────────────
   openPrint() {
@@ -332,7 +333,8 @@ export class RendicontazioniComponent {
 
   // ── Helpers ───────────────────────────────────────────────────
   formatAmount(n: number | null | undefined): string { return Number(n ?? 0).toFixed(2); }
-  balanceClass(b: number): string { return b < 0 ? 'neg' : b > 0 ? 'pos' : 'zero'; }
+  // TODO: reintrodurre saldo/credito/debito una volta definiti i dettagli funzionali
+  // balanceClass(b: number): string { return b < 0 ? 'neg' : b > 0 ? 'pos' : 'zero'; }
 
   tsItemLabel(item: TimesheetItemLine): string {
     return item.type === 'percentage'
