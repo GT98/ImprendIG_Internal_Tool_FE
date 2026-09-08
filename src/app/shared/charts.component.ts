@@ -36,7 +36,9 @@ export class BarChartComponent {
 
   readonly barItems = computed(() => {
     const data = this.data();
-    const max = Math.max(...data.map(d => d.v)) * 1.18;
+    if (!data.length) return [];
+    const rawMax = Math.max(...data.map(d => d.v));
+    const max = (rawMax > 0 ? rawMax : 1) * 1.18;
     const bw = (this.W - this.padL) / data.length;
     const barW = Math.min(46, bw * 0.5);
     return data.map((d, i) => {
