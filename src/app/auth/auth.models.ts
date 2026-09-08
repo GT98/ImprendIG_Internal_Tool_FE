@@ -3,6 +3,7 @@ export interface AuthUser {
   email: string;
   role: string;
   sellerId: number | null;
+  clientId: number | null;
 }
 
 export interface LoginResponse {

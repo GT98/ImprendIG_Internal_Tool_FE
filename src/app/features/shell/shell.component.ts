@@ -16,12 +16,20 @@ import { ToastContainerComponent } from '../../shared/toast.component';
 import { AiChatbotComponent } from '../ai/ai-chatbot.component';
 import { VoiceRecorderComponent } from '../calls/voice-recorder.component';
 
-interface NavItem  { path: string; label: string; icon: string; adminOnly?: boolean }
-interface NavGroup { id: string; label: string; items: NavItem[]; adminOnly?: boolean }
+interface NavItem  { path: string; label: string; icon: string; adminOnly?: boolean; clientOnly?: boolean; hideFromClient?: boolean }
+interface NavGroup { id: string; label: string; items: NavItem[]; adminOnly?: boolean; clientOnly?: boolean; hideFromClient?: boolean }
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    id: 'commerciale', label: 'Commerciale',
+    id: 'cliente', label: 'La mia area', clientOnly: true,
+    items: [
+      { path: 'area-cliente', label: 'Dashboard', icon: 'home', clientOnly: true },
+      { path: 'area-cliente/leads', label: 'Lead', icon: 'phone', clientOnly: true },
+      { path: 'area-cliente/vendite', label: 'Vendite', icon: 'users', clientOnly: true },
+    ],
+  },
+  {
+    id: 'commerciale', label: 'Commerciale', hideFromClient: true,
     items: [
       { path: 'chiamate', label: 'Chiamate', icon: 'phone' },
       { path: 'clienti', label: 'Vendite', icon: 'users' },
@@ -29,14 +37,14 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    id: 'finanza', label: 'Finanza',
+    id: 'finanza', label: 'Finanza', hideFromClient: true,
     items: [
       { path: 'provvigioni', label: 'Provvigioni', icon: 'chart' },
       { path: 'rendicontazioni', label: 'Rendicontazioni', icon: 'receipt' },
     ],
   },
   {
-    id: 'strumenti', label: 'Strumenti',
+    id: 'strumenti', label: 'Strumenti', hideFromClient: true,
     items: [
       { path: 'catalogo', label: 'Link pagamento', icon: 'card' },
       // TODO: implementare Task Tracker
@@ -44,7 +52,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    id: 'formazione', label: 'Formazione',
+    id: 'formazione', label: 'Formazione', hideFromClient: true,
     items: [], // pronto per Tutorial, Guide, ecc.
   },
   {
@@ -80,10 +88,17 @@ export class ShellComponent {
   );
 
   readonly visibleGroups = computed(() => {
-    const isAdmin = this.auth.currentUser()?.role === 'admin';
+    const role = this.auth.currentUser()?.role;
+    const isAdmin = role === 'admin';
+    const isClient = role === 'client';
     return NAV_GROUPS
-      .map(g => ({ ...g, items: g.items.filter(i => !i.adminOnly || isAdmin) }))
-      .filter(g => (!g.adminOnly || isAdmin) && g.items.length > 0);
+      .map(g => ({ ...g, items: g.items.filter(i => (!i.adminOnly || isAdmin) && (!i.clientOnly || isClient)) }))
+      .filter(g =>
+        (!g.adminOnly || isAdmin) &&
+        (!g.clientOnly || isClient) &&
+        (!g.hideFromClient || !isClient) &&
+        g.items.length > 0,
+      );
   });
 
   readonly allNavItems = computed(() => this.visibleGroups().flatMap(g => g.items));

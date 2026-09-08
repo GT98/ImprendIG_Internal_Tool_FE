@@ -2,6 +2,8 @@ import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
 import { authGuard } from './auth/auth.guard';
 import { adminGuard } from './auth/admin.guard';
+import { clientGuard } from './auth/client.guard';
+import { notClientGuard } from './auth/not-client.guard';
 import { AuthService } from './auth/auth.service';
 
 export const routes: Routes = [
@@ -26,8 +28,33 @@ export const routes: Routes = [
       {
         path: '',
         pathMatch: 'full',
-        redirectTo: () =>
-          inject(AuthService).currentUser()?.role === 'admin' ? 'dashboard' : 'chiamate',
+        redirectTo: () => {
+          const role = inject(AuthService).currentUser()?.role;
+          if (role === 'admin') return 'dashboard';
+          if (role === 'client') return 'area-cliente';
+          return 'chiamate';
+        },
+      },
+      {
+        path: 'area-cliente',
+        canActivate: [clientGuard],
+        loadComponent: () =>
+          import('./features/area-cliente/area-cliente.component').then(m => m.AreaClienteComponent),
+        title: 'La mia area',
+      },
+      {
+        path: 'area-cliente/leads',
+        canActivate: [clientGuard],
+        loadComponent: () =>
+          import('./features/area-cliente/area-cliente-leads.component').then(m => m.AreaClienteLeadsComponent),
+        title: 'I miei lead',
+      },
+      {
+        path: 'area-cliente/vendite',
+        canActivate: [clientGuard],
+        loadComponent: () =>
+          import('./features/area-cliente/area-cliente-vendite.component').then(m => m.AreaClienteVenditeComponent),
+        title: 'Le mie vendite',
       },
       {
         path: 'dashboard',
@@ -38,24 +65,28 @@ export const routes: Routes = [
       },
       {
         path: 'chiamate',
+        canActivate: [notClientGuard],
         loadComponent: () =>
           import('./features/calls/calls.component').then(m => m.CallsComponent),
         title: 'Chiamate',
       },
       {
         path: 'provvigioni',
+        canActivate: [notClientGuard],
         loadComponent: () =>
           import('./features/commissions/commissions.component').then(m => m.CommissionsComponent),
         title: 'Provvigioni',
       },
       {
         path: 'clienti',
+        canActivate: [notClientGuard],
         loadComponent: () =>
           import('./features/clients/clients.component').then(m => m.ClientsComponent),
         title: 'Vendite',
       },
       {
         path: 'catalogo',
+        canActivate: [notClientGuard],
         loadComponent: () =>
           import('./features/catalog/catalog.component').then(m => m.CatalogComponent),
         title: 'Catalogo',
@@ -103,6 +134,7 @@ export const routes: Routes = [
       },
       {
         path: 'rendicontazioni',
+        canActivate: [notClientGuard],
         loadComponent: () =>
           import('./features/rendicontazioni/rendicontazioni.component').then(m => m.RendicontazioniComponent),
         title: 'Rendicontazioni',
