@@ -22,6 +22,7 @@ export interface ClientLeadDto {
   status: string | null;
   notes: string | null;
   sellerNotes: string | null;
+  formCliente: string | null;
   statusOption: { id: number; label: string } | null;
   seller: { id: number; name: string | null; lastName: string | null } | null;
 }
@@ -31,7 +32,7 @@ export interface ClientSaleDto {
   status: string;
   paymentMethod: string;
   createdAt: string;
-  customer: { id: number; name: string | null; surname: string | null; email: string | null } | null;
+  customer: { id: number; name: string | null; surname: string | null; email: string | null; startDate: string | null } | null;
   pricePlan: {
     id: number;
     name: string | null;

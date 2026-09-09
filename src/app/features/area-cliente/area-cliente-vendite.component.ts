@@ -2,6 +2,12 @@ import { Component, computed, signal, inject } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { AreaClienteApiService, ClientSaleDto } from './area-cliente-api.service';
 import { IconComponent } from '../../shared/icon.component';
+import { MonthNavComponent } from '../commissions/month-nav.component';
+
+function currentIsoMonth(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
 
 function fmtDate(iso: string | null): string {
   if (!iso) return '—';
@@ -26,7 +32,7 @@ const INST_STATUS: Record<string, { label: string; cls: string }> = {
 
 @Component({
   selector: 'app-area-cliente-vendite',
-  imports: [IconComponent],
+  imports: [IconComponent, MonthNavComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -34,21 +40,25 @@ const INST_STATUS: Record<string, { label: string; cls: string }> = {
           <app-icon name="users" [size]="20" />
           <h1>Le mie vendite</h1>
         </div>
-        <span class="count-badge">{{ sales().length }} vendite</span>
+        <span class="count-badge">{{ filteredSales().length }} vendite</span>
+      </div>
+
+      <div class="month-nav-wrap">
+        <app-month-nav [(selected)]="selectedMonth" />
       </div>
 
       @if (salesResource.isLoading()) {
         <div class="loading-state"><span class="spinner"></span> Caricamento…</div>
       } @else if (salesResource.error()) {
         <div class="error-banner"><app-icon name="alertTriangle" [size]="16" /> Errore nel caricamento</div>
-      } @else if (sales().length === 0) {
+      } @else if (filteredSales().length === 0) {
         <div class="empty-page">
           <app-icon name="users" [size]="32" />
-          <p>Nessuna vendita trovata</p>
+          <p>Nessuna vendita per questo mese</p>
         </div>
       } @else {
         <div class="sale-list">
-          @for (sale of sales(); track sale.id) {
+          @for (sale of filteredSales(); track sale.id) {
             <div class="sale-card" [class.open]="openId() === sale.id">
               <div class="sale-card-header" (click)="toggle(sale.id)" role="button" [attr.aria-expanded]="openId() === sale.id">
                 <div class="sale-main">
@@ -75,6 +85,13 @@ const INST_STATUS: Record<string, { label: string; cls: string }> = {
                   <div class="detail-row"><span class="detail-label">Email cliente</span><span>{{ sale.customer?.email ?? '—' }}</span></div>
                   <div class="detail-row"><span class="detail-label">Piano</span><span>{{ sale.pricePlan?.name ?? '—' }}</span></div>
                   <div class="detail-row"><span class="detail-label">Metodo pagamento</span><span>{{ sale.paymentMethod }}</span></div>
+                  <div class="detail-row"><span class="detail-label">Data vendita</span><span>{{ fmtDate(sale.createdAt) }}</span></div>
+                  @if (sale.customer?.startDate) {
+                    <div class="detail-row">
+                      <span class="detail-label">Inizio affiancamento</span>
+                      <span class="start-date-val">{{ fmtDate(sale.customer!.startDate) }}</span>
+                    </div>
+                  }
 
                   @if (sale.installments?.length) {
                     <div class="inst-title">Rate</div>
@@ -111,6 +128,7 @@ const INST_STATUS: Record<string, { label: string; cls: string }> = {
     .header-left { display: flex; align-items: center; gap: 10px; }
     .header-left h1 { font-size: 1.25rem; font-weight: 700; margin: 0; }
     .count-badge { font-size: 0.8rem; color: var(--ink-3); background: var(--surface-2); padding: 4px 10px; border-radius: 20px; }
+    .month-nav-wrap { padding: 16px 24px 0; }
     .sale-list { padding: 16px 24px; display: flex; flex-direction: column; gap: 10px; }
     .sale-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
     .sale-card-header { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; }
@@ -128,6 +146,7 @@ const INST_STATUS: Record<string, { label: string; cls: string }> = {
     .sale-detail { padding: 0 18px 16px; border-top: 1px solid var(--border); }
     .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
     .detail-label { color: var(--ink-3); font-size: 0.8rem; }
+    .start-date-val { color: var(--accent); font-weight: 700; }
     .inst-title { font-size: 0.82rem; font-weight: 600; color: var(--ink-2); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .04em; }
     .inst-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
     .inst-table th { text-align: left; padding: 6px 8px; background: var(--surface-2); font-size: 0.75rem; color: var(--ink-3); }
@@ -152,17 +171,24 @@ export class AreaClienteVenditeComponent {
   readonly fmtDate = fmtDate;
   readonly fmtAmount = fmtAmount;
 
+  readonly selectedMonth = signal(currentIsoMonth());
+  readonly openId = signal<number | null>(null);
+
   readonly salesResource = rxResource({
     stream: () => this.api.getSales(),
   });
 
-  readonly openId = signal<number | null>(null);
-
-  readonly sales = computed<ClientSaleDto[]>(() =>
+  readonly allSales = computed<ClientSaleDto[]>(() =>
     [...(this.salesResource.value() ?? [])].sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     ),
   );
+
+  // Filtra per mese selezionato (su createdAt della vendita)
+  readonly filteredSales = computed<ClientSaleDto[]>(() => {
+    const month = this.selectedMonth();
+    return this.allSales().filter(s => s.createdAt?.startsWith(month));
+  });
 
   toggle(id: number): void {
     this.openId.update(cur => cur === id ? null : id);

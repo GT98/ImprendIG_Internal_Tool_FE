@@ -13,19 +13,18 @@ import { AuthService } from '../../auth/auth.service';
 import { IconComponent } from '../../shared/icon.component';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { ToastContainerComponent } from '../../shared/toast.component';
-import { AiChatbotComponent } from '../ai/ai-chatbot.component';
-import { VoiceRecorderComponent } from '../calls/voice-recorder.component';
 
-interface NavItem  { path: string; label: string; icon: string; adminOnly?: boolean; clientOnly?: boolean; hideFromClient?: boolean }
+interface NavItem  { path: string; label: string; icon: string; adminOnly?: boolean; clientOnly?: boolean; hideFromClient?: boolean; exactMatch?: boolean }
 interface NavGroup { id: string; label: string; items: NavItem[]; adminOnly?: boolean; clientOnly?: boolean; hideFromClient?: boolean }
 
 const NAV_GROUPS: NavGroup[] = [
   {
     id: 'cliente', label: 'La mia area', clientOnly: true,
     items: [
-      { path: 'area-cliente', label: 'Dashboard', icon: 'home', clientOnly: true },
+      { path: 'area-cliente', label: 'Dashboard', icon: 'home', clientOnly: true, exactMatch: true },
       { path: 'area-cliente/leads', label: 'Lead', icon: 'phone', clientOnly: true },
       { path: 'area-cliente/vendite', label: 'Vendite', icon: 'users', clientOnly: true },
+      { path: 'clienti', label: 'Il mio percorso', icon: 'receipt', clientOnly: true },
     ],
   },
   {
@@ -33,6 +32,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { path: 'chiamate', label: 'Chiamate', icon: 'phone' },
       { path: 'clienti', label: 'Vendite', icon: 'users' },
+      { path: 'customers', label: 'Clienti', icon: 'users' },
       { path: 'leads', label: 'Lead', icon: 'target', adminOnly: true },
     ],
   },
@@ -60,7 +60,6 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { path: 'dashboard', label: 'Dashboard', icon: 'home' },
       { path: 'commesse', label: 'Commesse', icon: 'edit' },
-      { path: 'customers', label: 'Clienti', icon: 'users' },
       { path: 'onboarding', label: 'Onboarding', icon: 'send' },
       { path: 'team', label: 'Team', icon: 'users' },
       // TODO: implementare Bot AI
@@ -71,7 +70,7 @@ const NAV_GROUPS: NavGroup[] = [
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent, AvatarComponent, ToastContainerComponent, AiChatbotComponent, VoiceRecorderComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent, AvatarComponent, ToastContainerComponent],
   templateUrl: './shell.component.html',
   host: { style: 'display:block;height:100%' },
 })

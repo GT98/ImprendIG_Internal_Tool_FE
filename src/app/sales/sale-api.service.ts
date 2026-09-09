@@ -22,7 +22,7 @@ export interface SaleDto {
   paymentMethod: 'stripe' | 'stripe_ita' | 'bonifico';
   createdAt: string;
   stripeSubscriptionId: string | null;
-  customer: { name: string | null; surname: string | null; email: string | null; phone: string | null } | null;
+  customer: { id: number; name: string | null; surname: string | null; email: string | null; phone: string | null; startDate: string | null } | null;
   seller: { id: number; name: string | null; lastName: string | null } | null;
   setter: { id: number; name: string | null; lastName: string | null } | null;
   client: { id: number; name: string | null } | null;

@@ -56,6 +56,8 @@ export interface Client {
   stripe: string;
   totalPaid: number;
   method: string;
+  customerId: number | null;
+  startDate: string | null;
 }
 
 export type NavRoute = 'chiamate' | 'provvigioni' | 'clienti' | 'catalogo';

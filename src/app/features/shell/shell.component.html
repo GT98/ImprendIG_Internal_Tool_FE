@@ -27,7 +27,7 @@
               class="nav-item"
               routerLinkActive="active"
               [routerLink]="n.path"
-              [routerLinkActiveOptions]="{ exact: false }"
+              [routerLinkActiveOptions]="{ exact: n.exactMatch ?? false }"
             >
               <app-icon [name]="n.icon" [size]="18" />
               {{ n.label }}

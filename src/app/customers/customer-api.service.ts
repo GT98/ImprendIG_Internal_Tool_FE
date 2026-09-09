@@ -82,6 +82,10 @@ export class CustomerApiService {
   getAll(): Observable<CustomerDto[]> {
     return this.http.get<CustomerDto[]>(`${API}/customers`);
   }
+
+  patch(id: number, dto: { startDate?: string | null }): Observable<void> {
+    return this.http.patch<void>(`${API}/customers/${id}`, dto);
+  }
 }
 
 @Injectable({ providedIn: 'root' })

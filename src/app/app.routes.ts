@@ -79,7 +79,6 @@ export const routes: Routes = [
       },
       {
         path: 'clienti',
-        canActivate: [notClientGuard],
         loadComponent: () =>
           import('./features/clients/clients.component').then(m => m.ClientsComponent),
         title: 'Vendite',
@@ -107,7 +106,7 @@ export const routes: Routes = [
       },
       {
         path: 'customers',
-        canActivate: [adminGuard],
+        canActivate: [notClientGuard],
         loadComponent: () =>
           import('./features/customers/customers-list.component').then(m => m.CustomersListComponent),
         title: 'Clienti',

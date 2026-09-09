@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
+import { of } from 'rxjs';
 import {
   CustomerApiService,
   CustomerDto,
@@ -8,6 +9,8 @@ import {
   OnboardingSubmissionDto,
 } from '../../customers/customer-api.service';
 import { IconComponent } from '../../shared/icon.component';
+import { AuthService } from '../../auth/auth.service';
+import { ToastService } from '../../shared/toast.service';
 
 interface CustomerRow {
   customer: CustomerDto;
@@ -89,12 +92,15 @@ interface CustomerRow {
                 <div class="td-contacts">
                   <span class="td-contact">{{ row.customer.email || '—' }}</span>
                   <span class="td-sub">{{ row.customer.phone || '—' }}</span>
-                  @if (hasAddress(row.customer)) {
-                    <button class="addr-toggle" (click)="toggleExpand(row.customer.id)" [attr.aria-expanded]="expandedId() === row.customer.id">
+                  <button class="addr-toggle" (click)="toggleExpand(row.customer.id)" [attr.aria-expanded]="expandedId() === row.customer.id">
+                    @if (hasAddress(row.customer)) {
                       <app-icon name="home" [size]="12" />
                       {{ row.customer.city || 'Indirizzo' }}{{ row.customer.province ? ' (' + row.customer.province + ')' : '' }}
-                    </button>
-                  }
+                    } @else {
+                      <app-icon name="calendar" [size]="12" />
+                      Affiancamento
+                    }
+                  </button>
                 </div>
 
                 <!-- Venditore -->
@@ -136,18 +142,34 @@ interface CustomerRow {
 
               </div>
 
-              <!-- Address expansion row -->
-              @if (expandedId() === row.customer.id && hasAddress(row.customer)) {
+              <!-- Expansion row: address + startDate editing -->
+              @if (expandedId() === row.customer.id) {
                 <div class="addr-row" role="row">
-                  <div class="addr-content">
-                    <app-icon name="home" [size]="13" />
-                    <span>{{ addrStr(row.customer) }}</span>
-                    @if (row.customer.startDate) {
-                      <span class="addr-start">
-                        <app-icon name="calendar" [size]="13" />
-                        Affiancamento dal {{ row.customer.startDate }}
-                      </span>
-                    }
+                  @if (hasAddress(row.customer)) {
+                    <div class="addr-content">
+                      <app-icon name="home" [size]="13" />
+                      <span>{{ addrStr(row.customer) }}</span>
+                    </div>
+                  }
+                  <div class="start-date-edit">
+                    <label class="start-date-label" [for]="'sd-' + row.customer.id">Inizio affiancamento</label>
+                    <div class="start-date-row">
+                      <input
+                        type="date"
+                        class="date-input"
+                        [id]="'sd-' + row.customer.id"
+                        [value]="getDate(row.customer.id, row.customer.startDate)"
+                        (change)="setDate(row.customer.id, $any($event.target).value)"
+                        [disabled]="savingId() === row.customer.id"
+                      />
+                      @if (isDirty(row.customer.id, row.customer.startDate)) {
+                        <button
+                          class="save-btn"
+                          (click)="saveStartDate(row.customer.id)"
+                          [disabled]="savingId() === row.customer.id"
+                        >{{ savingId() === row.customer.id ? '…' : 'Salva' }}</button>
+                      }
+                    </div>
                   </div>
                 </div>
               }
@@ -161,17 +183,24 @@ interface CustomerRow {
 export class CustomersListComponent {
   private readonly api = inject(CustomerApiService);
   private readonly onboardingApi = inject(OnboardingFormApiService);
+  private readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastService);
 
   readonly searchQuery = signal('');
   readonly statusFilter = signal('');
   readonly expandedId = signal<number | null>(null);
+  readonly editedDates = signal<Record<number, string>>({});
+  readonly savingId = signal<number | null>(null);
+
+  readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'admin');
 
   readonly customersResource = rxResource({
     stream: () => this.api.getAll(),
   });
 
   readonly submissionsResource = rxResource({
-    stream: () => this.onboardingApi.getSubmissions(),
+    params: () => this.isAdmin(),
+    stream: ({ params: isAdmin }) => isAdmin ? this.onboardingApi.getSubmissions() : of([]),
   });
 
   readonly isLoading = computed(
@@ -209,6 +238,37 @@ export class CustomersListComponent {
 
   toggleExpand(id: number): void {
     this.expandedId.update(cur => (cur === id ? null : id));
+  }
+
+  getDate(id: number, current: string | null): string {
+    const edited = this.editedDates()[id];
+    return edited !== undefined ? edited : (current ?? '');
+  }
+
+  setDate(id: number, val: string): void {
+    this.editedDates.update(m => ({ ...m, [id]: val }));
+  }
+
+  isDirty(id: number, current: string | null): boolean {
+    const edited = this.editedDates()[id];
+    return edited !== undefined && edited !== (current ?? '');
+  }
+
+  saveStartDate(customerId: number): void {
+    const date = this.editedDates()[customerId];
+    if (date === undefined) return;
+    this.savingId.set(customerId);
+    this.api.patch(customerId, { startDate: date || null }).subscribe({
+      next: () => {
+        this.savingId.set(null);
+        this.toast.success('Data affiancamento salvata');
+        this.customersResource.reload();
+      },
+      error: () => {
+        this.savingId.set(null);
+        this.toast.error('Impossibile salvare la data');
+      },
+    });
   }
 
   fullName(c: CustomerDto): string {

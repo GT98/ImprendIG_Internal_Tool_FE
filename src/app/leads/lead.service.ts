@@ -15,6 +15,10 @@ export interface PatchLeadDto {
   callStartDate?: string | null;
 }
 
+export interface PatchCustomerDto {
+  startDate?: string | null;
+}
+
 export interface CreateLeadDto {
   name?: string;
   surname?: string;
@@ -66,6 +70,10 @@ export class LeadsService {
 
   patch(id: string, dto: PatchLeadDto) {
     return this.http.patch<Lead>(`${API_URL}/leads/${id}`, dto);
+  }
+
+  patchCustomer(customerId: number, dto: PatchCustomerDto) {
+    return this.http.patch(`${API_URL}/customers/${customerId}`, dto);
   }
 
   getSellers() {
