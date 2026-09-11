@@ -46,7 +46,7 @@ const NAV_GROUPS: NavGroup[] = [
     id: 'finanza', label: 'Finanza', hideFromClient: true,
     items: [
       { path: 'provvigioni', label: 'Provvigioni', icon: 'chart' },
-      { path: 'rendicontazioni', label: 'Rendicontazioni', icon: 'receipt' },
+      { path: 'rendicontazioni', label: 'Rendicontazioni', icon: 'receipt', adminOnly: true },
     ],
   },
   {
