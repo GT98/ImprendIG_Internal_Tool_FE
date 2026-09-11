@@ -244,7 +244,7 @@ function instStatusLabel(status: string): string {
             <span>Ultimo pagamento</span>
             <span>{{ fmtDate(client().lastPay) }}</span>
           </div>
-          @if (Number(client().id) === 3) {
+          @if (isImprendig()) {
           <div class="kv affiancamento-row">
             <span>Data inizio affiancamento</span>
             <span class="kv-edit">
@@ -331,6 +331,7 @@ function instStatusLabel(status: string): string {
 })
 export class ClientDrawerComponent implements OnInit {
   readonly client = input.required<Client>();
+  readonly isImprendig = computed(() => Number(this.client().id) === 3);
   readonly saleId = input.required<number>();
   readonly seller = input.required<Seller>();
   readonly setter = input<Seller | null>(null);
