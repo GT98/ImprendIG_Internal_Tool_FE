@@ -244,6 +244,7 @@ function instStatusLabel(status: string): string {
             <span>Ultimo pagamento</span>
             <span>{{ fmtDate(client().lastPay) }}</span>
           </div>
+          @if (Number(client().id) === 3) {
           <div class="kv affiancamento-row">
             <span>Data inizio affiancamento</span>
             <span class="kv-edit">
@@ -265,6 +266,7 @@ function instStatusLabel(status: string): string {
                 </button>
               </span>
           </div>
+          }
         </div>
 
         @if (installments().length > 0) {

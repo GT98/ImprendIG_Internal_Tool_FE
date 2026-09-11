@@ -151,26 +151,28 @@ interface CustomerRow {
                       <span>{{ addrStr(row.customer) }}</span>
                     </div>
                   }
-                  <div class="start-date-edit">
-                    <label class="start-date-label" [for]="'sd-' + row.customer.id">Inizio affiancamento</label>
-                    <div class="start-date-row">
-                      <input
-                        type="date"
-                        class="date-input"
-                        [id]="'sd-' + row.customer.id"
-                        [value]="getDate(row.customer.id, row.customer.startDate)"
-                        (change)="setDate(row.customer.id, $any($event.target).value)"
-                        [disabled]="savingId() === row.customer.id"
-                      />
-                      @if (isDirty(row.customer.id, row.customer.startDate)) {
-                        <button
-                          class="save-btn"
-                          (click)="saveStartDate(row.customer.id)"
+                  @if (row.customer.sale?.client?.id === 3) {
+                    <div class="start-date-edit">
+                      <label class="start-date-label" [for]="'sd-' + row.customer.id">Inizio affiancamento</label>
+                      <div class="start-date-row">
+                        <input
+                          type="date"
+                          class="date-input"
+                          [id]="'sd-' + row.customer.id"
+                          [value]="getDate(row.customer.id, row.customer.startDate)"
+                          (change)="setDate(row.customer.id, $any($event.target).value)"
                           [disabled]="savingId() === row.customer.id"
-                        >{{ savingId() === row.customer.id ? '…' : 'Salva' }}</button>
-                      }
+                        />
+                        @if (isDirty(row.customer.id, row.customer.startDate)) {
+                          <button
+                            class="save-btn"
+                            (click)="saveStartDate(row.customer.id)"
+                            [disabled]="savingId() === row.customer.id"
+                          >{{ savingId() === row.customer.id ? '…' : 'Salva' }}</button>
+                        }
+                      </div>
                     </div>
-                  </div>
+                  }
                 </div>
               }
             }

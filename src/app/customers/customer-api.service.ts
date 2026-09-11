@@ -14,6 +14,7 @@ export interface CustomerSeller {
 export interface CustomerSale {
   id: number;
   status: string;
+  client: { id: number } | null;
   seller: CustomerSeller | null;
   pricePlan: {
     id: number;
