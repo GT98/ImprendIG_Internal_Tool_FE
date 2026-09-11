@@ -1,0 +1,156 @@
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.page-header { display: flex; flex-direction: column; gap: 4px; }
+.page-title { font-size: 22px; font-weight: 700; margin: 0; }
+.page-subtitle { font-size: 14px; color: var(--ink-2); margin: 0; }
+
+/* ── Link card ── */
+.link-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.link-card-header { display: flex; align-items: center; gap: 8px; }
+.link-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-3); }
+
+.link-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+.link-text {
+  flex: 1;
+  font-size: 13px;
+  font-family: monospace;
+  color: var(--ink);
+  word-break: break-all;
+}
+.copy-btn {
+  flex-shrink: 0;
+  height: 32px; padding: 0 14px;
+  border: none; border-radius: 7px;
+  background: var(--accent); color: #fff;
+  font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+  white-space: nowrap; transition: opacity .15s;
+}
+.copy-btn:hover { opacity: .85; }
+
+.link-hint { font-size: 12.5px; color: var(--ink-3); margin: 0; line-height: 1.4; }
+
+/* ── Stats ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+}
+.stat-card--accent { border-color: var(--accent); }
+.stat-card--success { border-color: #16a34a; }
+
+.stat-value { font-size: 26px; font-weight: 800; color: var(--ink); }
+.stat-card--accent .stat-value { color: var(--accent); }
+.stat-card--success .stat-value { color: #16a34a; }
+.stat-label { font-size: 11px; color: var(--ink-3); font-weight: 500; }
+
+/* ── Table ── */
+.section { display: flex; flex-direction: column; gap: 12px; }
+.section-title { font-size: 15px; font-weight: 700; margin: 0; }
+
+.loading-row { display: flex; justify-content: center; padding: 32px; }
+.spinner {
+  width: 24px; height: 24px;
+  border: 2px solid #e5e7eb; border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--ink-3);
+  font-size: 14px;
+  background: var(--surface-2);
+  border-radius: 12px;
+}
+
+.ref-table {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ref-header, .ref-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  padding: 10px 16px;
+  gap: 12px;
+  align-items: center;
+}
+.ref-header {
+  background: var(--surface-2);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--ink-3);
+}
+.ref-row { border-top: 1px solid var(--border); font-size: 13px; }
+.ref-row:hover { background: var(--surface-2); }
+
+.ref-name { display: flex; flex-direction: column; gap: 1px; }
+.ref-main { font-weight: 600; }
+.ref-sub { font-size: 11.5px; color: var(--ink-3); }
+.ref-date { font-size: 12.5px; color: var(--ink-2); }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.badge--pending   { background: #fef3c7; color: #92400e; }
+.badge--converted { background: #dbeafe; color: #1e40af; }
+.badge--paid      { background: #dcfce7; color: #166534; }
+
+/* ── Info box ── */
+.info-box {
+  background: var(--surface-2);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  padding: 14px 18px;
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.8;
+}
+
+@media (max-width: 700px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .ref-header, .ref-row { grid-template-columns: 2fr 1fr; }
+  .ref-row > :nth-child(3), .ref-row > :nth-child(4),
+  .ref-header > :nth-child(3), .ref-header > :nth-child(4) { display: none; }
+}

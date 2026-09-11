@@ -4,6 +4,8 @@ export interface AuthUser {
   role: string;
   sellerId: number | null;
   clientId: number | null;
+  customerId: number | null;
+  referralToken: string | null;
 }
 
 export interface LoginResponse {

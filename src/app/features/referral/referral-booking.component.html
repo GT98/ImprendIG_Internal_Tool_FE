@@ -1,0 +1,91 @@
+<div class="booking-page">
+  <div class="booking-card">
+    <div class="brand">
+      <span class="brand-name">ImprendIG</span>
+    </div>
+
+    @switch (step()) {
+      @case ('loading') {
+        <div class="state-center">
+          <div class="spinner"></div>
+        </div>
+      }
+
+      @case ('invalid') {
+        <div class="state-center">
+          <div class="state-icon state-icon--error">✕</div>
+          <h2>Link non valido</h2>
+          <p class="state-msg">Questo link di prenotazione non è più attivo o non esiste.</p>
+        </div>
+      }
+
+      @case ('form') {
+        <div class="form-view">
+          <h1 class="booking-title">
+            @if (referrerName()) {
+              <strong>{{ referrerName() }}</strong> ti invita a una chiamata gratuita
+            } @else {
+              Prenota una chiamata gratuita
+            }
+          </h1>
+          <p class="booking-subtitle">
+            Inserisci i tuoi dati e ti porteremo direttamente al calendario per scegliere l'orario.
+          </p>
+
+          <div class="form-fields">
+            <div class="field">
+              <label for="bf-name">Nome e cognome <span class="req">*</span></label>
+              <input id="bf-name" type="text" [(ngModel)]="name" placeholder="Es. Maria Rossi" />
+            </div>
+            <div class="field">
+              <label for="bf-email">Email <span class="req">*</span></label>
+              <input id="bf-email" type="email" [(ngModel)]="email" placeholder="Es. maria@email.com" />
+            </div>
+            <div class="field">
+              <label for="bf-phone">Numero di telefono</label>
+              <input id="bf-phone" type="tel" [(ngModel)]="phone" placeholder="Es. +39 333 1234567" />
+            </div>
+          </div>
+
+          @if (formError()) {
+            <p class="form-error">{{ formError() }}</p>
+          }
+
+          <button class="submit-btn" (click)="submitBooking()">
+            Prenota la chiamata →
+          </button>
+        </div>
+      }
+
+      @case ('redirecting') {
+        <div class="state-center">
+          <div class="spinner"></div>
+          <p class="state-msg">Ti stiamo portando al calendario…</p>
+        </div>
+      }
+
+      @case ('done') {
+        <div class="state-center">
+          <div class="state-icon state-icon--success">✓</div>
+          <h2>Prenotazione confermata!</h2>
+          <p class="state-msg">
+            Ti contatteremo presto per la chiamata.<br>
+            Riceverai una conferma via email.
+          </p>
+        </div>
+      }
+
+      @case ('error') {
+        <div class="state-center">
+          <div class="state-icon state-icon--error">!</div>
+          <h2>Qualcosa è andato storto</h2>
+          <p class="state-msg">
+            Non è stato possibile completare la richiesta.<br>
+            Riprova o contattaci direttamente.
+          </p>
+          <button class="submit-btn" (click)="step.set('form')">Riprova</button>
+        </div>
+      }
+    }
+  </div>
+</div>

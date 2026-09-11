@@ -1,0 +1,276 @@
+<div class="page">
+
+  <div class="page-top">
+    <div>
+      <h1 class="page-title">Programma Referral <span class="muted-pill">admin</span></h1>
+      <p class="page-sub">Gestione account referrer e tracciamento delle referral ricevute</p>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-row" role="tablist">
+    <button role="tab"
+      [class.active]="activeTab() === 'referrers'"
+      [attr.aria-selected]="activeTab() === 'referrers'"
+      (click)="activeTab.set('referrers')">
+      Referrer
+      <span class="tab-count">{{ customers().length }}</span>
+    </button>
+    <button role="tab"
+      [class.active]="activeTab() === 'referrals'"
+      [attr.aria-selected]="activeTab() === 'referrals'"
+      (click)="activeTab.set('referrals')">
+      Referral ricevute
+      <span class="tab-count">{{ (referralsResource.value() ?? []).length }}</span>
+    </button>
+  </div>
+
+  <!-- ─── Tab REFERRER ────────────────────────────────────────────────── -->
+  @if (activeTab() === 'referrers') {
+
+    <div class="toolbar">
+      <input type="search" class="search-input" placeholder="Cerca per nome o email…"
+        [value]="customerSearch()"
+        (input)="customerSearch.set($any($event.target).value)" />
+    </div>
+
+    @if (customersResource.isLoading() || referrersResource.isLoading()) {
+      <div class="loading-row"><div class="spinner"></div></div>
+    } @else {
+      <div class="team-list">
+        <div class="list-header referrer-grid">
+          <span>Studentessa</span>
+          <span>Email</span>
+          <span>Account referral</span>
+          <span>Link condivisione</span>
+          <span></span>
+        </div>
+
+        @for (c of filteredCustomers(); track c.id; let idx = $index) {
+          @let referrer = referrerByCustomerId().get(String(c.id));
+
+          <div class="team-row referrer-grid">
+            <!-- Avatar + nome -->
+            <div class="person-cell">
+              <div class="avatar-sm" [style.background]="COLORS[idx % COLORS.length]">
+                {{ initials(c.name, c.surname) }}
+              </div>
+              <div class="person-info">
+                <span class="person-name">{{ fullName(c.name, c.surname) }}</span>
+              </div>
+            </div>
+
+            <!-- Email -->
+            <div class="meta-cell">{{ c.email ?? '—' }}</div>
+
+            <!-- Account status -->
+            <div class="account-cell">
+              @if (referrer) {
+                <span class="acc-chip" [class.inactive]="!referrer.isActive">
+                  {{ referrer.isActive ? 'Attivo' : 'Disattivato' }}
+                </span>
+                @if (referrer.isActive) {
+                  <button class="link-btn danger"
+                    [disabled]="actingId() === referrer.id"
+                    (click)="deactivateReferrer(referrer)">
+                    Disattiva
+                  </button>
+                }
+              } @else {
+                <button class="link-btn"
+                  [disabled]="actingId() === c.id"
+                  (click)="openCreateAccount(c)">
+                  + Attiva referral
+                </button>
+              }
+            </div>
+
+            <!-- Share link -->
+            <div class="link-cell">
+              @if (referrer?.referralToken) {
+                <span class="share-link-text">…/r/{{ referrer!.referralToken!.slice(0, 8) }}…</span>
+                <button class="icon-btn" title="Copia link" (click)="copyLink(referrer!.referralToken!)">
+                  <app-icon name="copy" [size]="13" />
+                </button>
+              } @else {
+                <span class="muted">—</span>
+              }
+            </div>
+
+            <!-- Empty actions col -->
+            <div></div>
+          </div>
+        }
+
+        @if (filteredCustomers().length === 0) {
+          <div class="empty-row">Nessuna studentessa trovata.</div>
+        }
+      </div>
+    }
+  }
+
+  <!-- ─── Tab REFERRAL RICEVUTE ────────────────────────────────────────── -->
+  @if (activeTab() === 'referrals') {
+
+    @if (summary()) {
+      <div class="summary-bar">
+        <span class="chip chip--pending">{{ summary()!.totalPending }} in attesa</span>
+        <span class="chip chip--converted">{{ summary()!.totalConverted }} convertite</span>
+        <span class="chip chip--paid">{{ summary()!.totalPaid }} pagate</span>
+        <span class="chip chip--amount">€{{ summary()!.pendingAmount }} debito aperto</span>
+        <span class="chip chip--ok">€{{ summary()!.paidAmount }} pagato</span>
+      </div>
+    }
+
+    <div class="filter-bar">
+      @for (opt of filterOptions; track opt.value) {
+        <button class="filter-btn" [class.filter-btn--active]="statusFilter() === opt.value"
+          (click)="statusFilter.set(opt.value)">
+          {{ opt.label }}
+        </button>
+      }
+    </div>
+
+    @if (referralsResource.isLoading()) {
+      <div class="loading-row"><div class="spinner"></div></div>
+    } @else if (filtered().length === 0) {
+      <div class="empty-row">Nessuna referral trovata.</div>
+    } @else {
+      <div class="team-list">
+        <div class="list-header referral-grid">
+          <span>Referrer (studentessa)</span>
+          <span>Amica invitata</span>
+          <span>Stato</span>
+          <span>Vendita</span>
+          <span>Date</span>
+          <span></span>
+        </div>
+
+        @for (r of filtered(); track r.id) {
+          <div class="team-row referral-grid">
+            <div class="person-cell">
+              <span class="person-name">{{ referrerDisplayName(r) }}</span>
+            </div>
+
+            <div class="meta-col">
+              <span class="person-name">{{ r.referredName ?? '—' }}</span>
+              @if (r.referredEmail) { <span class="person-sub">{{ r.referredEmail }}</span> }
+              @if (r.referredPhone) { <span class="person-sub">{{ r.referredPhone }}</span> }
+            </div>
+
+            <div>
+              <span class="badge" [class]="statusClass(r.status)">{{ statusLabel(r.status) }}</span>
+            </div>
+
+            <div class="sale-col">
+              @if (r.sale) {
+                <span class="acc-chip">Vendita #{{ r.sale.id }}</span>
+              } @else if (r.status === 'pending') {
+                <div class="sale-input-row">
+                  <input type="number" class="sale-input" placeholder="ID vendita"
+                    [value]="saleInputs()[r.id] ?? ''"
+                    (input)="setSaleInput(r.id, $any($event.target).value)" />
+                  <button class="btn-primary-sm"
+                    [disabled]="!saleInputs()[r.id] || linkingSaleId() === r.id"
+                    (click)="linkSale(r)">
+                    {{ linkingSaleId() === r.id ? '…' : 'Collega' }}
+                  </button>
+                </div>
+              } @else {
+                <span class="muted">—</span>
+              }
+            </div>
+
+            <div class="dates-col">
+              <span class="date-row">{{ formatDate(r.createdAt) }}</span>
+              @if (r.convertedAt) { <span class="date-row text-blue">Conv: {{ formatDate(r.convertedAt) }}</span> }
+              @if (r.paidAt) { <span class="date-row text-green">Pagato: {{ formatDate(r.paidAt) }}</span> }
+            </div>
+
+            <div class="row-actions">
+              @if (r.status === 'converted') {
+                <button class="btn-success-sm"
+                  [disabled]="markingPaidId() === r.id"
+                  (click)="markPaid(r)">
+                  {{ markingPaidId() === r.id ? '…' : 'Pagato' }}
+                </button>
+              }
+              <button class="icon-btn danger" title="Elimina" (click)="removeReferral(r)">
+                <app-icon name="trash" [size]="13" />
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>
+
+<!-- ── Modal crea account referral ─────────────────────────────────────────── -->
+@if (accountTarget()) {
+  <div class="modal-overlay" role="dialog" aria-modal="true"
+    (click)="closeAccountModal()" (keydown.escape)="closeAccountModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+
+      @if (newAccountResult()) {
+        <!-- Success state -->
+        <div class="modal-head">
+          <div>
+            <div class="modal-title">Account creato!</div>
+            <div class="modal-sub">{{ fullName(accountTarget()!.name, accountTarget()!.surname) }}</div>
+          </div>
+          <button class="icon-btn" (click)="closeAccountModal()" aria-label="Chiudi">
+            <app-icon name="x" [size]="18" />
+          </button>
+        </div>
+
+        <div class="result-body">
+          <div class="result-icon">✓</div>
+          <p class="result-info">Email di accesso: <strong>{{ newAccountResult()!.email }}</strong></p>
+          <p class="result-label">Link di condivisione da inviare alla studentessa:</p>
+          <div class="result-link-row">
+            <span class="result-link">{{ newAccountResult()!.shareLink }}</span>
+            <button class="btn-primary-sm" (click)="copyToClipboard(newAccountResult()!.shareLink)">
+              Copia
+            </button>
+          </div>
+          <p class="result-hint">Invia il link e la password temporanea tramite WhatsApp o email.</p>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-primary" (click)="closeAccountModal()">Chiudi</button>
+        </div>
+
+      } @else {
+        <!-- Creation form -->
+        <div class="modal-head">
+          <div>
+            <div class="modal-title">Attiva account referral</div>
+            <div class="modal-sub">{{ fullName(accountTarget()!.name, accountTarget()!.surname) }} — {{ accountTarget()!.email }}</div>
+          </div>
+          <button class="icon-btn" (click)="closeAccountModal()" aria-label="Chiudi">
+            <app-icon name="x" [size]="18" />
+          </button>
+        </div>
+
+        <div class="modal-field">
+          <label class="ap-label" for="acc-pwd">Password temporanea</label>
+          <input id="acc-pwd" class="modal-input" type="text"
+            [value]="accPassword()"
+            (input)="accPassword.set($any($event.target).value)"
+            autocomplete="new-password" />
+          <span class="field-hint">Comunica questa password alla studentessa dopo la creazione</span>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-ghost" (click)="closeAccountModal()">Annulla</button>
+          <button class="btn-primary"
+            [disabled]="accPassword().length < 6 || creatingAcc()"
+            (click)="submitCreateAccount()">
+            {{ creatingAcc() ? 'Creazione…' : 'Attiva account' }}
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+}

@@ -56,11 +56,15 @@ export class DateNavComponent {
   }
 
   prevWeek(): void {
-    this.weekStart.update(d => addDays(d, -7));
+    const newStart = addDays(this.weekStart(), -7);
+    this.weekStart.set(newStart);
+    this.selected.set(startOfDay(newStart));
   }
 
   nextWeek(): void {
-    this.weekStart.update(d => addDays(d, 7));
+    const newStart = addDays(this.weekStart(), 7);
+    this.weekStart.set(newStart);
+    this.selected.set(startOfDay(newStart));
   }
 
   selectDay(date: Date): void {

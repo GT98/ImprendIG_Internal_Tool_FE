@@ -1,0 +1,95 @@
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">Il tuo programma referral</h1>
+    <p class="page-subtitle">Porta amiche nel percorso e guadagna €150 per ogni conversione</p>
+  </div>
+
+  <!-- Link di condivisione -->
+  <div class="link-card">
+    <div class="link-card-header">
+      <span class="link-label">Il tuo link personale</span>
+    </div>
+    @if (shareLink()) {
+      <div class="link-row">
+        <span class="link-text">{{ shareLink() }}</span>
+        <button class="copy-btn" (click)="copyLink()">
+          {{ copied() ? 'Copiato ✓' : 'Copia link' }}
+        </button>
+      </div>
+      <p class="link-hint">Condividi questo link con le tue amiche. Chi prenota una chiamata tramite il tuo link viene associata automaticamente a te.</p>
+    } @else {
+      <p class="link-hint">Il tuo link non è ancora disponibile. Contatta l'amministratore.</p>
+    }
+  </div>
+
+  <!-- Stats -->
+  @if (stats()) {
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-value">{{ stats()!.total }}</span>
+        <span class="stat-label">Amiche invitate</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{{ stats()!.converted }}</span>
+        <span class="stat-label">Convertite in vendita</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-value">{{ stats()!.paid }}</span>
+        <span class="stat-label">Referral pagati</span>
+      </div>
+      <div class="stat-card stat-card--accent">
+        <span class="stat-value">€{{ stats()!.pendingAmount }}</span>
+        <span class="stat-label">In maturazione</span>
+      </div>
+      <div class="stat-card stat-card--success">
+        <span class="stat-value">€{{ stats()!.paidAmount }}</span>
+        <span class="stat-label">Già ricevuti</span>
+      </div>
+    </div>
+  }
+
+  <!-- Tabella referral -->
+  <div class="section">
+    <h2 class="section-title">Le tue referral</h2>
+
+    @if (referralsResource.isLoading()) {
+      <div class="loading-row"><div class="spinner"></div></div>
+    } @else if (referrals().length === 0) {
+      <div class="empty-state">
+        <p>Ancora nessuna referral. Condividi il tuo link per iniziare!</p>
+      </div>
+    } @else {
+      <div class="ref-table">
+        <div class="ref-header">
+          <span>Amica</span>
+          <span>Stato</span>
+          <span>Data prenotazione</span>
+          <span>Data conversione</span>
+        </div>
+        @for (r of referrals(); track r.id) {
+          <div class="ref-row">
+            <div class="ref-name">
+              <span class="ref-main">{{ r.referredName ?? '—' }}</span>
+              @if (r.referredEmail) {
+                <span class="ref-sub">{{ r.referredEmail }}</span>
+              }
+            </div>
+            <div>
+              <span class="badge" [class]="statusClass(r.status)">{{ statusLabel(r.status) }}</span>
+            </div>
+            <div class="ref-date">{{ formatDate(r.createdAt) }}</div>
+            <div class="ref-date">{{ formatDate(r.convertedAt) }}</div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="info-box">
+    <strong>Come funziona?</strong><br>
+    1. Condividi il tuo link personale con un'amica<br>
+    2. Lei prenota una chiamata gratuita tramite il link<br>
+    3. Se acquista un percorso, ti accreditiamo €150<br>
+    4. Ricevi il pagamento al momento del saldo
+  </div>
+</div>
