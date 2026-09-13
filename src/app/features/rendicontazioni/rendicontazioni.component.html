@@ -30,6 +30,9 @@
         <button class="tab-btn" [class.active]="activeTab() === 'timesheets'" (click)="activeTab.set('timesheets')">
           <app-icon name="receipt" [size]="15" /> Timesheets
         </button>
+        <button class="tab-btn" [class.active]="activeTab() === 'payout'" (click)="activeTab.set('payout')">
+          <app-icon name="euro" [size]="15" /> Payout partner
+        </button>
       </div>
     }
 
@@ -168,6 +171,81 @@
               }
             </div>
           }
+        }
+
+        <!-- ── TAB: PAYOUT PARTNER ───────────────────────────── -->
+        @if (activeTab() === 'payout') {
+          <div class="payout-section">
+            <div class="payout-header">
+              <div>
+                <h2 class="payout-title">Payout Carlotta — {{ monthLabel() }}</h2>
+                <p class="payout-sub">Calcolo netto da trasferire al partner (UGC Level Up)</p>
+              </div>
+              <div class="payout-extras-row">
+                <label class="extras-label" for="extras-input">Extra spese (€)</label>
+                <input
+                  id="extras-input"
+                  type="number"
+                  class="extras-input"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  [(ngModel)]="payoutExtrasInput" />
+                <button class="btn-primary" (click)="loadPayout()" [disabled]="payoutLoading()">
+                  @if (payoutLoading()) { <span class="spinner-sm"></span> } @else { Calcola }
+                </button>
+              </div>
+            </div>
+
+            @if (payoutLoading()) {
+              <div class="loading-state"><span class="spinner"></span> Calcolo in corso…</div>
+            } @else if (payoutError()) {
+              <div class="error-banner"><app-icon name="alertTriangle" [size]="16" /> Errore nel calcolo. Nessun bundle con partner trovato per questo mese?</div>
+            } @else if (payoutData(); as p) {
+              <div class="payout-breakdown">
+                <div class="payout-row">
+                  <span class="payout-row-label">Fatturato lordo bundle</span>
+                  <span class="payout-row-value">€ {{ formatAmount(p.grossRevenue) }}</span>
+                </div>
+                <div class="payout-row deduct">
+                  <span class="payout-row-label">— Provvigioni venditori</span>
+                  <span class="payout-row-value neg">− € {{ formatAmount(p.sellerCommissions) }}</span>
+                </div>
+                @if (p.extras > 0) {
+                  <div class="payout-row deduct">
+                    <span class="payout-row-label">— Extra spese</span>
+                    <span class="payout-row-value neg">− € {{ formatAmount(p.extras) }}</span>
+                  </div>
+                }
+                <div class="payout-row net">
+                  <span class="payout-row-label">Netto</span>
+                  <span class="payout-row-value">€ {{ formatAmount(p.net) }}</span>
+                </div>
+                <div class="payout-row deduct">
+                  <span class="payout-row-label">— Anna 5% del netto</span>
+                  <span class="payout-row-value neg">− € {{ formatAmount(p.annaFee) }}</span>
+                </div>
+                <div class="payout-row net-split">
+                  <span class="payout-row-label">Netto da dividere</span>
+                  <span class="payout-row-value">€ {{ formatAmount(p.netSplit) }}</span>
+                </div>
+                <div class="payout-divider"></div>
+                <div class="payout-row result partner">
+                  <span class="payout-row-label">Quota Carlotta ({{ p.partnerPercentage }}%)</span>
+                  <strong class="payout-row-value partner-amount">€ {{ formatAmount(p.partnerShare) }}</strong>
+                </div>
+                <div class="payout-row result imprendig">
+                  <span class="payout-row-label">Quota Imprendig ({{ 100 - p.partnerPercentage }}%)</span>
+                  <strong class="payout-row-value">€ {{ formatAmount(p.imprendigShare) }}</strong>
+                </div>
+              </div>
+            } @else {
+              <div class="empty-page">
+                <app-icon name="euro" [size]="32" />
+                <p>Inserisci eventuali extra spese e clicca Calcola per visualizzare il payout.</p>
+              </div>
+            }
+          </div>
         }
 
       } @else {

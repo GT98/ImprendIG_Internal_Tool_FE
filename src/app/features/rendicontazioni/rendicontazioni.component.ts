@@ -11,6 +11,7 @@ import {
   TimesheetItemLine,
   EmployeeInfo,
   ReportSummaryItem,
+  PartnerPayoutDto,
 } from '../../reporting/reporting-api.service';
 import { TimesheetApiService, TimesheetDto, TimesheetStatus, AdminTimesheetSummary } from '../../timesheet/timesheet-api.service';
 import { CommesseApiService, CommessaDto } from '../../commesse/commesse-api.service';
@@ -57,7 +58,7 @@ export class RendicontazioniComponent {
   nextMonth() { this.month.update(m => shiftMonth(m, +1)); }
 
   // ── Admin: Tab ─────────────────────────────────────────────────
-  readonly activeTab = signal<'riepilogo' | 'timesheets'>('riepilogo');
+  readonly activeTab = signal<'riepilogo' | 'timesheets' | 'payout'>('riepilogo');
 
   // ── Admin: Riepilogo ───────────────────────────────────────────
   readonly summaryItems   = signal<ReportSummaryItem[]>([]);
@@ -67,6 +68,13 @@ export class RendicontazioniComponent {
   readonly allEmployees = computed<EmployeeInfo[]>(() =>
     this.summaryItems().map(s => s.employee),
   );
+
+  // ── Admin: Payout partner tab ──────────────────────────────────
+  readonly payoutData    = signal<PartnerPayoutDto | null>(null);
+  readonly payoutLoading = signal(false);
+  readonly payoutError   = signal(false);
+  payoutExtrasInput      = '0';
+  readonly PARTNER_CLIENT_ID = 3;
 
   // ── Admin: Timesheets tab ──────────────────────────────────────
   readonly adminTimesheets   = signal<AdminTimesheetSummary[]>([]);
@@ -125,6 +133,19 @@ export class RendicontazioniComponent {
       }),
       takeUntilDestroyed(),
     ).subscribe(data => { this.adminTimesheets.set(data); this.tsTabLoading.set(false); });
+
+    combineLatest([toObservable(this.month), toObservable(this.activeTab)]).pipe(
+      filter(([, tab]) => tab === 'payout'),
+      switchMap(([m]) => {
+        this.payoutLoading.set(true);
+        this.payoutError.set(false);
+        const extras = parseFloat(this.payoutExtrasInput) || 0;
+        return this.api.getPartnerPayout(this.PARTNER_CLIENT_ID, m, extras).pipe(
+          catchError(() => { this.payoutError.set(true); this.payoutLoading.set(false); return EMPTY; }),
+        );
+      }),
+      takeUntilDestroyed(),
+    ).subscribe(data => { this.payoutData.set(data); this.payoutLoading.set(false); });
   }
 
   private initEmployeeStreams() {
@@ -174,6 +195,16 @@ export class RendicontazioniComponent {
     this.timesheetApi.listAll(this.month()).subscribe({
       next: data => { this.adminTimesheets.set(data); this.tsTabLoading.set(false); },
       error: () => { this.tsTabError.set(true); this.tsTabLoading.set(false); },
+    });
+  }
+
+  loadPayout() {
+    this.payoutLoading.set(true);
+    this.payoutError.set(false);
+    const extras = parseFloat(this.payoutExtrasInput) || 0;
+    this.api.getPartnerPayout(this.PARTNER_CLIENT_ID, this.month(), extras).subscribe({
+      next: data => { this.payoutData.set(data); this.payoutLoading.set(false); },
+      error: () => { this.payoutError.set(true); this.payoutLoading.set(false); },
     });
   }
 

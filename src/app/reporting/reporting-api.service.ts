@@ -70,6 +70,20 @@ export interface AdjustBalancePayload {
   notes?: string;
 }
 
+export interface PartnerPayoutDto {
+  month: string;
+  partnerClientId: number;
+  grossRevenue: number;
+  sellerCommissions: number;
+  extras: number;
+  net: number;
+  annaFee: number;
+  netSplit: number;
+  partnerShare: number;
+  imprendigShare: number;
+  partnerPercentage: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ReportingApiService {
   private readonly http = inject(HttpClient);
@@ -93,5 +107,11 @@ export class ReportingApiService {
       `${API_URL}/reporting/balance/${type}/${id}`,
       dto,
     );
+  }
+
+  getPartnerPayout(clientId: number, month: string, extras: number): Observable<PartnerPayoutDto> {
+    return this.http.get<PartnerPayoutDto>(`${API_URL}/client-revenue/partner-payout`, {
+      params: { clientId: String(clientId), month, extras: String(extras) },
+    });
   }
 }

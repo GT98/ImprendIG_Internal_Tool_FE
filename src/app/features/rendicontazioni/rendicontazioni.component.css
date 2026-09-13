@@ -731,3 +731,95 @@
   outline: none;
 }
 .revision-input:focus { border-color: #3b5bdb; }
+
+/* ── Payout Partner tab ───────────────────────────────────────── */
+
+.payout-section {
+  padding: 24px 28px;
+  max-width: 640px;
+}
+
+.payout-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.payout-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text, #111827);
+  margin: 0 0 4px;
+}
+
+.payout-sub {
+  font-size: 13px;
+  color: var(--muted, #6b7280);
+  margin: 0;
+}
+
+.payout-extras-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.extras-label {
+  font-size: 13px;
+  color: var(--text, #111827);
+  white-space: nowrap;
+}
+
+.extras-input {
+  width: 100px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  outline: none;
+}
+.extras-input:focus { border-color: var(--accent, #4f46e5); }
+
+.payout-breakdown {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.payout-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.payout-row.deduct { opacity: 0.8; }
+
+.payout-row.net .payout-row-value,
+.payout-row.net-split .payout-row-value {
+  font-weight: 600;
+}
+
+.payout-row-label { color: var(--text, #111827); }
+.payout-row-value { font-variant-numeric: tabular-nums; }
+.payout-row-value.neg { color: #b91c1c; }
+
+.payout-divider {
+  border-top: 1px solid var(--border, #e5e7eb);
+  margin: 4px 0;
+}
+
+.payout-row.result .payout-row-label { font-weight: 600; }
+
+.partner-amount {
+  color: var(--accent, #4f46e5);
+  font-size: 1.1rem;
+}
