@@ -66,7 +66,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { path: 'dashboard', label: 'Dashboard', icon: 'home' },
       { path: 'commesse', label: 'Commesse', icon: 'edit' },
-      { path: 'onboarding', label: 'Onboarding', icon: 'send' },
+      // { path: 'onboarding', label: 'Onboarding', icon: 'send' },
       { path: 'team', label: 'Team', icon: 'users' },
       { path: 'referrals', label: 'Referral', icon: 'target', adminOnly: true },
       // TODO: implementare Bot AI
