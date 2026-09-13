@@ -31,7 +31,6 @@ interface EditState {
   stripePaymentLink: string;
   stripePriceId: string;
   itaStripePriceId: string;
-  itaStripePaymentLink: string;
   billingType: 'recurring' | 'one_time';
 }
 
@@ -60,7 +59,6 @@ function emptyEditState(): EditState {
     stripePaymentLink: '',
     stripePriceId: '',
     itaStripePriceId: '',
-    itaStripePaymentLink: '',
     billingType: 'recurring',
   };
 }
@@ -70,16 +68,6 @@ function emptyEditState(): EditState {
   imports: [IconComponent, TitleCasePipe],
   styleUrl: './catalog.component.css',
   template: `
-    <!-- View tabs UAE / ITA -->
-    <div class="cat-view-tabs" role="tablist" aria-label="Seleziona account Stripe">
-      <button class="cat-view-tab" role="tab" [class.active]="catalogView() === 'uae'" [attr.aria-selected]="catalogView() === 'uae'" (click)="catalogView.set('uae')">
-        🇦🇪 Stripe UAE
-      </button>
-      <button class="cat-view-tab" role="tab" [class.active]="catalogView() === 'ita'" [attr.aria-selected]="catalogView() === 'ita'" (click)="catalogView.set('ita')">
-        🇮🇹 Stripe ITA
-      </button>
-    </div>
-
     <!-- Filter bar -->
     <div class="cat-filter" role="group" aria-label="Filtra per cliente">
       <button class="cat-chip" [class.active]="selectedClientId() === null" (click)="selectedClientId.set(null)">Tutti</button>
@@ -247,17 +235,10 @@ function emptyEditState(): EditState {
                           </span>
                         </div>
                         <div class="plan-actions">
-                          @if (catalogView() === 'ita') {
-                            <button class="btn-link btn-link-ita" [disabled]="!plan.itaStripePaymentLink" [attr.aria-label]="'Copia link ITA per ' + plan.name" (click)="copyLinkIta(plan)">
-                              <app-icon name="copy" [size]="15" />
-                              Copia link
-                            </button>
-                          } @else {
-                            <button class="btn-link" [disabled]="!plan.stripePaymentLink" [attr.aria-label]="'Copia link UAE per ' + plan.name" (click)="copyLink(plan)">
-                              <app-icon name="copy" [size]="15" />
-                              Copia link
-                            </button>
-                          }
+                          <button class="btn-link" [disabled]="!plan.stripePaymentLink" [attr.aria-label]="'Copia link per ' + plan.name" (click)="copyLink(plan)">
+                            <app-icon name="copy" [size]="15" />
+                            Copia link
+                          </button>
                           <button class="btn-generate" [attr.aria-label]="'Genera link per ' + plan.name" (click)="openGenerateModal(plan)">
                             <app-icon name="zap" [size]="15" />
                             Genera link
@@ -309,10 +290,6 @@ function emptyEditState(): EditState {
                             <label class="edit-field edit-field-wide">
                               <span>Stripe Price ID (UAE)</span>
                               <input type="text" [value]="editState()!.stripePriceId" (input)="patchEdit('stripePriceId', $any($event.target).value)" placeholder="price_…" />
-                            </label>
-                            <label class="edit-field edit-field-wide">
-                              <span>Stripe Payment Link (ITA)</span>
-                              <input type="url" [value]="editState()!.itaStripePaymentLink" (input)="patchEdit('itaStripePaymentLink', $any($event.target).value)" placeholder="https://buy.stripe.com/…" />
                             </label>
                             <label class="edit-field edit-field-wide">
                               <span>Stripe Price ID (ITA)</span>
@@ -373,10 +350,6 @@ function emptyEditState(): EditState {
                             <label class="edit-field edit-field-wide">
                               <span>Stripe Price ID (UAE)</span>
                               <input type="text" [value]="newPlanState()!.stripePriceId" (input)="patchNewPlan('stripePriceId', $any($event.target).value)" placeholder="price_…" />
-                            </label>
-                            <label class="edit-field edit-field-wide">
-                              <span>Stripe Payment Link (ITA)</span>
-                              <input type="url" [value]="newPlanState()!.itaStripePaymentLink" (input)="patchNewPlan('itaStripePaymentLink', $any($event.target).value)" placeholder="https://buy.stripe.com/…" />
                             </label>
                             <label class="edit-field edit-field-wide">
                               <span>Stripe Price ID (ITA)</span>
@@ -491,7 +464,7 @@ function emptyEditState(): EditState {
               }
               <div class="modal-field modal-field-row">
                 <label class="modal-label" for="toggle-cf">Richiedi Codice Fiscale</label>
-                <input id="toggle-cf" type="checkbox" class="modal-checkbox" [checked]="withCf()" (change)="withCf.set($any($event.target).checked)" aria-label="Richiedi Codice Fiscale al checkout" />
+                <input id="toggle-cf" type="checkbox" class="modal-checkbox" [checked]="withCf()" [disabled]="stripeAccount() === 'ita'" (change)="withCf.set($any($event.target).checked)" aria-label="Richiedi Codice Fiscale al checkout" />
               </div>
               @if (isAdmin()) {
                 <div class="modal-field">
@@ -547,7 +520,6 @@ export class CatalogComponent {
   readonly sellerId = computed(() => this.auth.currentUser()?.sellerId);
 
   // ── Catalog state ────────────────────────────────────────────
-  readonly catalogView = signal<'uae' | 'ita'>('uae');
   readonly selectedClientId = signal<number | null>(null);
   readonly searchQuery = signal('');
 
@@ -580,37 +552,19 @@ export class CatalogComponent {
 
   readonly filteredGroups = computed<ClientGroup[]>(() => {
     const q = this.searchQuery().trim().toLowerCase();
-    const view = this.catalogView();
     const groups = this.groupedServices();
-
-    const planMatchesView = (plan: CatalogPricePlan): boolean => {
-      if (view === 'ita') return !!(plan.itaStripePriceId || plan.itaStripePaymentLink);
-      return !!(plan.stripePriceId || plan.stripePaymentLink) ||
-        (!plan.itaStripePriceId && !plan.itaStripePaymentLink);
-    };
 
     return groups
       .map(group => {
         const matchingServices = group.services
           .map(svc => {
-            const viewFilteredVariants = (svc.variants ?? [])
-              .map(v => {
-                const plans = v.pricePlans ?? [];
-                // varianti senza piani: sempre visibili (es. appena create)
-                if (plans.length === 0) return v;
-                const viewPlans = plans.filter(planMatchesView);
-                return viewPlans.length > 0 ? { ...v, pricePlans: viewPlans } : null;
-              })
-              .filter((v): v is CatalogVariant => v !== null);
-
             const svcMatches = !q || svc.name?.toLowerCase().includes(q);
-            // servizi senza varianti: sempre visibili se il nome matcha (o nessuna ricerca)
-            if (svcMatches) return { ...svc, variants: viewFilteredVariants };
+            if (svcMatches) return svc;
             if (q) {
-              const filtered = viewFilteredVariants.filter(v => v.name?.toLowerCase().includes(q));
+              const filtered = (svc.variants ?? []).filter(v => v.name?.toLowerCase().includes(q));
               return filtered.length > 0 ? { ...svc, variants: filtered } : null;
             }
-            return { ...svc, variants: viewFilteredVariants };
+            return svc;
           })
           .filter((s): s is CatalogService => s !== null);
         return matchingServices.length > 0 ? { ...group, services: matchingServices } : null;
@@ -651,7 +605,6 @@ export class CatalogComponent {
       stripePaymentLink: plan.stripePaymentLink ?? '',
       stripePriceId: plan.stripePriceId ?? '',
       itaStripePriceId: plan.itaStripePriceId ?? '',
-      itaStripePaymentLink: plan.itaStripePaymentLink ?? '',
       billingType: plan.billingType ?? 'recurring',
     });
   }
@@ -675,7 +628,6 @@ export class CatalogComponent {
       stripePaymentLink: s.stripePaymentLink || undefined,
       stripePriceId: s.stripePriceId || undefined,
       itaStripePriceId: s.itaStripePriceId || undefined,
-      itaStripePaymentLink: s.itaStripePaymentLink || undefined,
       billingType: s.billingType,
     }).subscribe({
       next: () => {
@@ -729,7 +681,6 @@ export class CatalogComponent {
       ...(s.stripePaymentLink ? { stripePaymentLink: s.stripePaymentLink } : {}),
       ...(s.stripePriceId ? { stripePriceId: s.stripePriceId } : {}),
       ...(s.itaStripePriceId ? { itaStripePriceId: s.itaStripePriceId } : {}),
-      ...(s.itaStripePaymentLink ? { itaStripePaymentLink: s.itaStripePaymentLink } : {}),
     }).subscribe({
       next: () => {
         this.creatingPlan.set(false);
@@ -947,13 +898,6 @@ export class CatalogComponent {
     navigator.clipboard.writeText(url).then(() => this.toast.success('Link UAE copiato!'));
   }
 
-  copyLinkIta(plan: CatalogPricePlan): void {
-    if (!plan.itaStripePaymentLink) return;
-    const sid = this.sellerId();
-    const url = sid != null ? `${plan.itaStripePaymentLink}?client_reference_id=${sid}` : plan.itaStripePaymentLink;
-    navigator.clipboard.writeText(url).then(() => this.toast.success('Link ITA copiato!'));
-  }
-
   openGenerateModal(plan: CatalogPricePlan): void {
     const isOneTime = plan.billingType === 'one_time';
     this.generateModal.set({
@@ -963,7 +907,7 @@ export class CatalogComponent {
       hasItaStripePrice: !!plan.itaStripePriceId,
       billingType: plan.billingType,
     });
-    this.stripeAccount.set(this.catalogView());
+    this.stripeAccount.set('uae');
     this.withTrial.set(!isOneTime);
     this.withCf.set(false);
     this.trialDate.set('');
