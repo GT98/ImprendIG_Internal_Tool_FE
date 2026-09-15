@@ -53,7 +53,7 @@
 
 .list-header {
   display: grid;
-  grid-template-columns: 1fr 70px 150px 170px 80px;
+  grid-template-columns: 1fr 70px 150px 120px 170px 80px;
   padding: 8px 16px;
   background: var(--surface-2);
   font-size: 11px;
@@ -71,7 +71,7 @@
 
 .team-row {
   display: grid;
-  grid-template-columns: 1fr 70px 150px 170px 80px;
+  grid-template-columns: 1fr 70px 150px 120px 170px 80px;
   align-items: center;
   padding: 10px 16px;
   border-bottom: 1px solid var(--border);
@@ -97,8 +97,11 @@
 .col-person  { }
 .col-pct     { }
 .col-telegram { }
+.col-access  { }
 .col-account { }
 .col-actions { justify-self: end; }
+
+.access-never { color: var(--ink-3); }
 
 .person-cell {
   display: flex;

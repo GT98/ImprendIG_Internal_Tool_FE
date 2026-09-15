@@ -29,6 +29,17 @@ function fullName(name: string | null, lastName: string | null): string {
   return [name, lastName].filter(Boolean).join(' ') || '—';
 }
 
+function formatAccess(iso: string | null): string {
+  if (!iso) return 'Mai';
+  const d = new Date(iso);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86_400_000);
+  if (diffDays === 0) return 'Oggi';
+  if (diffDays === 1) return 'Ieri';
+  if (diffDays < 7) return `${diffDays} giorni fa`;
+  return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#3b82f6', '#8b5cf6', '#f97316'];
 
 @Component({
@@ -75,6 +86,7 @@ const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#3b82f6', '#8b5cf6'
               <span class="col-person">Venditore</span>
               <span class="col-pct">%</span>
               <span class="col-telegram">Telegram</span>
+              <span class="col-access">Ultimo accesso</span>
               <span class="col-account">Account</span>
               <span class="col-actions"></span>
             </div>
@@ -103,6 +115,9 @@ const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#3b82f6', '#8b5cf6'
                   </div>
                   <div class="col-pct pct-cell">{{ s.percentage ?? '—' }}{{ s.percentage ? '%' : '' }}</div>
                   <div class="col-telegram meta-cell">{{ s.telegramId ?? '—' }}</div>
+                  <div class="col-access meta-cell" [class.access-never]="!s.lastAccessAt">
+                    {{ formatAccess(s.lastAccessAt) }}
+                  </div>
                   <div class="col-account">
                     @if (accountFor(s.id); as u) {
                       <span class="acc-chip" [class.inactive]="!u.isActive">
@@ -280,6 +295,7 @@ export class TeamComponent {
   protected readonly COLORS = COLORS;
   protected readonly initials = initials;
   protected readonly fullName = fullName;
+  protected readonly formatAccess = formatAccess;
 
   private readonly sellerApi = inject(SellerApiService);
   private readonly setterApi = inject(SetterApiService);

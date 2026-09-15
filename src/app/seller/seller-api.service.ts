@@ -13,6 +13,7 @@ export interface SellerDto {
   percentage: number | null;
   telegramId: string | null;
   createdAt: string;
+  lastAccessAt: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
