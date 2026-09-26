@@ -278,6 +278,18 @@ const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#3b82f6', '#8b5cf6'
                    (input)="accPassword.set($any($event.target).value)" />
             <span class="field-hint">Comunica la password al venditore dopo la creazione</span>
           </div>
+          <div class="modal-field">
+            <label class="ap-label" for="acc-setter">Setter collegato (opzionale)</label>
+            <select id="acc-setter" class="modal-input"
+                    [value]="accSetterId() ?? ''"
+                    (change)="accSetterId.set($any($event.target).value ? +$any($event.target).value : null)">
+              <option value="">Nessuno</option>
+              @for (s of setters(); track s.id) {
+                <option [value]="s.id">{{ fullName(s.name, s.lastName) || s.email || 'Setter #' + s.id }}</option>
+              }
+            </select>
+            <span class="field-hint">Se questa persona fa anche da setter, collega il suo record setter</span>
+          </div>
 
           <div class="modal-footer">
             <button class="btn-ghost" (click)="accountTarget.set(null)">Annulla</button>
@@ -434,6 +446,7 @@ export class TeamComponent {
   readonly accountTarget = signal<SellerDto | null>(null);
   readonly accEmail      = signal('');
   readonly accPassword   = signal('Imprendig2026!');
+  readonly accSetterId   = signal<number | null>(null);
   readonly creatingAcc   = signal(false);
 
   readonly canCreateAcc = computed(() =>
@@ -443,6 +456,7 @@ export class TeamComponent {
   openCreateAccount(s: SellerDto): void {
     this.accEmail.set(s.email ?? '');
     this.accPassword.set('Imprendig2026!');
+    this.accSetterId.set(null);
     this.accountTarget.set(s);
   }
 
@@ -455,6 +469,7 @@ export class TeamComponent {
       password: this.accPassword(),
       role: 'venditore',
       sellerId: Number(target.id),
+      ...(this.accSetterId() ? { setterId: this.accSetterId()! } : {}),
     }).subscribe({
       next: () => {
         this.creatingAcc.set(false);

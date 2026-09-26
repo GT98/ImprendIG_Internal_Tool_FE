@@ -7,7 +7,7 @@ const API_URL = environment.apiUrl;
 
 export interface EmployeeInfo {
   id: number;
-  type: 'seller' | 'setter';
+  type: 'seller' | 'setter' | 'dual';
   name: string;
   email: string;
 }
@@ -21,6 +21,7 @@ export interface CommissionLineItem {
   totalInstallments: number | null;
   amount: number;
   percentage: number | null;
+  role?: 'seller' | 'setter';
 }
 
 export interface TimesheetItemLine {
@@ -56,7 +57,7 @@ export interface MonthlyReportDto {
 }
 
 export interface ReportSummaryItem {
-  employee: EmployeeInfo;
+  employee: EmployeeInfo; // EmployeeInfo.type già include 'dual'
   grossTotal: number;
   subtotalCommissions: number;
   subtotalTimesheetItems: number;
@@ -107,6 +108,10 @@ export class ReportingApiService {
       `${API_URL}/reporting/balance/${type}/${id}`,
       dto,
     );
+  }
+
+  getMyReport(month: string): Observable<MonthlyReportDto> {
+    return this.http.get<MonthlyReportDto>(`${API_URL}/reporting/my-report`, { params: { month } });
   }
 
   getPartnerPayout(clientId: number, month: string, extras: number): Observable<PartnerPayoutDto> {

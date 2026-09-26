@@ -19,6 +19,7 @@ export interface RegisterDto {
   password: string;
   role: string;
   sellerId?: number;
+  setterId?: number;
 }
 
 @Injectable({ providedIn: 'root' })

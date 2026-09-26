@@ -427,19 +427,37 @@
               <div class="empty-rows">Nessuna provvigione per questo mese</div>
             } @else {
               <table class="data-table">
-                <thead><tr><th>Cliente</th><th>Piano</th><th>Rata</th><th class="text-right">Importo</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Piano</th>
+                    <th>Rata</th>
+                    @if (r.employee.type === 'dual') { <th>Ruolo</th> }
+                    <th class="text-right">Importo</th>
+                  </tr>
+                </thead>
                 <tbody>
                   @for (c of r.commissions; track c.id) {
                     <tr>
                       <td>{{ c.customerName }}</td>
                       <td class="muted">{{ c.planName }}</td>
                       <td class="muted">@if (c.installmentNumber) { {{ c.installmentNumber }}/{{ c.totalInstallments ?? '?' }} }</td>
+                      @if (r.employee.type === 'dual') {
+                        <td>
+                          <span class="role-badge" [class]="c.role">
+                            {{ c.role === 'seller' ? 'Venditore' : 'Setter' }}
+                          </span>
+                        </td>
+                      }
                       <td class="text-right amount">€ {{ formatAmount(c.amount) }}</td>
                     </tr>
                   }
                 </tbody>
                 <tfoot>
-                  <tr><td colspan="3" class="subtotal-label">Subtotale</td><td class="text-right subtotal">€ {{ formatAmount(r.subtotalCommissions) }}</td></tr>
+                  <tr>
+                    <td [attr.colspan]="r.employee.type === 'dual' ? 4 : 3" class="subtotal-label">Subtotale</td>
+                    <td class="text-right subtotal">€ {{ formatAmount(r.subtotalCommissions) }}</td>
+                  </tr>
                 </tfoot>
               </table>
             }

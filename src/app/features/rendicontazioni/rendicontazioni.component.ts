@@ -150,8 +150,7 @@ export class RendicontazioniComponent {
 
   private initEmployeeStreams() {
     const user = this.auth.currentUser();
-    const sellerId = user?.sellerId;
-    if (!sellerId) return;
+    if (!user?.sellerId && !user?.setterId) return;
 
     toObservable(this.month).pipe(
       switchMap(m => {
@@ -160,7 +159,7 @@ export class RendicontazioniComponent {
         this.myReportError.set(false);
         this.myTsError.set(false);
         return forkJoin([
-          this.api.getReport('seller', sellerId, m).pipe(catchError(() => { this.myReportError.set(true); return EMPTY; })),
+          this.api.getMyReport(m).pipe(catchError(() => { this.myReportError.set(true); return EMPTY; })),
           this.timesheetApi.getMy(m).pipe(catchError(() => { this.myTsError.set(true); return EMPTY; })),
         ]);
       }),
@@ -174,10 +173,10 @@ export class RendicontazioniComponent {
   }
 
   reloadEmployee() {
-    const sellerId = this.auth.currentUser()?.sellerId;
-    if (!sellerId) return;
+    const user = this.auth.currentUser();
+    if (!user?.sellerId && !user?.setterId) return;
     const m = this.month();
-    forkJoin([this.api.getReport('seller', sellerId, m), this.timesheetApi.getMy(m)]).subscribe({
+    forkJoin([this.api.getMyReport(m), this.timesheetApi.getMy(m)]).subscribe({
       next: ([report, ts]) => { this.myReport.set(report); this.myTimesheet.set(ts); },
     });
   }

@@ -3,6 +3,7 @@ export interface AuthUser {
   email: string;
   role: string;
   sellerId: number | null;
+  setterId: number | null;
   clientId: number | null;
   customerId: number | null;
   referralToken: string | null;
