@@ -12,6 +12,7 @@ export interface UserDto {
   isActive: boolean;
   createdAt: string;
   seller: { id: number; name: string | null; lastName: string | null } | null;
+  setter: { id: number; name: string | null; lastName: string | null } | null;
 }
 
 export interface RegisterDto {
@@ -36,5 +37,9 @@ export class AuthApiService {
 
   deactivate(userId: number): Observable<UserDto> {
     return this.http.patch<UserDto>(`${API_URL}/users/${userId}/deactivate`, {});
+  }
+
+  updateSetter(userId: number, setterId: number | null): Observable<UserDto> {
+    return this.http.patch<UserDto>(`${API_URL}/users/${userId}/setter-link`, { setterId });
   }
 }

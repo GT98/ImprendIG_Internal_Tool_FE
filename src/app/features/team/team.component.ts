@@ -123,10 +123,18 @@ const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#3b82f6', '#8b5cf6'
                       <span class="acc-chip" [class.inactive]="!u.isActive">
                         {{ u.isActive ? 'Attivo' : 'Disattivato' }}
                       </span>
+                      @if (u.setter) {
+                        <span class="acc-chip setter-chip" title="Setter collegato">S</span>
+                      }
                       @if (u.isActive) {
                         <button class="link-btn danger" [disabled]="acting() === s.id"
                                 (click)="deactivateAccount(s.id, u)">
                           Disattiva
+                        </button>
+                        <button class="link-btn" [disabled]="acting() === s.id"
+                                title="Collega/scollega setter"
+                                (click)="openSetterLink(u)">
+                          Setter
                         </button>
                       }
                     } @else {
@@ -296,6 +304,42 @@ const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#3b82f6', '#8b5cf6'
             <button class="btn-primary" [disabled]="!canCreateAcc() || creatingAcc()"
                     (click)="submitCreateAccount()">
               {{ creatingAcc() ? 'Creazione…' : 'Crea account' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ── Setter link modal ── -->
+    @if (setterLinkTarget()) {
+      <div class="modal-overlay" role="dialog" aria-modal="true"
+           (click)="setterLinkTarget.set(null)" (keydown.escape)="setterLinkTarget.set(null)">
+        <div class="modal-card" (click)="$event.stopPropagation()">
+          <div class="modal-head">
+            <div>
+              <div class="modal-title">Collega setter — {{ setterLinkTarget()!.email }}</div>
+              <div class="modal-sub">Questo account guadagnerà anche le provvigioni setter</div>
+            </div>
+            <button class="icon-btn" (click)="setterLinkTarget.set(null)" aria-label="Chiudi">
+              <app-icon name="x" [size]="18" />
+            </button>
+          </div>
+          <div class="modal-field">
+            <label class="ap-label" for="sl-setter">Setter collegato</label>
+            <select id="sl-setter" class="modal-input"
+                    [value]="setterLinkSetterId() ?? ''"
+                    (change)="setterLinkSetterId.set($any($event.target).value ? +$any($event.target).value : null)">
+              <option value="">Nessuno (rimuovi collegamento)</option>
+              @for (s of setters(); track s.id) {
+                <option [value]="s.id">{{ fullName(s.name, s.lastName) || s.email || 'Setter #' + s.id }}</option>
+              }
+            </select>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-ghost" (click)="setterLinkTarget.set(null)">Annulla</button>
+            <button class="btn-primary" [disabled]="linkingAcc()"
+                    (click)="submitSetterLink()">
+              {{ linkingAcc() ? 'Salvataggio…' : 'Salva' }}
             </button>
           </div>
         </div>
@@ -489,6 +533,34 @@ export class TeamComponent {
     this.authApi.deactivate(user.id).subscribe({
       next: () => { this.acting.set(null); this.toast.success('Accesso disattivato'); this.usersResource.reload(); },
       error: () => { this.acting.set(null); this.toast.error('Impossibile disattivare. Riprova.'); },
+    });
+  }
+
+  // ── Setter link ─────────────────────────────────────────────────────
+  readonly setterLinkTarget   = signal<UserDto | null>(null);
+  readonly setterLinkSetterId = signal<number | null>(null);
+  readonly linkingAcc         = signal(false);
+
+  openSetterLink(user: UserDto): void {
+    this.setterLinkSetterId.set(user.setter ? Number(user.setter.id) : null);
+    this.setterLinkTarget.set(user);
+  }
+
+  submitSetterLink(): void {
+    const target = this.setterLinkTarget();
+    if (!target) return;
+    this.linkingAcc.set(true);
+    this.authApi.updateSetter(target.id, this.setterLinkSetterId()).subscribe({
+      next: () => {
+        this.linkingAcc.set(false);
+        this.setterLinkTarget.set(null);
+        this.toast.success('Setter aggiornato');
+        this.usersResource.reload();
+      },
+      error: () => {
+        this.linkingAcc.set(false);
+        this.toast.error('Impossibile aggiornare. Riprova.');
+      },
     });
   }
 }
