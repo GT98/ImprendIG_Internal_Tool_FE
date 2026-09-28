@@ -1,5 +1,5 @@
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
-import { rxResource } from '@angular/core/rxjs-interop';
+import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CatalogApiService, CatalogService } from '../../catalog/catalog-api.service';
 import { LeadsService } from '../../leads/lead.service';
@@ -141,7 +141,7 @@ function todayIso(): string {
                   <button
                     type="button"
                     class="toggle-opt"
-                    [class.active]="form.value.paymentMethod === 'bonifico'"
+                    [class.active]="paymentMethod() === 'bonifico'"
                     (click)="form.controls.paymentMethod.setValue('bonifico')"
                   >Bonifico</button>
                 </div>
@@ -150,18 +150,18 @@ function todayIso(): string {
                     <button
                       type="button"
                       class="toggle-opt sm"
-                      [class.active]="form.value.paymentMethod === 'stripe'"
+                      [class.active]="paymentMethod() === 'stripe'"
                       (click)="form.controls.paymentMethod.setValue('stripe')"
                     >🇦🇪 UAE</button>
                     <button
                       type="button"
                       class="toggle-opt sm"
-                      [class.active]="form.value.paymentMethod === 'stripe_ita'"
+                      [class.active]="paymentMethod() === 'stripe_ita'"
                       (click)="form.controls.paymentMethod.setValue('stripe_ita')"
                     >🇮🇹 Italia</button>
                   </div>
                 }
-                @if (form.value.paymentMethod === 'bonifico') {
+                @if (paymentMethod() === 'bonifico') {
                   <span class="field-hint">Le rate partono tutte come "da pagare" — il venditore le segna manualmente.</span>
                 }
               </div>
@@ -411,9 +411,15 @@ export class CreateSaleModalComponent {
     );
   });
 
-  readonly isStripe = computed(() =>
-    this.form.value.paymentMethod === 'stripe' || this.form.value.paymentMethod === 'stripe_ita'
+  readonly paymentMethod = toSignal(
+    this.form.controls.paymentMethod.valueChanges,
+    { initialValue: this.form.controls.paymentMethod.value },
   );
+
+  readonly isStripe = computed(() => {
+    const m = this.paymentMethod();
+    return m === 'stripe' || m === 'stripe_ita';
+  });
 
   readonly emailInvalid = computed(() => {
     const ctrl = this.form.controls.customerEmail;
