@@ -162,7 +162,7 @@ function todayIso(): string {
                   </div>
                 }
                 @if (paymentMethod() === 'bonifico') {
-                  <span class="field-hint">Le rate partono tutte come "da pagare" — il venditore le segna manualmente.</span>
+                  <span class="field-hint">Tutte le rate verranno segnate come già pagate.</span>
                 }
               </div>
               <div class="field checkbox-field">
