@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CatalogApiService, CatalogService } from '../../catalog/catalog-api.service';
@@ -75,15 +75,17 @@ function todayIso(): string {
             <fieldset class="section">
               <legend class="section-title">Dettagli vendita</legend>
               <div class="field-row">
-                <div class="field">
-                  <label for="ms-seller">Venditore</label>
-                  <select id="ms-seller" formControlName="sellerId">
-                    <option [value]="null">— nessuno —</option>
-                    @for (s of sellers(); track s.id) {
-                      <option [value]="s.id">{{ s.name }} {{ s.lastName }}</option>
-                    }
-                  </select>
-                </div>
+                @if (defaultSellerId() == null) {
+                  <div class="field">
+                    <label for="ms-seller">Venditore</label>
+                    <select id="ms-seller" formControlName="sellerId">
+                      <option [value]="null">— nessuno —</option>
+                      @for (s of sellers(); track s.id) {
+                        <option [value]="s.id">{{ s.name }} {{ s.lastName }}</option>
+                      }
+                    </select>
+                  </div>
+                }
                 <div class="field">
                   <label for="ms-setter">Setter</label>
                   <select id="ms-setter" formControlName="setterId">
@@ -363,6 +365,7 @@ function todayIso(): string {
 })
 export class CreateSaleModalComponent {
   readonly visible = input.required<boolean>();
+  readonly defaultSellerId = input<number | null>(null);
   readonly closed = output<void>();
   readonly created = output<void>();
 
@@ -416,6 +419,15 @@ export class CreateSaleModalComponent {
     const ctrl = this.form.controls.customerEmail;
     return ctrl.invalid && (ctrl.dirty || ctrl.touched);
   });
+
+  constructor() {
+    // Pre-fill sellerId when the modal opens and a default is provided (non-admin flow)
+    effect(() => {
+      if (this.visible() && this.defaultSellerId() != null) {
+        this.form.patchValue({ sellerId: this.defaultSellerId() });
+      }
+    });
+  }
 
   readonly planInvalid = computed(() => {
     const ctrl = this.form.controls.pricePlanId;

@@ -484,7 +484,7 @@ export class ClientDrawerComponent implements OnInit {
           </p>
         </div>
         <div style="display:flex;gap:8px">
-          @if (isAdmin()) {
+          @if (canCreateSale()) {
             <button class="btn-primary" (click)="showCreateModal.set(true)">
               <app-icon name="plus" [size]="15" />Nuova vendita
             </button>
@@ -657,6 +657,7 @@ export class ClientDrawerComponent implements OnInit {
 
     <app-create-sale-modal
       [visible]="showCreateModal()"
+      [defaultSellerId]="isAdmin() ? null : (auth.currentUser()?.sellerId ?? null)"
       (closed)="showCreateModal.set(false)"
       (created)="onSaleCreated()"
     />
@@ -680,10 +681,14 @@ export class ClientDrawerComponent implements OnInit {
   `,
 })
 export class ClientsComponent {
-  private readonly auth = inject(AuthService);
+  protected readonly auth = inject(AuthService);
   private readonly saleApiService = inject(SaleApiService);
 
   readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'admin');
+  readonly canCreateSale = computed(() => {
+    const role = this.auth.currentUser()?.role;
+    return role === 'admin' || role === 'venditore';
+  });
   readonly salesResource = rxResource({ stream: () => this.saleApiService.getAll() });
 
   readonly selectedMonth = signal(isoCurrentMonth());
