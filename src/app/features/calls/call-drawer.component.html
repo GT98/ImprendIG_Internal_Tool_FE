@@ -52,7 +52,7 @@
           >
             <option value="" [selected]="!selectedSetterId()">— Nessun setter —</option>
             @for (s of settersResource.value(); track s.id) {
-              <option [value]="s.id" [selected]="selectedSetterId() === s.id">{{ [s.name, s.lastName].filter(Boolean).join(' ') }}</option>
+              <option [value]="s.id" [selected]="selectedSetterId() === +s.id">{{ [s.name, s.lastName].filter(Boolean).join(' ') }}</option>
             }
           </select>
         }

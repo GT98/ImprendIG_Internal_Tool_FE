@@ -24,6 +24,8 @@ const COMM_TYPE: Record<string, { label: string; color: string }> = {
   fisso:       { label: 'Importo fisso', color: '#db8c0e' },
 };
 
+type InstRow = CommissionDto & { displayAmt: number };
+
 interface DealRow {
   id: string;
   personId: string;
@@ -38,6 +40,7 @@ interface DealRow {
   date: string;
   month: string;
   comms: CommissionDto[];
+  instRows: InstRow[]; // deduplicate per installment (seller + setter → unica riga)
 }
 
 interface LeaderboardEntry {
@@ -121,6 +124,7 @@ function commsToDeal(saleId: number, salComms: CommissionDto[]): DealRow {
     date,
     month: IT_MONTHS[monthIdx] ?? '',
     comms: sorted,
+    instRows: buildInstRows(sorted),
   };
 }
 
@@ -135,6 +139,21 @@ function firstBalanceInstOf(comms: CommissionDto[]): NonNullable<CommissionDto['
     .filter(c => c.installment?.type !== 'deposit' && c.installment != null)
     .sort((a, b) => (a.installment!.installmentNumber) - (b.installment!.installmentNumber))
     [0]?.installment ?? null;
+}
+
+// Raggruppa le commission per installment.id sommando gli importi (seller + setter → unica riga)
+function buildInstRows(sorted: CommissionDto[]): InstRow[] {
+  const map = new Map<number, InstRow>();
+  for (const c of sorted) {
+    const key = c.installment?.id ?? -c.id;
+    const existing = map.get(key);
+    if (existing) {
+      existing.displayAmt += Number(c.amount ?? 0);
+    } else {
+      map.set(key, { ...c, displayAmt: Number(c.amount ?? 0) });
+    }
+  }
+  return [...map.values()];
 }
 
 function buildSaleMap(comms: CommissionDto[]): Map<number, CommissionDto[]> {
@@ -372,31 +391,31 @@ function monthLongLabel(isoM: string): string {
                 </div>
 
                 <!-- expandable installment-commission sub-rows -->
-                @if (isDealExpanded(d.id) && d.comms.length > 0) {
+                @if (isDealExpanded(d.id) && d.instRows.length > 0) {
                   <div class="comm-panel" role="region" [attr.aria-label]="'Rate di ' + d.client">
-                    @for (c of d.comms; track c.id) {
+                    @for (row of d.instRows; track (row.installment?.id ?? row.id)) {
                       @let isPrimaRata = commMode() === 'prima-rata';
-                      @let isFirstBal = isFirstBalanceInst(c);
+                      @let isFirstBal = isFirstBalanceInst(row);
                       @let isZeroRow =
-                        isPrimaRata && c.installment?.type !== 'deposit' && !isFirstBal;
+                        isPrimaRata && row.installment?.type !== 'deposit' && !isFirstBal;
                       <div
                         class="comm-inst-row"
-                        [class.inst-current]="isCurrentMonthFn(c.installment) && !isPrimaRata"
+                        [class.inst-current]="isCurrentMonthFn(row.installment) && !isPrimaRata"
                         [class.inst-deposit]="
-                          c.installment?.type === 'deposit' && !isCurrentMonthFn(c.installment)
+                          row.installment?.type === 'deposit' && !isCurrentMonthFn(row.installment)
                         "
                         [class.inst-prima-rata]="isPrimaRata && isFirstBal"
                         [class.inst-zero]="isZeroRow"
                       >
                         <span class="inst-label">
-                          @if (c.installment?.type === 'deposit') {
+                          @if (row.installment?.type === 'deposit') {
                             Acconto
                           } @else {
-                            Rata {{ c.installment?.installmentNumber }}/{{
-                              c.installment?.totalInstallment || d.comms.length
+                            Rata {{ row.installment?.installmentNumber }}/{{
+                              row.installment?.totalInstallment || d.instRows.length
                             }}
                           }
-                          @if (!isPrimaRata && isCurrentMonthFn(c.installment)) {
+                          @if (!isPrimaRata && isCurrentMonthFn(row.installment)) {
                             <span class="current-tag">Questo mese</span>
                           }
                           @if (isPrimaRata && isFirstBal) {
@@ -406,32 +425,32 @@ function monthLongLabel(isoM: string): string {
                             <span class="zero-tag">Inclusa in Rata 1</span>
                           }
                         </span>
-                        <span class="inst-badge" [attr.data-status]="c.installment?.status">
-                          {{ instStatusLabelFn(c.installment?.status ?? '') }}
+                        <span class="inst-badge" [attr.data-status]="row.installment?.status">
+                          {{ instStatusLabelFn(row.installment?.status ?? '') }}
                         </span>
-                        @if (c.installment?.amount) {
+                        @if (row.installment?.amount) {
                           <span class="inst-amount" [class.muted]="isZeroRow">
-                            {{ eurFmt(+(c.installment!.amount ?? 0)) }}
+                            {{ eurFmt(+(row.installment!.amount ?? 0)) }}
                           </span>
                         } @else {
                           <span></span>
                         }
-                        @if (isPrimaRata && c.installment?.type !== 'deposit') {
+                        @if (isPrimaRata && row.installment?.type !== 'deposit') {
                           <span
                             class="comm-amount"
                             [class.comm-prima-rata-full]="isFirstBal"
                             [class.comm-zero]="isZeroRow"
                           >
-                            {{ eurFmt(primaRataCommDisplayAmount(c, d)) }}
+                            {{ eurFmt(primaRataCommDisplayAmount(row, d)) }}
                           </span>
                         } @else {
-                          <span class="comm-amount">{{ eurFmt(+(c.amount ?? 0)) }}</span>
+                          <span class="comm-amount">{{ eurFmt(row.displayAmt) }}</span>
                         }
                         <span class="inst-date" [class.muted]="isZeroRow">
-                          @if (c.installment?.status === 'paid' && c.installment?.paymentDate) {
-                            Pag. {{ fmtDateFn(c.installment!.paymentDate!) }}
-                          } @else if (c.installment?.dueDate) {
-                            Scad. {{ fmtDateFn(c.installment!.dueDate!) }}
+                          @if (row.installment?.status === 'paid' && row.installment?.paymentDate) {
+                            Pag. {{ fmtDateFn(row.installment!.paymentDate!) }}
+                          } @else if (row.installment?.dueDate) {
+                            Scad. {{ fmtDateFn(row.installment!.dueDate!) }}
                           }
                         </span>
                       </div>
@@ -497,11 +516,13 @@ export class CommissionsComponent {
     const seen = new Map<string, number>();
     const result: Record<string, Seller> = {};
     for (const c of this.comms()) {
+      const isSetter = !!c.setter;
       const person = c.setter ?? c.seller;
       if (!person) continue;
-      const key = (c.setter ? 'set' : 'sel') + String(person.id);
+      // Chiave composita per evitare collisioni tra seller.id e setter.id (tabelle diverse)
+      const key = (isSetter ? 'set_' : 'sel_') + String(person.id);
       if (!seen.has(key)) seen.set(key, seen.size);
-      result[String(person.id)] = makeDisplaySeller(c, seen.get(key)!);
+      result[key] = makeDisplaySeller(c, seen.get(key)!);
     }
     return result;
   });
@@ -766,9 +787,11 @@ export class CommissionsComponent {
     const totals = new Map<string, number>();
     for (const deal of this.filteredDeals()) {
       for (const c of deal.comms) {
-        const person = c.seller ?? c.setter;
+        const isSetter = !!c.setter;
+        const person = c.setter ?? c.seller;
         if (!person) continue;
-        totals.set(String(person.id), (totals.get(String(person.id)) ?? 0) + Number(c.amount ?? 0));
+        const key = (isSetter ? 'set_' : 'sel_') + String(person.id);
+        totals.set(key, (totals.get(key) ?? 0) + Number(c.amount ?? 0));
       }
     }
     return [...totals.entries()]
@@ -812,18 +835,15 @@ export class CommissionsComponent {
   // First balance installment → full balance commission for that person.
   // Subsequent balance installments → 0 (included in the first).
   // Deposit installments → unchanged.
-  primaRataCommDisplayAmount(c: CommissionDto, d: DealRow): number {
-    if (c.installment?.type === 'deposit') return Number(c.amount ?? 0);
-    const personId = c.seller?.id ?? c.setter?.id;
-    const isSeller = !!c.seller;
-    const personTotal = d.comms
-      .filter(
-        (x) =>
-          x.installment?.type !== 'deposit' &&
-          (isSeller ? x.seller?.id === personId : x.setter?.id === personId),
-      )
-      .reduce((s, x) => s + Number(x.amount ?? 0), 0);
-    return c.installment?.installmentNumber === 1 ? personTotal : 0;
+  primaRataCommDisplayAmount(row: InstRow, d: DealRow): number {
+    if (row.installment?.type === 'deposit') return row.displayAmt;
+    // Prima rata balance: mostra il totale di tutte le provvigioni non-acconto della sale
+    if (row.installment?.installmentNumber === 1) {
+      return d.comms
+        .filter(c => c.installment?.type !== 'deposit')
+        .reduce((s, c) => s + Number(c.amount ?? 0), 0);
+    }
+    return 0;
   }
 
   isFirstBalanceInst(c: CommissionDto): boolean {
