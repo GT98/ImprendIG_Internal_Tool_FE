@@ -73,9 +73,8 @@ function formatMonth(iso: string): string {
                       <td>{{ c.customerName }}</td>
                       <td class="muted">{{ c.planName }}</td>
                       <td class="muted">
-                        @if (c.installmentNumber) {
-                          {{ c.installmentNumber }}/{{ c.totalInstallments ?? '?' }}
-                        }
+                        @if (c.installmentType === 'deposit') { Acconto }
+                        @else if (c.installmentNumber) { {{ c.installmentNumber }}/{{ c.totalInstallments ?? '?' }} }
                       </td>
                       <td class="text-right">€ {{ fmt(c.amount) }}</td>
                     </tr>
@@ -578,7 +577,7 @@ export class ReportPrintComponent implements OnInit {
           r.commissions.map(c => [
             c.customerName,
             c.planName,
-            c.installmentNumber ? `${c.installmentNumber}/${c.totalInstallments ?? '?'}` : '—',
+            c.installmentType === 'deposit' ? 'Acconto' : (c.installmentNumber ? `${c.installmentNumber}/${c.totalInstallments ?? '?'}` : '—'),
             `€ ${this.fmt(c.amount)}`,
           ]),
           [58, 58, 20, W - 136],

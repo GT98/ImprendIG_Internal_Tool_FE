@@ -18,6 +18,7 @@ export interface CommissionLineItem {
   saleId: number | null;
   customerName: string;
   planName: string;
+  installmentType: 'deposit' | 'balance';
   installmentNumber: number | null;
   totalInstallments: number | null;
   amount: number;

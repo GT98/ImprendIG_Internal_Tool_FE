@@ -72,7 +72,7 @@
                           <span class="emp-name">{{ item.employee.name }}</span>
                         </div>
                       </td>
-                      <td><span class="role-badge" [class]="item.employee.type">{{ item.employee.type === 'seller' ? 'Venditore' : 'Setter' }}</span></td>
+                      <td><span class="role-badge" [class]="item.employee.type">{{ item.employee.type === 'setter' ? 'Setter' : 'Venditore' }}</span></td>
                       <td class="text-right mono">€ {{ formatAmount(item.subtotalCommissions) }}</td>
                       <td class="text-right mono">€ {{ formatAmount(item.subtotalTimesheetItems) }}</td>
                       <td class="text-right mono font-600">€ {{ formatAmount(item.grossTotal) }}</td>
@@ -280,7 +280,7 @@
               <div>
                 <div class="emp-detail-name">{{ r.employee.name }}</div>
                 <div class="emp-detail-meta">
-                  {{ r.employee.type === 'seller' ? 'Venditore' : 'Setter' }} · {{ r.employee.email }}
+                  {{ r.employee.type === 'setter' ? 'Setter' : 'Venditore' }} · {{ r.employee.email }}
                   @if (r.timesheetStatus) {
                     · <span class="ts-pill" [class]="r.timesheetStatus">{{ adminTsStatusLabel[r.timesheetStatus] }}</span>
                   }
@@ -304,7 +304,10 @@
                       <tr>
                         <td>{{ c.customerName }}</td>
                         <td class="muted">{{ c.planName }}</td>
-                        <td class="muted">@if (c.installmentNumber) { {{ c.installmentNumber }}/{{ c.totalInstallments ?? '?' }} }</td>
+                        <td class="muted">
+                          @if (c.installmentType === 'deposit') { Acconto }
+                          @else if (c.installmentNumber) { {{ c.installmentNumber }}/{{ c.totalInstallments ?? '?' }} }
+                        </td>
                         <td class="text-right amount">€ {{ formatAmount(c.amount) }}</td>
                       </tr>
                     }
@@ -441,7 +444,10 @@
                     <tr>
                       <td>{{ c.customerName }}</td>
                       <td class="muted">{{ c.planName }}</td>
-                      <td class="muted">@if (c.installmentNumber) { {{ c.installmentNumber }}/{{ c.totalInstallments ?? '?' }} }</td>
+                      <td class="muted">
+                        @if (c.installmentType === 'deposit') { Acconto }
+                        @else if (c.installmentNumber) { {{ c.installmentNumber }}/{{ c.totalInstallments ?? '?' }} }
+                      </td>
                       @if (r.employee.type === 'dual') {
                         <td>
                           <span class="role-badge" [class]="c.role">

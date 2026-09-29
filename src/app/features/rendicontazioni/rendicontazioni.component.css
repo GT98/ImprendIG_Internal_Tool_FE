@@ -180,6 +180,7 @@
 
 .avatar.seller { background: var(--accent, #4f46e5); }
 .avatar.setter { background: #0891b2; }
+.avatar.dual   { background: var(--accent, #4f46e5); }
 .avatar.large { width: 48px; height: 48px; font-size: 18px; }
 
 .emp-name {
@@ -199,6 +200,7 @@
 
 .role-badge.seller { background: color-mix(in srgb, var(--accent,#4f46e5) 10%, white); color: var(--accent, #4f46e5); }
 .role-badge.setter { background: #e0f2fe; color: #0369a1; }
+.role-badge.dual   { background: color-mix(in srgb, var(--accent,#4f46e5) 10%, white); color: var(--accent, #4f46e5); }
 
 /* ── Balance chip ────────────────────────────────────────────── */
 
