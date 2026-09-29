@@ -348,9 +348,9 @@ function monthLongLabel(isoM: string): string {
                       </span>
                     </button>
                     {{ d.client }}
-                    @if (d.comms.length > 0) {
+                    @if (d.instRows.length > 0) {
                       <span style="font-size:11px;color:var(--ink-3);font-weight:400"
-                        >({{ d.comms.length }} rate)</span
+                        >({{ d.instRows.length }} rate)</span
                       >
                     }
                   </span>

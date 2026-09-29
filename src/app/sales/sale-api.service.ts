@@ -75,6 +75,10 @@ export class SaleApiService {
     return this.http.post<SaleDto>(`${API_URL}/sales/${saleId}/reassign-setter`, { setterId });
   }
 
+  recalculateCommissions(saleId: number): Observable<{ totalAmount: number }> {
+    return this.http.post<{ totalAmount: number }>(`${API_URL}/sales/${saleId}/recalculate-commissions`, {});
+  }
+
   markInstallmentPaid(id: number): Observable<InstallmentDto> {
     return this.http.patch<InstallmentDto>(`${API_URL}/installments/${id}/mark-paid-notify`, null);
   }
