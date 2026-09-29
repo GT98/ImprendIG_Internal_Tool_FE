@@ -324,6 +324,12 @@ function instStatusLabel(status: string): string {
           <button class="btn-ghost full">
             <app-icon name="phone" [size]="16" />Prenota follow-up
           </button>
+          @if (isAdmin()) {
+            <button class="btn-ghost full" [disabled]="recalculating()" (click)="recalculateCommissions()">
+              @if (recalculating()) { Ricalcolo in corso… }
+              @else { <app-icon name="refresh" [size]="16" />Ricalcola provvigioni }
+            </button>
+          }
         </div>
       </div>
     </div>
@@ -351,6 +357,7 @@ export class ClientDrawerComponent implements OnInit {
   readonly togglingId = signal<number | null>(null);
   readonly affiancamentoDate = signal('');
   readonly savingAffiancamento = signal(false);
+  readonly recalculating = signal(false);
 
   readonly sellersResource = rxResource({ stream: () => this.leadsService.getSellers() });
   readonly settersResource = rxResource({ stream: () => this.leadsService.getSetters() });
@@ -435,6 +442,20 @@ export class ClientDrawerComponent implements OnInit {
       error: () => {
         this.reassigningSetter.set(false);
         this.toast.error('Impossibile aggiornare il setter. Riprova.');
+      },
+    });
+  }
+
+  recalculateCommissions(): void {
+    this.recalculating.set(true);
+    this.saleApiService.recalculateCommissions(this.saleId()).subscribe({
+      next: () => {
+        this.recalculating.set(false);
+        this.toast.success('Provvigioni ricalcolate correttamente');
+      },
+      error: () => {
+        this.recalculating.set(false);
+        this.toast.error('Errore nel ricalcolo provvigioni');
       },
     });
   }
