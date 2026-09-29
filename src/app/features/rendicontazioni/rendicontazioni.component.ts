@@ -332,7 +332,10 @@ export class RendicontazioniComponent {
     this.reportLoading.set(true);
     this.reportError.set(false);
     this.reportData.set(null);
-    this.api.getReport(emp.type, Number(emp.id), this.month()).subscribe({
+    const req$ = emp.type === 'dual' && emp.setterId
+      ? this.api.getReportDual(Number(emp.id), emp.setterId, this.month())
+      : this.api.getReport(emp.type, Number(emp.id), this.month());
+    req$.subscribe({
       next: data => { this.reportData.set(data); this.reportLoading.set(false); },
       error: () => { this.reportError.set(true); this.reportLoading.set(false); },
     });
@@ -352,7 +355,11 @@ export class RendicontazioniComponent {
   openPrint() {
     const emp = this.selectedEmployee();
     if (!emp) return;
-    window.open(`/rendicontazioni/print?type=${emp.type}&id=${emp.id}&month=${this.month()}`, '_blank');
+    if (emp.type === 'dual' && emp.setterId) {
+      window.open(`/rendicontazioni/print?type=dual&sellerId=${emp.id}&setterId=${emp.setterId}&month=${this.month()}`, '_blank');
+    } else {
+      window.open(`/rendicontazioni/print?type=${emp.type}&id=${emp.id}&month=${this.month()}`, '_blank');
+    }
   }
 
   openMyPrint() {

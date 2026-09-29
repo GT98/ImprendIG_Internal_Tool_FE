@@ -10,6 +10,7 @@ export interface EmployeeInfo {
   type: 'seller' | 'setter' | 'dual';
   name: string;
   email: string;
+  setterId?: number; // solo per type='dual': ID dell'entità setter abbinata
 }
 
 export interface CommissionLineItem {
@@ -96,6 +97,12 @@ export class ReportingApiService {
   getReport(type: string, id: number, month: string): Observable<MonthlyReportDto> {
     return this.http.get<MonthlyReportDto>(`${API_URL}/reporting/report`, {
       params: { type, id: String(id), month },
+    });
+  }
+
+  getReportDual(sellerId: number, setterId: number, month: string): Observable<MonthlyReportDto> {
+    return this.http.get<MonthlyReportDto>(`${API_URL}/reporting/report-dual`, {
+      params: { sellerId: String(sellerId), setterId: String(setterId), month },
     });
   }
 

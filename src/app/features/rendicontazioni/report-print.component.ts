@@ -415,11 +415,11 @@ export class ReportPrintComponent implements OnInit {
 
   ngOnInit() {
     const params = this.route.snapshot.queryParamMap;
-    const type = params.get('type') as 'seller' | 'setter' | null;
+    const type = params.get('type') as 'seller' | 'setter' | 'dual' | null;
     const id = Number(params.get('id'));
     this.month = params.get('month') ?? '';
 
-    if (!type || !id || !this.month) {
+    if (!type || !this.month) {
       this.error.set(true);
       this.loading.set(false);
       return;
@@ -427,7 +427,11 @@ export class ReportPrintComponent implements OnInit {
 
     this.monthLabel.set(formatMonth(this.month));
 
-    this.api.getReport(type, id, this.month).subscribe({
+    const req$ = type === 'dual'
+      ? this.api.getReportDual(Number(params.get('sellerId')), Number(params.get('setterId')), this.month)
+      : this.api.getReport(type, id, this.month);
+
+    req$.subscribe({
       next: data => {
         this.report.set(data);
         this.empName = data.employee.name;
