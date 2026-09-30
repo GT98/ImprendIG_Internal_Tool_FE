@@ -708,7 +708,10 @@ export class ClientsComponent {
   private readonly saleApiService = inject(SaleApiService);
 
   readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'admin');
-  readonly canEditSetter = computed(() => this.isAdmin() || this.auth.currentUser()?.setterId != null);
+  readonly canEditSetter = computed(() => {
+    const user = this.auth.currentUser();
+    return user?.role === 'admin' || user?.role === 'venditore' || user?.setterId != null;
+  });
   readonly canCreateSale = computed(() => {
     const role = this.auth.currentUser()?.role;
     return role === 'admin' || role === 'venditore';
