@@ -13,7 +13,7 @@ export interface CommissionDto {
   sale: {
     id: number;
     createdAt: string;
-    pricePlan: { name: string | null; totalAmount: string | null } | null;
+    pricePlan: { name: string | null; totalAmount: string | null; basePrice: string | null } | null;
     customer: { name: string | null; surname: string | null } | null;
   } | null;
   seller: { id: number; name: string | null; lastName: string | null } | null;

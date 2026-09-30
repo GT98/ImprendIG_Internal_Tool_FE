@@ -87,7 +87,7 @@ function makeSetterOnly(s: CommissionDto['setter'], colorIdx: number): Seller {
 function commsToDeal(saleId: number, salComms: CommissionDto[]): DealRow {
   const first = salComms[0];
   const commission = salComms.reduce((s, c) => s + Number(c.amount ?? 0), 0);
-  const value = Number(first.sale?.pricePlan?.totalAmount ?? 0);
+  const value = Number(first.sale?.pricePlan?.basePrice ?? 0);
   const clientName = [first.sale?.customer?.name, first.sale?.customer?.surname].filter(Boolean).join(' ') || '—';
   const date = first.sale?.createdAt ?? first.createdAt;
   const monthIdx = new Date(date).getMonth();
