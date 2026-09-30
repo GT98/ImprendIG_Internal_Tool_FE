@@ -202,7 +202,7 @@ function instStatusLabel(status: string): string {
               </span>
             }
           </div>
-          @if (isAdmin()) {
+          @if (isAdmin() || canEditSetter()) {
             <div class="kv">
               <span>Setter</span>
               @if (editingSetter()) {
@@ -345,6 +345,7 @@ export class ClientDrawerComponent implements OnInit {
   readonly serviceName = input<string | null>(null);
   readonly variantName = input<string | null>(null);
   readonly isAdmin = input<boolean>(false);
+  readonly canEditSetter = input<boolean>(false);
   readonly paymentMethod = input<'stripe' | 'stripe_ita' | 'bonifico'>('stripe');
   readonly closedChange = output<void>();
   readonly sellerChanged = output<void>();
@@ -558,12 +559,12 @@ export class ClientDrawerComponent implements OnInit {
       } @else {
         <div class="card">
           <div class="table-scroll">
-            <div class="table table-clients" [class.adm]="isAdmin()">
+            <div class="table table-clients" [class.adm]="isAdmin()" [class.setter-view]="!isAdmin() && canEditSetter()">
               <!-- header -->
               <div class="tr th">
                 <span>Cliente</span>
                 @if (isAdmin()) { <span class="col-seller">Venditore</span> }
-                @if (isAdmin()) { <span class="col-setter">Setter</span> }
+                @if (isAdmin() || canEditSetter()) { <span class="col-setter">Setter</span> }
                 <span>Servizio</span>
                 <span>Piano</span>
                 <span class="r">MRR</span>
@@ -609,7 +610,7 @@ export class ClientDrawerComponent implements OnInit {
                         {{ (displaySellersById()[row.client.sellerId]?.name ?? '—').split(' ')[0] }}
                       </span>
                     }
-                    @if (isAdmin()) {
+                    @if (isAdmin() || canEditSetter()) {
                       <span class="td-seller col-setter">
                         @if (row.client.setterId && displaySettersById()[row.client.setterId]) {
                           <app-avatar [seller]="displaySettersById()[row.client.setterId]" [size]="24" />
@@ -693,6 +694,7 @@ export class ClientDrawerComponent implements OnInit {
         [serviceName]="sale.pricePlan?.serviceVariant?.service?.name ?? null"
         [variantName]="sale.pricePlan?.serviceVariant?.name ?? null"
         [isAdmin]="isAdmin()"
+        [canEditSetter]="canEditSetter()"
         [paymentMethod]="sale.paymentMethod"
         (closedChange)="openSale.set(null)"
         (sellerChanged)="onSellerReassigned()"
@@ -706,6 +708,7 @@ export class ClientsComponent {
   private readonly saleApiService = inject(SaleApiService);
 
   readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'admin');
+  readonly canEditSetter = computed(() => this.isAdmin() || this.auth.currentUser()?.setterId != null);
   readonly canCreateSale = computed(() => {
     const role = this.auth.currentUser()?.role;
     return role === 'admin' || role === 'venditore';
