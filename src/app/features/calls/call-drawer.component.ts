@@ -85,6 +85,10 @@ export class CallDrawerComponent {
   readonly saving = signal(false);
 
   readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'admin');
+  readonly canEditSetter = computed(() => {
+    const user = this.auth.currentUser();
+    return user?.role === 'admin' || user?.role === 'venditore' || user?.setterId != null;
+  });
 
   // ── transfer signals ──────────────────────────────────────────
   readonly transferring = signal(false);
@@ -154,7 +158,7 @@ export class CallDrawerComponent {
     const statusOptionId = this.selectedOptionId();
     const notes = this.notes().trim() || null;
     const sellerNotes = this.sellerNotes().trim() || null;
-    const setterId = this.isAdmin() ? this.selectedSetterId() : undefined;
+    const setterId = this.canEditSetter() ? this.selectedSetterId() : undefined;
     this.leadsService.patch(this.call().id, { statusOptionId, notes, sellerNotes, setterId }).subscribe({
       next: () => {
         this.saving.set(false);

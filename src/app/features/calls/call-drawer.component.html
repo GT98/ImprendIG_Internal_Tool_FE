@@ -39,7 +39,7 @@
       </div>
     </div>
 
-    @if (isAdmin()) {
+    @if (canEditSetter()) {
       <div class="setter-row">
         <span class="dg-label">Setter</span>
         @if (settersResource.isLoading()) {

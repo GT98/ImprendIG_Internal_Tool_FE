@@ -320,6 +320,13 @@ export class RendicontazioniComponent {
   readonly reportLoading = signal(false);
   readonly reportError   = signal(false);
 
+  // Admin: aggiunta commesse per conto del dipendente
+  readonly showAdminCatalog          = signal(false);
+  readonly adminAddingId             = signal<number | null>(null);
+  readonly adminRemovingId           = signal<number | null>(null);
+  readonly adminBaseAmountPendingItem = signal<CommessaDto | null>(null);
+  adminBaseAmountInput = '';
+
   selectEmployee(emp: EmployeeInfo) {
     this.selectedEmployee.set(emp);
     this.activeTab.set('riepilogo');
@@ -344,6 +351,68 @@ export class RendicontazioniComponent {
   reloadReport() {
     const emp = this.selectedEmployee();
     if (emp) this.loadReport(emp);
+  }
+
+  openAdminCatalog() {
+    if (this.catalog().length === 0) {
+      this.commesseApi.findAll().subscribe({
+        next: items => { this.catalog.set(items); this.showAdminCatalog.set(true); },
+        error: () => this.toast.error('Errore nel caricamento catalogo'),
+      });
+    } else {
+      this.showAdminCatalog.set(true);
+    }
+  }
+
+  addAdminCatalogItem(item: CommessaDto) {
+    if (item.type === 'percentage' && item.formulaType !== 'client_revenue') {
+      this.adminBaseAmountInput = '';
+      this.adminBaseAmountPendingItem.set(item);
+      this.showAdminCatalog.set(false);
+      return;
+    }
+    this.doAdminAddItem(item, undefined);
+  }
+
+  confirmAdminBaseAmount() {
+    const item = this.adminBaseAmountPendingItem();
+    if (!item) return;
+    const v = parseFloat(this.adminBaseAmountInput);
+    if (isNaN(v) || v < 0) { this.toast.error('Inserisci un importo valido'); return; }
+    this.adminBaseAmountPendingItem.set(null);
+    this.doAdminAddItem(item, v);
+  }
+
+  private doAdminAddItem(item: CommessaDto, baseAmount: number | undefined) {
+    const emp = this.selectedEmployee();
+    if (!emp) return;
+    this.adminAddingId.set(Number(item.id));
+    this.timesheetApi.addItemForSeller(Number(emp.id), this.month(), Number(item.id), baseAmount).subscribe({
+      next: () => {
+        this.adminAddingId.set(null);
+        this.toast.success(`"${item.title}" aggiunta`);
+        this.showAdminCatalog.set(false);
+        this.reloadReport();
+        this.reloadSummary();
+      },
+      error: err => { this.adminAddingId.set(null); this.toast.error(err?.error?.message ?? 'Errore durante l\'aggiunta'); },
+    });
+  }
+
+  removeAdminTimesheetItem(itemId: number) {
+    const emp = this.selectedEmployee();
+    if (!emp) return;
+    this.adminRemovingId.set(itemId);
+    this.timesheetApi.removeItemForSeller(Number(emp.id), this.month(), itemId).subscribe({
+      next: () => { this.adminRemovingId.set(null); this.reloadReport(); this.reloadSummary(); },
+      error: () => { this.adminRemovingId.set(null); this.toast.error('Errore durante l\'eliminazione'); },
+    });
+  }
+
+  adminBaseAmountPreview(): string {
+    const item = this.adminBaseAmountPendingItem();
+    if (!item) return '0.00';
+    return ((parseFloat(this.adminBaseAmountInput) || 0) * Number(item.percentageRate ?? 0) / 100).toFixed(2);
   }
 
   // ── Balance modal ──────────────────────────────────────────────

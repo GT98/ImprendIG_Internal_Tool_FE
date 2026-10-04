@@ -1,0 +1,112 @@
+<div class="page">
+  <div class="page-head">
+    <div>
+      <h1>Automazioni Wix <span class="muted-pill">admin</span></h1>
+      <p class="page-sub">Assegna setter e venditrice automaticamente in base al service_id del booking</p>
+    </div>
+    @if (!showForm()) {
+      <button class="btn-primary" (click)="openNew()">
+        <app-icon name="plus" [size]="16" /> Nuova regola
+      </button>
+    }
+  </div>
+
+  @if (showForm()) {
+    <div class="rule-form">
+      <h2 class="form-title">{{ editingId() ? 'Modifica regola' : 'Nuova regola' }}</h2>
+      <div class="form-grid">
+        <label class="ef-field">
+          <span>Service ID (da Wix) <span class="required">*</span></span>
+          <input
+            type="text"
+            placeholder="es. 12345678-abcd-..."
+            [value]="form().wixServiceId"
+            (input)="patch('wixServiceId', $any($event.target).value)"
+          />
+        </label>
+        <label class="ef-field">
+          <span>Nome servizio (solo display)</span>
+          <input
+            type="text"
+            placeholder="es. UGC Level Up — Organico"
+            [value]="form().wixServiceName"
+            (input)="patch('wixServiceName', $any($event.target).value)"
+          />
+        </label>
+        <label class="ef-field">
+          <span>Setter di default</span>
+          <select
+            (change)="patch('defaultSetterId', +$any($event.target).value || null)"
+            [disabled]="settersResource.isLoading()"
+          >
+            <option value="">— Nessuna setter —</option>
+            @for (s of setters(); track s.id) {
+              <option [value]="s.id" [selected]="form().defaultSetterId === +s.id">
+                {{ personName(s) }}
+              </option>
+            }
+          </select>
+        </label>
+        <label class="ef-field">
+          <span>Venditrice di default</span>
+          <select
+            (change)="patch('defaultSellerId', +$any($event.target).value || null)"
+            [disabled]="sellersResource.isLoading()"
+          >
+            <option value="">— Nessuna venditrice —</option>
+            @for (s of sellers(); track s.id) {
+              <option [value]="s.id" [selected]="form().defaultSellerId === +s.id">
+                {{ personName(s) }}
+              </option>
+            }
+          </select>
+        </label>
+      </div>
+      <div class="form-actions">
+        <button class="btn-ghost" (click)="cancelForm()">Annulla</button>
+        <button class="btn-primary" [disabled]="saving()" (click)="save()">
+          {{ saveLabel }}
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (rulesResource.isLoading()) {
+    <div class="empty"><span>Caricamento…</span></div>
+  } @else if (rulesResource.error()) {
+    <div class="empty-state error">
+      <p>Impossibile caricare le regole. Verifica che il backend sia in esecuzione e riprova.</p>
+    </div>
+  } @else if (rules().length === 0 && !showForm()) {
+    <div class="empty-state">
+      <p>Nessuna regola configurata. Clicca "Nuova regola" per aggiungerne una.</p>
+    </div>
+  } @else {
+    <div class="rules-table">
+      <div class="tr th">
+        <span>Service ID</span>
+        <span>Nome servizio</span>
+        <span>Setter</span>
+        <span>Venditrice</span>
+        <span></span>
+      </div>
+      @for (rule of rules(); track rule.id) {
+        <div class="tr">
+          <span class="mono">{{ rule.wixServiceId }}</span>
+          <span>{{ rule.wixServiceName ?? '—' }}</span>
+          <span>{{ personName(rule.defaultSetter) }}</span>
+          <span>{{ personName(rule.defaultSeller) }}</span>
+          <div class="row-actions">
+            <button class="btn-ghost sm" (click)="openEdit(rule)">
+              <app-icon name="edit" [size]="14" /> Modifica
+            </button>
+            <button class="btn-danger sm" [disabled]="deleting() === rule.id" (click)="remove(rule.id)">
+              <app-icon name="trash" [size]="14" />
+              {{ deleting() === rule.id ? '…' : 'Elimina' }}
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

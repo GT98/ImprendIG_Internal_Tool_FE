@@ -324,12 +324,18 @@
               <div class="section-title">
                 <app-icon name="edit" [size]="15" /> Commesse (timesheet dipendente)
                 <span class="badge">{{ r.timesheetItems.length }}</span>
+                <button class="btn-add-inline" (click)="openAdminCatalog()">
+                  <app-icon name="plus" [size]="13" /> Aggiungi
+                </button>
               </div>
               @if (r.timesheetItems.length === 0) {
-                <div class="empty-rows">Nessuna commessa nel timesheet</div>
+                <div class="empty-rows">
+                  Nessuna commessa nel timesheet.
+                  <button class="link-btn" (click)="openAdminCatalog()">Sfoglia il catalogo</button>
+                </div>
               } @else {
                 <table class="data-table">
-                  <thead><tr><th>Descrizione</th><th>Calcolo</th><th class="text-right">Importo</th><th>Note</th></tr></thead>
+                  <thead><tr><th>Descrizione</th><th>Calcolo</th><th class="text-right">Importo</th><th>Note</th><th></th></tr></thead>
                   <tbody>
                     @for (item of r.timesheetItems; track item.id) {
                       <tr>
@@ -337,11 +343,16 @@
                         <td class="muted">{{ tsItemLabel(item) }}</td>
                         <td class="text-right amount">€ {{ formatAmount(item.computedAmount) }}</td>
                         <td class="muted">{{ item.notes ?? '—' }}</td>
+                        <td>
+                          <button class="icon-btn danger" (click)="removeAdminTimesheetItem(item.id)" [disabled]="adminRemovingId() === item.id" title="Rimuovi">
+                            <app-icon name="trash" [size]="14" />
+                          </button>
+                        </td>
                       </tr>
                     }
                   </tbody>
                   <tfoot>
-                    <tr><td colspan="2" class="subtotal-label">Subtotale commesse</td><td class="text-right subtotal">€ {{ formatAmount(r.subtotalTimesheetItems) }}</td><td></td></tr>
+                    <tr><td colspan="2" class="subtotal-label">Subtotale commesse</td><td class="text-right subtotal">€ {{ formatAmount(r.subtotalTimesheetItems) }}</td><td></td><td></td></tr>
                   </tfoot>
                 </table>
               }
@@ -370,6 +381,79 @@
 
       }
     </div>
+
+    <!-- Catalogo commesse (admin aggiunge per conto del dipendente) -->
+    @if (showAdminCatalog()) {
+      <div class="modal-overlay" (click)="showAdminCatalog.set(false)">
+        <div class="catalog-modal" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h2>Aggiungi commessa a {{ selectedEmployee()?.name }}</h2>
+            <button class="icon-btn" (click)="showAdminCatalog.set(false)"><app-icon name="x" [size]="18" /></button>
+          </div>
+          <div class="catalog-list">
+            @for (item of catalog(); track item.id) {
+              <div class="catalog-row">
+                <div class="catalog-row-info">
+                  <span class="catalog-row-title">{{ item.title }}</span>
+                  @if (item.description) { <span class="catalog-row-desc">{{ item.description }}</span> }
+                  @if (item.type === 'percentage') {
+                    <span class="catalog-row-pct">
+                      {{ item.percentageRate }}%
+                      @if (item.formulaType === 'client_revenue') { · importo base automatico dal fatturato }
+                      @else { · inserisci la base di calcolo }
+                    </span>
+                  }
+                </div>
+                <div class="catalog-row-right">
+                  <span class="catalog-row-amount">
+                    @if (item.type === 'fixed') { € {{ formatAmount(item.computedAmount) }} }
+                    @else if (item.formulaType === 'client_revenue') { {{ item.percentageRate }}% auto }
+                    @else { {{ item.percentageRate }}% }
+                  </span>
+                  <button class="btn-primary" (click)="addAdminCatalogItem(item)" [disabled]="adminAddingId() === item.id">
+                    @if (adminAddingId() === item.id) { <span class="spinner-sm"></span> } @else { Aggiungi }
+                  </button>
+                </div>
+              </div>
+            }
+            @if (catalog().length === 0) {
+              <div class="empty-rows">Nessuna commessa disponibile nel catalogo</div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (adminBaseAmountPendingItem(); as item) {
+      <div class="modal-overlay" (click)="adminBaseAmountPendingItem.set(null)">
+        <div class="modal" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h2>{{ item.title }}</h2>
+            <button class="icon-btn" (click)="adminBaseAmountPendingItem.set(null)"><app-icon name="x" [size]="18" /></button>
+          </div>
+          <div class="modal-body">
+            @if (item.description) { <p class="hint-text">{{ item.description }}</p> }
+            <label class="field">
+              <span>Importo base per il calcolo del {{ item.percentageRate }}% (€)</span>
+              <input
+                type="number"
+                [(ngModel)]="adminBaseAmountInput"
+                min="0"
+                step="0.01"
+                placeholder="es. 1200.00"
+                (keydown.enter)="confirmAdminBaseAmount()" />
+            </label>
+            <div class="preview-row">
+              Risultato: <strong>€ {{ adminBaseAmountPreview() }}</strong>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-outline" (click)="adminBaseAmountPendingItem.set(null)">Annulla</button>
+            <button class="btn-primary" (click)="confirmAdminBaseAmount()">Aggiungi al timesheet</button>
+          </div>
+        </div>
+      </div>
+    }
 
     <!-- TODO: reintrodurre saldo/credito/debito una volta definiti i dettagli funzionali -->
     <!-- @if (selectedEmployee()) {

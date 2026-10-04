@@ -174,6 +174,13 @@ export const routes: Routes = [
         title: 'Referral',
       },
       {
+        path: 'wix-routing',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/wix-routing/wix-routing.component').then(m => m.WixRoutingComponent),
+        title: 'Automazioni Wix',
+      },
+      {
         path: 'profile',
         loadComponent: () =>
           import('./features/profile/profile.component').then(m => m.ProfileComponent),

@@ -87,7 +87,7 @@ function makeSetterOnly(s: CommissionDto['setter'], colorIdx: number): Seller {
 function commsToDeal(saleId: number, salComms: CommissionDto[]): DealRow {
   const first = salComms[0];
   const commission = salComms.reduce((s, c) => s + Number(c.amount ?? 0), 0);
-  const value = Number(first.sale?.pricePlan?.basePrice ?? 0);
+  const value = Number(first.sale?.commissionBase ?? first.sale?.pricePlan?.basePrice ?? 0);
   const clientName = [first.sale?.customer?.name, first.sale?.customer?.surname].filter(Boolean).join(' ') || '—';
   const date = first.sale?.createdAt ?? first.createdAt;
   const monthIdx = new Date(date).getMonth();
@@ -130,7 +130,10 @@ function commsToDeal(saleId: number, salComms: CommissionDto[]): DealRow {
 
 function isCurrentMonth(inst: CommissionDto['installment']): boolean {
   const m = isoCurrentMonth();
-  return !!(inst?.dueDate?.startsWith(m) || inst?.paymentDate?.startsWith(m));
+  if (!inst) return false;
+  return inst.status === 'paid'
+    ? !!(inst.paymentDate?.startsWith(m))
+    : !!(inst.dueDate?.startsWith(m));
 }
 
 // Returns the first balance installment (non-deposit, lowest installmentNumber) for a set of commissions
@@ -560,7 +563,7 @@ export class CommissionsComponent {
     return this.comms().filter((c) => {
       const inst = c.installment;
       const inMonth = inst
-        ? inst.dueDate?.startsWith(m) || inst.paymentDate?.startsWith(m)
+        ? (inst.status === 'paid' ? inst.paymentDate?.startsWith(m) : inst.dueDate?.startsWith(m))
         : c.createdAt?.startsWith(m);
       if (!inMonth) return false;
 
@@ -616,7 +619,9 @@ export class CommissionsComponent {
       // Fall back to deposit if no balance installment exists (deposit-only deal)
       const pivotInst = firstBal ?? salComms.find((c) => c.installment)?.installment ?? null;
       if (!pivotInst) continue;
-      const inMonth = pivotInst.dueDate?.startsWith(m) || pivotInst.paymentDate?.startsWith(m);
+      const inMonth = pivotInst.status === 'paid'
+        ? pivotInst.paymentDate?.startsWith(m)
+        : pivotInst.dueDate?.startsWith(m);
       if (!inMonth) continue;
       deals.push(commsToDeal(id, salComms));
     }

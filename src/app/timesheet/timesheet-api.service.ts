@@ -66,4 +66,15 @@ export class TimesheetApiService {
   listAll(month: string): Observable<AdminTimesheetSummary[]> {
     return this.http.get<AdminTimesheetSummary[]>(`${API_URL}/timesheets`, { params: { month } });
   }
+
+  addItemForSeller(sellerId: number, month: string, commessaId: number, baseAmount?: number, notes?: string): Observable<TimesheetItemDto> {
+    const body: Record<string, unknown> = { commessaId };
+    if (baseAmount !== undefined) body['baseAmount'] = baseAmount;
+    if (notes) body['notes'] = notes;
+    return this.http.post<TimesheetItemDto>(`${API_URL}/timesheets/seller/${sellerId}/items`, body, { params: { month } });
+  }
+
+  removeItemForSeller(sellerId: number, month: string, itemId: number): Observable<void> {
+    return this.http.delete<void>(`${API_URL}/timesheets/seller/${sellerId}/items/${itemId}`, { params: { month } });
+  }
 }
