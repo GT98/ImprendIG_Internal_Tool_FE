@@ -229,3 +229,31 @@
 
 .preview-row { font-size: 13px; color: #666; }
 .preview-row strong { color: #1a1a1a; }
+
+/* ── Dark mode overrides ─────────────────────────────────── */
+:host-context([data-theme="dark"]) .employee-hint { background: rgba(99,120,251,.1); border-color: rgba(99,120,251,.25); color: #a5b4fc; }
+:host-context([data-theme="dark"]) .catalog-card { background: var(--surface); border-color: var(--border); }
+:host-context([data-theme="dark"]) .catalog-card:hover { box-shadow: var(--shadow); }
+:host-context([data-theme="dark"]) .card-title { color: var(--ink); }
+:host-context([data-theme="dark"]) .card-desc { color: var(--ink-2); }
+:host-context([data-theme="dark"]) .card-amount { border-top-color: var(--border); }
+:host-context([data-theme="dark"]) .amount-label { color: var(--ink-3); }
+:host-context([data-theme="dark"]) .amount-value { color: var(--ink); }
+:host-context([data-theme="dark"]) .type-badge.fixed-price { background: rgba(74,222,128,.12); color: #4ade80; }
+:host-context([data-theme="dark"]) .type-badge.percentage { background: rgba(129,140,248,.12); color: #a5b4fc; }
+:host-context([data-theme="dark"]) .icon-btn { background: var(--surface-2); border-color: var(--border); color: var(--ink-2); }
+:host-context([data-theme="dark"]) .icon-btn:hover { background: var(--surface); border-color: var(--border-2); }
+:host-context([data-theme="dark"]) .modal { background: var(--surface); }
+:host-context([data-theme="dark"]) .modal-header h2 { color: var(--ink); }
+:host-context([data-theme="dark"]) .field { color: var(--ink-2); }
+:host-context([data-theme="dark"]) .field input,
+:host-context([data-theme="dark"]) .field textarea { background: var(--surface-2); border-color: var(--border); color: var(--ink); }
+:host-context([data-theme="dark"]) .field input:focus,
+:host-context([data-theme="dark"]) .field textarea:focus { border-color: var(--accent); }
+:host-context([data-theme="dark"]) .btn-outline { background: var(--surface-2); border-color: var(--border); color: var(--ink-2); }
+:host-context([data-theme="dark"]) .btn-outline:hover { background: var(--surface); }
+:host-context([data-theme="dark"]) .type-toggle { border-color: var(--border); }
+:host-context([data-theme="dark"]) .type-toggle button { background: var(--surface-2); color: var(--ink-2); }
+:host-context([data-theme="dark"]) .type-toggle button.active { background: var(--accent); color: #fff; }
+:host-context([data-theme="dark"]) .preview-row { color: var(--ink-2); }
+:host-context([data-theme="dark"]) .preview-row strong { color: var(--ink); }

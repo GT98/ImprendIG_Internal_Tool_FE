@@ -229,7 +229,7 @@ function todayIso(): string {
       padding: 16px;
     }
     .modal {
-      background: var(--surface-1, #fff);
+      background: var(--surface, #fff);
       border-radius: 14px;
       width: 100%;
       max-width: 560px;
@@ -303,8 +303,8 @@ function todayIso(): string {
       border: 1px solid var(--border, #e5e7eb);
       border-radius: 8px;
       font-size: 14px;
-      background: var(--surface-1, #fff);
-      color: var(--ink-1, #111);
+      background: var(--surface-2, #f9fafb);
+      color: var(--ink, #111);
       outline: none;
       transition: border-color .15s;
     }

@@ -39,6 +39,7 @@
   --ink-3:     #7e839e;
   --accent-soft:   color-mix(in srgb, var(--accent) 14%, #0d0f17);
   --accent-soft-2: color-mix(in srgb, var(--accent) 38%, #0d0f17);
+  --surface-alt:   #1c1f2e;
   --shadow-sm: 0 1px 2px rgba(0,0,0,.4), 0 1px 3px rgba(0,0,0,.3);
   --shadow:    0 4px 16px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.35);
   --shadow-lg: 0 18px 50px rgba(0,0,0,.7);

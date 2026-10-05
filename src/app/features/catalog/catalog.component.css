@@ -142,6 +142,16 @@
   .plan-actions { flex-wrap:wrap }
 }
 
+/* ── Dark mode overrides ─────────────────────────────────── */
+:host-context([data-theme="dark"]) .svc-badge.active { background: rgba(74,222,128,.15); color: #4ade80; }
+:host-context([data-theme="dark"]) .svc-client { background: rgba(96,165,250,.12); color: #93c5fd; }
+:host-context([data-theme="dark"]) .modal-warning { background: rgba(252,211,77,.08); border-color: rgba(252,211,77,.2); color: #fcd34d; }
+:host-context([data-theme="dark"]) .modal-icon { background: rgba(167,139,250,.15); color: #c4b5fd; }
+:host-context([data-theme="dark"]) .modal-result-label { color: #4ade80; }
+:host-context([data-theme="dark"]) .modal-url-box { background: var(--surface-2); border-color: var(--border); }
+:host-context([data-theme="dark"]) .btn-link-ita { border-color: #4ade80; color: #4ade80; }
+:host-context([data-theme="dark"]) .btn-link-ita:hover { background: rgba(74,222,128,.15); }
+
 /* ── Admin CRUD ─────────────────────────────────────────────── */
 .add-inline-btn { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:8px; border:1.5px dashed var(--border,#e5e7eb); background:transparent; color:var(--ink-3,#9ca3af); font-size:12px; font-weight:600; cursor:pointer; transition:border-color .15s,color .15s; white-space:nowrap; flex-shrink:0 }
 .add-inline-btn:hover { border-color:var(--accent); color:var(--accent) }
