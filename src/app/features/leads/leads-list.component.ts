@@ -3,20 +3,46 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { LeadsService } from '../../leads/lead.service';
 import type { Lead, LeadStatusOption } from '../../leads/lead.model';
 import { ToastService } from '../../shared/toast.service';
+import { ThemeService } from '../../theme.service';
 import { IconComponent } from '../../shared/icon.component';
 
 interface StatusStyle { bg: string; color: string }
 
 const STATUS_PALETTE: Record<string, StatusStyle> = {
-  nuovo:       { bg: '#dbeafe', color: '#1e40af' },
-  contattato:  { bg: '#fef3c7', color: '#92400e' },
-  qualificato: { bg: '#d1fae5', color: '#065f46' },
-  interessato: { bg: '#ede9fe', color: '#6d28d9' },
-  perso:       { bg: '#fee2e2', color: '#b91c1c' },
-  chiuso:      { bg: '#d1fae5', color: '#065f46' },
+  si:                { bg: '#d1fae5', color: '#065f46' },
+  no:                { bg: '#fee2e2', color: '#b91c1c' },
+  'non-qualificato': { bg: '#fef3c7', color: '#92400e' },
+  'no-show':         { bg: '#fde8d8', color: '#9a3412' },
+  annullato:         { bg: '#fee2e2', color: '#b91c1c' },
+  'da-risentire':    { bg: '#fef9c3', color: '#854d0e' },
+  'ci-pensa':        { bg: '#ede9fe', color: '#6d28d9' },
+  // legacy codes kept for compatibility
+  nuovo:             { bg: '#dbeafe', color: '#1e40af' },
+  contattato:        { bg: '#fef3c7', color: '#92400e' },
+  qualificato:       { bg: '#d1fae5', color: '#065f46' },
+  interessato:       { bg: '#ede9fe', color: '#6d28d9' },
+  perso:             { bg: '#fee2e2', color: '#b91c1c' },
+  chiuso:            { bg: '#d1fae5', color: '#065f46' },
 };
 
-const NEUTRAL: StatusStyle = { bg: '#f3f4f6', color: '#6b7280' };
+const STATUS_PALETTE_DARK: Record<string, StatusStyle> = {
+  si:                { bg: 'rgba(74,222,128,.15)',   color: '#4ade80' },
+  no:                { bg: 'rgba(248,113,113,.15)',  color: '#f87171' },
+  'non-qualificato': { bg: 'rgba(251,191,36,.15)',   color: '#fbbf24' },
+  'no-show':         { bg: 'rgba(251,146,60,.15)',   color: '#fb923c' },
+  annullato:         { bg: 'rgba(248,113,113,.15)',  color: '#f87171' },
+  'da-risentire':    { bg: 'rgba(253,224,71,.15)',   color: '#fde047' },
+  'ci-pensa':        { bg: 'rgba(167,139,250,.15)',  color: '#c4b5fd' },
+  nuovo:             { bg: 'rgba(96,165,250,.15)',   color: '#60a5fa' },
+  contattato:        { bg: 'rgba(251,191,36,.15)',   color: '#fbbf24' },
+  qualificato:       { bg: 'rgba(74,222,128,.15)',   color: '#4ade80' },
+  interessato:       { bg: 'rgba(167,139,250,.15)',  color: '#c4b5fd' },
+  perso:             { bg: 'rgba(248,113,113,.15)',  color: '#f87171' },
+  chiuso:            { bg: 'rgba(74,222,128,.15)',   color: '#4ade80' },
+};
+
+const NEUTRAL:      StatusStyle = { bg: '#f3f4f6',              color: '#6b7280' };
+const NEUTRAL_DARK: StatusStyle = { bg: 'rgba(156,163,175,.15)', color: '#9ca3af' };
 
 @Component({
   selector: 'app-leads-list',
@@ -165,6 +191,7 @@ const NEUTRAL: StatusStyle = { bg: '#f3f4f6', color: '#6b7280' };
 export class LeadsListComponent {
   private readonly leadsService = inject(LeadsService);
   private readonly toast = inject(ToastService);
+  private readonly theme = inject(ThemeService);
 
   readonly searchQuery = signal('');
   readonly selectedStatus = signal<string | null>(null);
@@ -215,8 +242,10 @@ export class LeadsListComponent {
   }
 
   statusStyle(code: string | undefined): StatusStyle {
-    if (!code) return NEUTRAL;
-    return STATUS_PALETTE[code] ?? NEUTRAL;
+    const dark = this.theme.isDark();
+    if (!code) return dark ? NEUTRAL_DARK : NEUTRAL;
+    const palette = dark ? STATUS_PALETTE_DARK : STATUS_PALETTE;
+    return palette[code] ?? (dark ? NEUTRAL_DARK : NEUTRAL);
   }
 
   fullName(lead: Lead): string {
