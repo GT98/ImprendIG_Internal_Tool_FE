@@ -84,7 +84,7 @@ const NEUTRAL: StatusStyle = { bg: '#f3f4f6', color: '#6b7280' };
         <div class="leads-grid">
           @for (lead of filtered(); track lead.id) {
             <div class="lead-card">
-              <!-- Header: name + status badge -->
+              <!-- Header: name + status select -->
               <div class="lc-head">
                 <div>
                   <div class="lc-name">{{ fullName(lead) }}</div>
@@ -93,13 +93,18 @@ const NEUTRAL: StatusStyle = { bg: '#f3f4f6', color: '#6b7280' };
                     @if (lead.phone) { <span>{{ lead.phone }}</span> }
                   </div>
                 </div>
-                <span
-                  class="badge lc-badge"
+                <select
+                  class="badge lc-badge lc-badge-select"
                   [style.background]="statusStyle(currentOption(lead)?.code).bg"
                   [style.color]="statusStyle(currentOption(lead)?.code).color"
+                  [attr.aria-label]="'Status di ' + fullName(lead)"
+                  (change)="updateStatus(lead, +$any($event.target).value)"
                 >
-                  {{ currentOption(lead)?.label ?? 'Nessuno' }}
-                </span>
+                  <option value="0" [selected]="!currentOption(lead)">Da fare</option>
+                  @for (opt of statusOptions.value() ?? []; track opt.id) {
+                    <option [value]="opt.id" [selected]="currentOption(lead)?.id === opt.id">{{ opt.label }}</option>
+                  }
+                </select>
               </div>
 
               <!-- Seller + setter info -->
@@ -119,21 +124,6 @@ const NEUTRAL: StatusStyle = { bg: '#f3f4f6', color: '#6b7280' };
                   }
                 </div>
               }
-
-              <!-- Status change -->
-              <div class="lc-status-row">
-                <span class="lc-status-label">Cambia status:</span>
-                <select
-                  class="select-inline lc-select"
-                  [attr.aria-label]="'Cambia status di ' + fullName(lead)"
-                  (change)="updateStatus(lead, +$any($event.target).value); $any($event.target).value = ''"
-                >
-                  <option value="">— Seleziona —</option>
-                  @for (opt of statusOptions.value() ?? []; track opt.id) {
-                    <option [value]="opt.id">{{ opt.label }}</option>
-                  }
-                </select>
-              </div>
 
               <!-- Notes -->
               @if (editNoteId() === lead.id) {
@@ -251,10 +241,11 @@ export class LeadsListComponent {
   }
 
   updateStatus(lead: Lead, statusOptionId: number): void {
-    if (!statusOptionId) return;
-    const option = this.statusOptions.value()?.find(o => o.id === statusOptionId) ?? null;
+    const isDaFare = statusOptionId === 0;
+    const option = isDaFare ? null : (this.statusOptions.value()?.find(o => o.id === statusOptionId) ?? null);
     this.statusOverrides.update(map => ({ ...map, [lead.id]: option }));
-    this.leadsService.patch(String(lead.id), { statusOptionId }).subscribe({
+    const patch = isDaFare ? { statusOptionId: null } : { statusOptionId };
+    this.leadsService.patch(String(lead.id), patch).subscribe({
       error: () => {
         this.statusOverrides.update(map => {
           const next = { ...map };
