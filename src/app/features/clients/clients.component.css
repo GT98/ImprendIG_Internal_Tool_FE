@@ -254,6 +254,17 @@
 .inst-toggle-btn.paid:hover:not(:disabled) { background: #fee2e2; }
 .inst-toggle-btn:disabled { opacity: .5; cursor: not-allowed; }
 
+/* ── Dark mode overrides ────────────────────────────────── */
+:host-context([data-theme="dark"]) .inst-badge[data-status='paid']   { background: rgba(74,222,128,.12); color: #4ade80; }
+:host-context([data-theme="dark"]) .inst-badge[data-status='draft']  { background: rgba(129,140,248,.12); color: #a5b4fc; }
+:host-context([data-theme="dark"]) .inst-badge[data-status='failed'] { background: rgba(248,113,113,.12); color: #f87171; }
+:host-context([data-theme="dark"]) .pay-method-badge[data-method='bonifico']   { background: rgba(252,211,77,.12); color: #fcd34d; }
+:host-context([data-theme="dark"]) .pay-method-badge[data-method='stripe']     { background: rgba(167,139,250,.12); color: #c4b5fd; }
+:host-context([data-theme="dark"]) .pay-method-badge[data-method='stripe_ita'] { background: rgba(74,222,128,.12); color: #4ade80; }
+:host-context([data-theme="dark"]) .inst-toggle-btn:hover:not(:disabled) { border-color: #4ade80; color: #4ade80; }
+:host-context([data-theme="dark"]) .inst-toggle-btn.paid { border-color: #f87171; color: #f87171; }
+:host-context([data-theme="dark"]) .inst-toggle-btn.paid:hover:not(:disabled) { background: rgba(248,113,113,.12); }
+
 /* ── Mobile ─────────────────────────────────────────────── */
 @media (max-width: 760px) {
   /* Hide Setter and Tot.incassato columns on mobile */
