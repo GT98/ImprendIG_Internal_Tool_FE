@@ -15,9 +15,18 @@ const SELLER_COLORS = ['#4f46e5', '#0d9488', '#db8c0e', '#be185d', '#059669', '#
 
 const DA_FARE  = new Set(['novo', 'nuovo', 'in-corso', 'da-fare', 'programmata', '']);
 const NO_SHOW  = new Set(['no-show', 'no_show']);
+const ESCLUSI  = new Set(['annullato', 'non-qualificato', 'no-show', 'no_show']);
+
+function leadCode(lead: Lead): string {
+  return (lead.statusOption?.code ?? lead.status ?? '').toLowerCase().trim().replace(/_/g, '-');
+}
+
+function isExcluded(lead: Lead): boolean {
+  return ESCLUSI.has(leadCode(lead));
+}
 
 function callCategory(lead: Lead): 'da-fare' | 'no-show' | 'fatta' {
-  const code = (lead.statusOption?.code ?? lead.status ?? '').toLowerCase().trim().replace(/_/g, '-');
+  const code = leadCode(lead);
   if (DA_FARE.has(code)) return 'da-fare';
   if (NO_SHOW.has(code)) return 'no-show';
   return 'fatta';
@@ -78,12 +87,12 @@ export class DashboardComponent {
 
   // ── Call outcome stats ─────────────────────────────────────────────
   readonly callsByCategory = computed(() => {
-    const all = this.leads();
+    const valid = this.leads().filter((l) => !isExcluded(l));
     return {
-      daFare: all.filter((l) => callCategory(l) === 'da-fare').length,
-      fatta: all.filter((l) => callCategory(l) === 'fatta').length,
-      noShow: all.filter((l) => callCategory(l) === 'no-show').length,
-      total: all.length,
+      daFare: valid.filter((l) => callCategory(l) === 'da-fare').length,
+      fatta: valid.filter((l) => callCategory(l) === 'fatta').length,
+      noShow: valid.filter((l) => callCategory(l) === 'no-show').length,
+      total: valid.length,
     };
   });
 
@@ -178,7 +187,7 @@ export class DashboardComponent {
 
     return [...sellerMap.entries()]
       .map(([id, { raw, idx }]) => {
-        const sellerLeads = leads.filter((l) => l.seller?.id === id);
+        const sellerLeads = leads.filter((l) => l.seller?.id === id && !isExcluded(l));
         const sellerFatte = sellerLeads.filter((l) => callCategory(l) === 'fatta').length;
         const sellerSales = sales.filter((s) => s.seller?.id === id);
         const dealValue = sellerSales.reduce(
