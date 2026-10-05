@@ -2,7 +2,7 @@
   <div class="page-head">
     <div>
       <h1>Automazioni Wix <span class="muted-pill">admin</span></h1>
-      <p class="page-sub">Assegna setter e venditrice automaticamente in base al service_id del booking</p>
+      <p class="page-sub">Assegna la setter automaticamente in base al service_id del booking</p>
     </div>
     @if (!showForm()) {
       <button class="btn-primary" (click)="openNew()">
@@ -47,20 +47,7 @@
             }
           </select>
         </label>
-        <label class="ef-field">
-          <span>Venditrice di default</span>
-          <select
-            (change)="patch('defaultSellerId', +$any($event.target).value || null)"
-            [disabled]="sellersResource.isLoading()"
-          >
-            <option value="">— Nessuna venditrice —</option>
-            @for (s of sellers(); track s.id) {
-              <option [value]="s.id" [selected]="form().defaultSellerId === +s.id">
-                {{ personName(s) }}
-              </option>
-            }
-          </select>
-        </label>
+
       </div>
       <div class="form-actions">
         <button class="btn-ghost" (click)="cancelForm()">Annulla</button>
@@ -87,7 +74,6 @@
         <span>Service ID</span>
         <span>Nome servizio</span>
         <span>Setter</span>
-        <span>Venditrice</span>
         <span></span>
       </div>
       @for (rule of rules(); track rule.id) {
@@ -95,7 +81,6 @@
           <span class="mono">{{ rule.wixServiceId }}</span>
           <span>{{ rule.wixServiceName ?? '—' }}</span>
           <span>{{ personName(rule.defaultSetter) }}</span>
-          <span>{{ personName(rule.defaultSeller) }}</span>
           <div class="row-actions">
             <button class="btn-ghost sm" (click)="openEdit(rule)">
               <app-icon name="edit" [size]="14" /> Modifica
