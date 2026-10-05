@@ -7,6 +7,8 @@ export interface AuthUser {
   clientId: number | null;
   customerId: number | null;
   referralToken: string | null;
+  name: string | null;
+  lastName: string | null;
 }
 
 export interface LoginResponse {

@@ -128,6 +128,13 @@ export class ShellComponent {
     return role.charAt(0).toUpperCase() + role.slice(1);
   });
 
+  readonly navAvatar = computed(() => {
+    const u = this.auth.currentUser();
+    const first = u?.name?.charAt(0)?.toUpperCase() ?? u?.email?.charAt(0)?.toUpperCase() ?? '?';
+    const last = u?.lastName?.charAt(0)?.toUpperCase() ?? '';
+    return { initials: first + last, color: '#4f46e5', name: '', id: '', role: '' };
+  });
+
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
       filter(e => e instanceof NavigationEnd),
