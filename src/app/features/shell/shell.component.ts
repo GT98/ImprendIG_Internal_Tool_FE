@@ -10,6 +10,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs';
 import { SalesStateService } from '../../sales-state.service';
 import { AuthService } from '../../auth/auth.service';
+import { ThemeService } from '../../theme.service';
 import { IconComponent } from '../../shared/icon.component';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { ToastContainerComponent } from '../../shared/toast.component';
@@ -85,6 +86,7 @@ const NAV_GROUPS: NavGroup[] = [
 export class ShellComponent {
   readonly state = inject(SalesStateService);
   readonly auth = inject(AuthService);
+  readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
 
   readonly dropdownOpen = signal(false);

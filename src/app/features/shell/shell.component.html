@@ -44,6 +44,15 @@
     <header class="topbar">
       <div class="topbar-spacer"></div>
 
+      <!-- Theme toggle -->
+      <button
+        class="icon-btn"
+        (click)="theme.toggle()"
+        [attr.aria-label]="theme.isDark() ? 'Passa al tema chiaro' : 'Passa al tema scuro'"
+      >
+        <app-icon [name]="theme.isDark() ? 'sun' : 'moon'" [size]="18" />
+      </button>
+
       <!-- Bell -->
       <button class="icon-btn bell-wrap" aria-label="Notifiche">
         <app-icon name="bell" [size]="18" />
