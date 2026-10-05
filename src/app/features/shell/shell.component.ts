@@ -14,7 +14,7 @@ import { IconComponent } from '../../shared/icon.component';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { ToastContainerComponent } from '../../shared/toast.component';
 
-interface NavItem  { path: string; label: string; icon: string; adminOnly?: boolean; clientOnly?: boolean; referrerOnly?: boolean; hideFromClient?: boolean; exactMatch?: boolean }
+interface NavItem  { path: string; label: string; icon: string; adminOnly?: boolean; clientOnly?: boolean; referrerOnly?: boolean; setterOnly?: boolean; hideFromClient?: boolean; exactMatch?: boolean }
 interface NavGroup { id: string; label: string; items: NavItem[]; adminOnly?: boolean; clientOnly?: boolean; referrerOnly?: boolean; hideFromClient?: boolean }
 
 const NAV_GROUPS: NavGroup[] = [
@@ -39,7 +39,7 @@ const NAV_GROUPS: NavGroup[] = [
       { path: 'chiamate', label: 'Chiamate', icon: 'phone' },
       { path: 'clienti', label: 'Vendite', icon: 'users' },
       { path: 'customers', label: 'Clienti', icon: 'users' },
-      { path: 'leads', label: 'Lead', icon: 'target', adminOnly: true },
+      { path: 'leads', label: 'Lead', icon: 'target', setterOnly: true },
     ],
   },
   {
@@ -95,17 +95,20 @@ export class ShellComponent {
   );
 
   readonly visibleGroups = computed(() => {
-    const role = this.auth.currentUser()?.role;
+    const user = this.auth.currentUser();
+    const role = user?.role;
     const isAdmin = role === 'admin';
     const isClient = role === 'client';
     const isReferrer = role === 'referrer';
+    const isSetter = isAdmin || user?.setterId != null;
     return NAV_GROUPS
       .map(g => ({
         ...g,
         items: g.items.filter(i =>
           (!i.adminOnly || isAdmin) &&
           (!i.clientOnly || isClient) &&
-          (!i.referrerOnly || isReferrer),
+          (!i.referrerOnly || isReferrer) &&
+          (!i.setterOnly || isSetter),
         ),
       }))
       .filter(g =>

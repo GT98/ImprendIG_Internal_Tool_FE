@@ -5,6 +5,7 @@ import { adminGuard } from './auth/admin.guard';
 import { clientGuard } from './auth/client.guard';
 import { notClientGuard } from './auth/not-client.guard';
 import { referrerGuard } from './auth/referrer.guard';
+import { setterGuard } from './auth/setter.guard';
 import { AuthService } from './auth/auth.service';
 
 export const routes: Routes = [
@@ -121,6 +122,7 @@ export const routes: Routes = [
       },
       {
         path: 'leads',
+        canActivate: [setterGuard],
         loadComponent: () =>
           import('./features/leads/leads-list.component').then(m => m.LeadsListComponent),
         title: 'Lead',
