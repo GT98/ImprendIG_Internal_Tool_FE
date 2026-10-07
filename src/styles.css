@@ -514,9 +514,9 @@ app-root { display: block; height: 100%; }
 }
 .client-mono.lg { width: 48px; height: 48px; font-size: 15px; border-radius: 12px; }
 .table-scroll { overflow-x: auto; }
-.table-clients .tr { grid-template-columns: 2fr 1.6fr .7fr .85fr 1fr 1fr; }
-.table-clients.adm .tr { grid-template-columns: 1.4fr .8fr .8fr 1.3fr .6fr .75fr .9fr .85fr; }
-.table-clients.setter-view .tr { grid-template-columns: 1.6fr .85fr 1.3fr .65fr .8fr .9fr .85fr; }
+.table-clients .tr { grid-template-columns: 2fr 1.6fr .7fr 1fr 1fr; }
+.table-clients.adm .tr { grid-template-columns: 1.4fr .8fr .8fr 1.3fr .6fr .9fr .85fr; }
+.table-clients.setter-view .tr { grid-template-columns: 1.6fr .85fr 1.3fr .65fr .9fr .85fr; }
 .table-deals.adm .tr { grid-template-columns: 1.4fr .85fr .85fr 1fr .85fr .65fr 1fr; }
 
 /* ---- Drawer ---- */

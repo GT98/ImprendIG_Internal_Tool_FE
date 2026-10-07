@@ -195,6 +195,7 @@
 .inst-badge[data-status='paid']   { background: #e7f5ee; color: #15803d; }
 .inst-badge[data-status='draft']  { background: #eef0fb; color: #4f46e5; }
 .inst-badge[data-status='failed'] { background: #fdeceb; color: #b91c1c; }
+.inst-badge[data-status='trial']  { background: #e0f2fe; color: #0369a1; }
 
 .inst-amount {
   font-family: var(--font-mono, monospace);
@@ -258,6 +259,7 @@
 :host-context([data-theme="dark"]) .inst-badge[data-status='paid']   { background: rgba(74,222,128,.12); color: #4ade80; }
 :host-context([data-theme="dark"]) .inst-badge[data-status='draft']  { background: rgba(129,140,248,.12); color: #a5b4fc; }
 :host-context([data-theme="dark"]) .inst-badge[data-status='failed'] { background: rgba(248,113,113,.12); color: #f87171; }
+:host-context([data-theme="dark"]) .inst-badge[data-status='trial']  { background: rgba(56,189,248,.12);  color: #38bdf8; }
 :host-context([data-theme="dark"]) .pay-method-badge[data-method='bonifico']   { background: rgba(252,211,77,.12); color: #fcd34d; }
 :host-context([data-theme="dark"]) .pay-method-badge[data-method='stripe']     { background: rgba(167,139,250,.12); color: #c4b5fd; }
 :host-context([data-theme="dark"]) .pay-method-badge[data-method='stripe_ita'] { background: rgba(74,222,128,.12); color: #4ade80; }
@@ -273,7 +275,7 @@
 
   /* Redefine admin grid without those 2 columns (6 instead of 8) */
   .table-clients.adm .tr {
-    grid-template-columns: 1.6fr .9fr 1.4fr .65fr .8fr .9fr;
+    grid-template-columns: 1.6fr .9fr 1.4fr .65fr .9fr;
   }
 
   /* Client filter select: full width row on mobile */

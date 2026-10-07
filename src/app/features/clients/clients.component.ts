@@ -11,6 +11,7 @@ import { StatCardComponent } from '../../shared/stat-card.component';
 import { StatusBadgeComponent } from '../../shared/badge.component';
 import { SegmentedComponent } from '../../shared/segmented.component';
 import { CreateSaleModalComponent } from './create-sale-modal.component';
+import { CreateNeutralSaleModalComponent } from './create-neutral-sale-modal.component';
 import { MonthNavComponent } from '../commissions/month-nav.component';
 import { eur, fmtDate } from '../../utils';
 
@@ -30,13 +31,13 @@ function makeDisplaySetter(s: SaleDto['setter'], colorIdx: number): Seller {
 }
 
 // Status based on the installment(s) in the selected month:
-// paid → pagato, draft → pending, failed → fallito
+// paid → pagato, draft/trial → pending, failed → fallito
 function derivePayStatus(installments: InstallmentDto[], month: string): 'pagato' | 'pending' | 'fallito' {
   const monthInsts = installments.filter(i =>
     i.dueDate?.startsWith(month) || i.paymentDate?.startsWith(month)
   );
   if (monthInsts.some(i => i.status === 'failed')) return 'fallito';
-  if (monthInsts.some(i => i.status === 'draft'))  return 'pending';
+  if (monthInsts.some(i => i.status === 'draft' || i.status === 'trial')) return 'pending';
   if (monthInsts.some(i => i.status === 'paid'))   return 'pagato';
   return 'pending';
 }
@@ -44,7 +45,7 @@ function derivePayStatus(installments: InstallmentDto[], month: string): 'pagato
 function saleToClient(sale: SaleDto, month: string): Client {
   const paid = sale.installments.filter(i => i.status === 'paid');
   const nextDraft = sale.installments
-    .filter(i => i.status === 'draft' && i.type === 'balance')
+    .filter(i => (i.status === 'draft' || i.status === 'trial') && i.type === 'balance')
     .sort((a, b) => (a.dueDate ?? '').localeCompare(b.dueDate ?? ''))[0];
   const lastPaid = [...paid].sort((a, b) => (b.paymentDate ?? '').localeCompare(a.paymentDate ?? ''))[0];
   return {
@@ -94,6 +95,7 @@ function balanceTotal(installments: InstallmentDto[]): number {
 function instStatusLabel(status: string): string {
   if (status === 'paid') return 'Pagata';
   if (status === 'failed') return 'Fallita';
+  if (status === 'trial') return 'In prova';
   return 'In attesa';
 }
 
@@ -490,7 +492,7 @@ export class ClientDrawerComponent implements OnInit {
 // ---- CLIENTS PAGE -----------------------------------------------
 @Component({
   selector: 'app-clients',
-  imports: [IconComponent, AvatarComponent, StatCardComponent, StatusBadgeComponent, SegmentedComponent, ClientDrawerComponent, CreateSaleModalComponent, MonthNavComponent],
+  imports: [IconComponent, AvatarComponent, StatCardComponent, StatusBadgeComponent, SegmentedComponent, ClientDrawerComponent, CreateSaleModalComponent, CreateNeutralSaleModalComponent, MonthNavComponent],
   styleUrl: './clients.component.css',
   template: `
     <div class="page">
@@ -509,6 +511,11 @@ export class ClientDrawerComponent implements OnInit {
           @if (canCreateSale()) {
             <button class="btn-primary" (click)="showCreateModal.set(true)">
               <app-icon name="plus" [size]="15" />Nuova vendita
+            </button>
+          }
+          @if (isAdmin()) {
+            <button class="btn-ghost" (click)="showNeutralModal.set(true)">
+              Entrata recuperata
             </button>
           }
         </div>
@@ -567,7 +574,6 @@ export class ClientDrawerComponent implements OnInit {
                 @if (isAdmin() || canEditSetter()) { <span class="col-setter">Setter</span> }
                 <span>Servizio</span>
                 <span>Piano</span>
-                <span class="r">MRR</span>
                 <span class="r col-total">Tot. incassato</span>
                 <span class="r">Stato</span>
               </div>
@@ -634,8 +640,7 @@ export class ClientDrawerComponent implements OnInit {
                         </span>
                       }
                     </span>
-                    <span class="r mono strong">{{ eurFmt(row.client.mrr) }}</span>
-                    <span class="r mono muted col-total">{{ eurFmt(row.client.totalPaid) }}</span>
+                    <span class="r mono strong col-total">{{ eurFmt(row.client.totalPaid) }}</span>
                     <span class="r"><app-status-badge [status]="row.client.payStatus" kind="pay" /></span>
                   </div>
 
@@ -682,6 +687,12 @@ export class ClientDrawerComponent implements OnInit {
       [defaultSellerId]="isAdmin() ? null : (auth.currentUser()?.sellerId ?? null)"
       (closed)="showCreateModal.set(false)"
       (created)="onSaleCreated()"
+    />
+
+    <app-create-neutral-sale-modal
+      [visible]="showNeutralModal()"
+      (closed)="showNeutralModal.set(false)"
+      (created)="onNeutralSaleCreated()"
     />
 
     @if (openSale(); as sale) {
@@ -785,9 +796,15 @@ export class ClientsComponent {
   readonly openSale = signal<SaleDto | null>(null);
   readonly expandedRows = signal(new Set<string>());
   readonly showCreateModal = signal(false);
+  readonly showNeutralModal = signal(false);
 
   onSaleCreated(): void {
     this.showCreateModal.set(false);
+    this.salesResource.reload();
+  }
+
+  onNeutralSaleCreated(): void {
+    this.showNeutralModal.set(false);
     this.salesResource.reload();
   }
 

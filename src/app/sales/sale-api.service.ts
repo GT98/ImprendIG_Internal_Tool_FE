@@ -10,7 +10,7 @@ export interface InstallmentDto {
   installmentNumber: number;
   totalInstallment: number;
   amount: string | null;
-  status: 'draft' | 'paid' | 'failed';
+  status: 'draft' | 'paid' | 'failed' | 'trial';
   type: 'balance' | 'deposit';
   dueDate: string | null;
   paymentDate: string | null;
@@ -38,6 +38,17 @@ export interface SaleDto {
   installments: InstallmentDto[];
 }
 
+export interface CreateNeutralSaleDto {
+  amount: number;
+  clientId: number;
+  notes?: string;
+  customerEmail?: string;
+  customerName?: string;
+  customerSurname?: string;
+  paymentDate?: string;
+  paymentMethod?: 'stripe' | 'stripe_ita' | 'bonifico';
+}
+
 export interface CreateManualSaleDto {
   customerEmail: string;
   customerName?: string;
@@ -61,6 +72,10 @@ export class SaleApiService {
 
   getAll(): Observable<SaleDto[]> {
     return this.http.get<SaleDto[]>(`${API_URL}/sales`);
+  }
+
+  createNeutral(dto: CreateNeutralSaleDto): Observable<SaleDto> {
+    return this.http.post<SaleDto>(`${API_URL}/sales/neutral`, dto);
   }
 
   createManual(dto: CreateManualSaleDto): Observable<SaleDto> {
