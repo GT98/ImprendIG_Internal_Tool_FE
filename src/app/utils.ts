@@ -41,6 +41,11 @@ export function eur(n: number): string {
   return '€ ' + Math.round(n).toLocaleString('it-IT');
 }
 
+/** Like `eur` but keeps cents (e.g. € 32,50) — for commissions, where rounding hides real amounts. */
+export function eurCents(n: number): string {
+  return '€ ' + n.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—';
   const d = new Date(iso);

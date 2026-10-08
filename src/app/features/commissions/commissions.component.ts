@@ -9,7 +9,7 @@ import { AvatarComponent } from '../../shared/avatar.component';
 import { StatCardComponent } from '../../shared/stat-card.component';
 import { SalesStateService } from '../../sales-state.service';
 import { MonthNavComponent } from './month-nav.component';
-import { eur, fmtDate } from '../../utils';
+import { eurCents, fmtDate } from '../../utils';
 
 type CommFilterType = 'all' | 'seller' | 'setter';
 
@@ -510,7 +510,7 @@ export class CommissionsComponent {
 
   readonly Math = Math;
   readonly Boolean = Boolean;
-  readonly eurFmt = eur;
+  readonly eurFmt = eurCents;
   readonly fmtDateFn = fmtDate;
   readonly isCurrentMonthFn = isCurrentMonth;
   readonly instStatusLabelFn = instStatusLabel;
@@ -767,9 +767,9 @@ export class CommissionsComponent {
     this.filteredDeals().length ? Math.max(...this.filteredDeals().map((d) => d.commission)) : 0,
   );
 
-  readonly eurMaturato = computed(() => eur(this.maturato()));
-  readonly eurDaIncassare = computed(() => eur(this.daIncassare()));
-  readonly eurAnnoTot = computed(() => eur(this.annoTot()));
+  readonly eurMaturato = computed(() => eurCents(this.maturato()));
+  readonly eurDaIncassare = computed(() => eurCents(this.daIncassare()));
+  readonly eurAnnoTot = computed(() => eurCents(this.annoTot()));
 
   readonly byType = computed(() =>
     Object.keys(COMM_TYPE)
