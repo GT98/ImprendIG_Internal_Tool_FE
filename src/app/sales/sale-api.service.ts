@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import type { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { rangeParams, type DateRange } from '../utils';
 
 const API_URL = environment.apiUrl;
 
@@ -70,8 +71,8 @@ export interface CreateManualSaleDto {
 export class SaleApiService {
   private readonly http = inject(HttpClient);
 
-  getAll(): Observable<SaleDto[]> {
-    return this.http.get<SaleDto[]>(`${API_URL}/sales`);
+  getAll(range?: DateRange): Observable<SaleDto[]> {
+    return this.http.get<SaleDto[]>(`${API_URL}/sales`, { params: rangeParams(range) });
   }
 
   createNeutral(dto: CreateNeutralSaleDto): Observable<SaleDto> {

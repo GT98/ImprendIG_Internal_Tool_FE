@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import type { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { rangeParams, type DateRange } from '../utils';
 
 const API_URL = environment.apiUrl;
 
@@ -35,8 +36,8 @@ export interface CommissionDto {
 export class CommissionApiService {
   private readonly http = inject(HttpClient);
 
-  getAll(month?: string): Observable<CommissionDto[]> {
-    const params: Record<string, string> = {};
+  getAll(month?: string, range?: DateRange): Observable<CommissionDto[]> {
+    const params = rangeParams(range);
     if (month) params['month'] = month;
     return this.http.get<CommissionDto[]>(`${API_URL}/commissions`, { params });
   }

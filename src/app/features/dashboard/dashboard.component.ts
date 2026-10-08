@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, linkedSignal, signal, type ResourceRef } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { LeadsService } from '../../leads/lead.service';
 import { SaleApiService } from '../../sales/sale-api.service';
@@ -9,7 +9,7 @@ import { AvatarComponent } from '../../shared/avatar.component';
 import { StatCardComponent } from '../../shared/stat-card.component';
 import { StatusBadgeComponent } from '../../shared/badge.component';
 import { DonutChartComponent } from '../../shared/charts.component';
-import { eur, fmtDate } from '../../utils';
+import { eur, fmtDate, fmtDateISO, type DateRange } from '../../utils';
 
 const SELLER_COLORS = ['#4f46e5', '#0d9488', '#db8c0e', '#be185d', '#059669', '#3b82f6'];
 
@@ -55,6 +55,39 @@ function isoCurrentMonth(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+type Preset = 'month' | 'all';
+
+function presetRange(preset: Preset): { from: string; to: string } {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  switch (preset) {
+    case 'month':
+      return { from: fmtDateISO(new Date(y, m, 1)), to: fmtDateISO(new Date(y, m + 1, 0)) };
+    case 'all':
+      return { from: '', to: '' };
+  }
+}
+
+/** Day (local, YYYY-MM-DD) of an ISO timestamp falls within [from, to]. */
+function inRange(iso: string | null | undefined, from: string, to: string): boolean {
+  if (!from && !to) return true;
+  if (!iso) return false;
+  const day = fmtDateISO(new Date(iso));
+  return (!from || day >= from) && (!to || day <= to);
+}
+
+/**
+ * Keeps the last loaded value while the resource reloads for a new range,
+ * so the dashboard doesn't flash empty. `undefined` only before the first load.
+ */
+function keepLast<T>(res: ResourceRef<T[] | undefined>) {
+  return linkedSignal<T[] | undefined, T[] | undefined>({
+    source: () => (res.hasValue() ? res.value() : undefined),
+    computation: (value, prev) => value ?? (res.error() ? [] : prev?.value),
+  });
+}
+
 @Component({
   selector: 'app-dashboard',
   imports: [AvatarComponent, StatCardComponent, StatusBadgeComponent, DonutChartComponent],
@@ -66,9 +99,80 @@ export class DashboardComponent {
   private readonly saleApiService = inject(SaleApiService);
   private readonly commissionApi = inject(CommissionApiService);
 
-  readonly leadsResource = rxResource({ stream: () => this.leadsService.getAll() });
-  readonly salesResource = rxResource({ stream: () => this.saleApiService.getAll() });
-  readonly commissionsResource = rxResource({ stream: () => this.commissionApi.getAll() });
+  // ── Date range filter (applied server-side) ─────────────────────────
+  /** Applied range: drives the API calls. Changes only when both dates are set (or on reset). */
+  readonly dateFrom = signal('');
+  readonly dateTo = signal('');
+  /** Values in the inputs; follow the applied range on preset/reset. */
+  readonly draftFrom = linkedSignal(() => this.dateFrom());
+  readonly draftTo = linkedSignal(() => this.dateTo());
+  readonly draftIncomplete = computed(() => !this.draftFrom() !== !this.draftTo());
+  readonly hasRange = computed(() => !!(this.dateFrom() || this.dateTo()));
+  private readonly range = computed<DateRange>(() => ({
+    from: this.dateFrom() || undefined,
+    to: this.dateTo() || undefined,
+  }));
+
+  readonly presets: { value: Preset; label: string }[] = [
+    { value: 'all', label: 'Tutto' },
+    { value: 'month', label: 'Mese attuale' },
+  ];
+
+  readonly activePreset = computed<Preset | null>(() => {
+    const from = this.dateFrom();
+    const to = this.dateTo();
+    return this.presets.find((p) => {
+      const r = presetRange(p.value);
+      return r.from === from && r.to === to;
+    })?.value ?? null;
+  });
+
+  /** Human-readable active period; empty when no filter is set. */
+  readonly rangeLabel = computed(() => {
+    const from = this.dateFrom();
+    const to = this.dateTo();
+    if (!from && !to) return '';
+    if (!to) return `Dal ${fmtDate(from)}`;
+    if (!from) return `Fino al ${fmtDate(to)}`;
+    return `${fmtDate(from)} – ${fmtDate(to)}`;
+  });
+
+  clearRange(): void {
+    this.setPreset('all');
+  }
+
+  setDraft(field: 'from' | 'to', value: string): void {
+    (field === 'from' ? this.draftFrom : this.draftTo).set(value);
+    const from = this.draftFrom();
+    const to = this.draftTo();
+    if (from && to && from <= to) {
+      this.dateFrom.set(from);
+      this.dateTo.set(to);
+    }
+  }
+
+  setPreset(preset: Preset): void {
+    const r = presetRange(preset);
+    this.dateFrom.set(r.from);
+    this.dateTo.set(r.to);
+  }
+
+  readonly leadsResource = rxResource({
+    params: () => this.range(),
+    stream: ({ params }) => this.leadsService.getAll(params),
+  });
+  readonly salesResource = rxResource({
+    params: () => this.range(),
+    stream: ({ params }) => this.saleApiService.getAll(params),
+  });
+  readonly commissionsResource = rxResource({
+    params: () => this.range(),
+    stream: ({ params }) => this.commissionApi.getAll(undefined, params),
+  });
+
+  private readonly leadsData = keepLast(this.leadsResource);
+  private readonly salesData = keepLast(this.salesResource);
+  private readonly commissionsData = keepLast(this.commissionsResource);
 
   readonly isLoading = computed(
     () =>
@@ -77,10 +181,20 @@ export class DashboardComponent {
       this.commissionsResource.isLoading(),
   );
 
+  /** Full-page loader only on the first load; range changes keep the current data visible. */
+  readonly isFirstLoad = computed(
+    () => !this.leadsData() || !this.salesData() || !this.commissionsData(),
+  );
+
   readonly leadsError = computed(() => !!this.leadsResource.error());
-  readonly leads = computed(() => this.leadsResource.value() ?? []);
-  readonly sales = computed(() => this.salesResource.value() ?? []);
-  readonly commissions = computed(() => this.commissionsResource.value() ?? []);
+  readonly leads = computed(() => this.leadsData() ?? []);
+  /** Includes older sales returned only because an installment falls in the range. */
+  private readonly allSales = computed(() => this.salesData() ?? []);
+  /** Sales closed within the selected range. */
+  readonly sales = computed(() =>
+    this.allSales().filter((s) => inRange(s.createdAt, this.dateFrom(), this.dateTo())),
+  );
+  readonly commissions = computed(() => this.commissionsData() ?? []);
 
   readonly eurFmt = eur;
   readonly fmtDate = fmtDate;
@@ -126,7 +240,12 @@ export class DashboardComponent {
 
   // ── Payment stats ──────────────────────────────────────────────────
   readonly installmentStats = computed(() => {
-    const allInst = this.sales().flatMap((s) => s.installments);
+    const from = this.dateFrom();
+    const to = this.dateTo();
+    // Paid installments match on paymentDate, the others on dueDate (same rule as the BE).
+    const allInst = this.allSales()
+      .flatMap((s) => s.installments)
+      .filter((i) => inRange(i.status === 'paid' ? i.paymentDate : i.dueDate, from, to));
     const paid = allInst.filter((i) => i.status === 'paid');
     const draft = allInst.filter((i) => i.status === 'draft');
     const failed = allInst.filter((i) => i.status === 'failed');
@@ -154,6 +273,7 @@ export class DashboardComponent {
   );
 
   readonly incassatoMese = computed(() => {
+    if (this.hasRange()) return this.installmentStats().paidAmount;
     const m = isoCurrentMonth();
     return this.sales()
       .flatMap((s) => s.installments)

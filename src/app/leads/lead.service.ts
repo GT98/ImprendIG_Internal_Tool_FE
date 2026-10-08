@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import type { Lead, LeadStatusOption } from './lead.model';
 import type { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { rangeParams, type DateRange } from '../utils';
 
 const API_URL = environment.apiUrl;
 
@@ -48,8 +49,8 @@ export interface SellerBasicDto {
 export class LeadsService {
   private readonly http = inject(HttpClient);
 
-  getAll() {
-    return this.http.get<Lead[]>(`${API_URL}/leads`);
+  getAll(range?: DateRange) {
+    return this.http.get<Lead[]>(`${API_URL}/leads`, { params: rangeParams(range) });
   }
 
   getByDate(date: string) {

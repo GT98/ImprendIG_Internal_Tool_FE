@@ -5,11 +5,67 @@
       <h1>Dashboard <span class="muted-pill">admin</span></h1>
       <p class="page-sub">Panoramica organizzazione</p>
     </div>
+
+    <div class="range-bar" role="group" aria-label="Filtro periodo">
+      <div class="segmented">
+        @for (p of presets; track p.value) {
+          <button
+            type="button"
+            class="seg-btn"
+            [class.active]="activePreset() === p.value"
+            [attr.aria-pressed]="activePreset() === p.value"
+            (click)="setPreset(p.value)"
+          >
+            {{ p.label }}
+          </button>
+        }
+      </div>
+      <div class="range-inputs">
+        <label class="range-field" [class.active]="!!draftFrom()">
+          <span>Dal</span>
+          <input
+            type="date"
+            [value]="draftFrom()"
+            [max]="draftTo() || null"
+            (change)="setDraft('from', $any($event.target).value)"
+          />
+        </label>
+        <label class="range-field" [class.active]="!!draftTo()">
+          <span>Al</span>
+          <input
+            type="date"
+            [value]="draftTo()"
+            [min]="draftFrom() || null"
+            (change)="setDraft('to', $any($event.target).value)"
+          />
+        </label>
+      </div>
+      @if (draftIncomplete()) {
+        <span class="range-hint" role="status">
+          Seleziona anche la data {{ draftFrom() ? 'di fine' : 'di inizio' }}
+        </span>
+      }
+    </div>
   </div>
 
-  @if (isLoading()) {
+  @if (hasRange()) {
+    <div class="range-active" role="status">
+      <span class="range-active-dot" aria-hidden="true"></span>
+      <span>
+        Filtro date attivo: <strong>{{ rangeLabel() }}</strong>
+        <span class="range-active-hint">— i dati mostrati si riferiscono solo a questo periodo</span>
+      </span>
+      <button type="button" class="range-clear" (click)="clearRange()">
+        Rimuovi filtro
+        <span aria-hidden="true">×</span>
+      </button>
+    </div>
+  }
+
+  @if (isFirstLoad()) {
     <div class="empty"><span>Caricamento dati…</span></div>
   } @else {
+    <div class="dash-body" [class.reloading]="isLoading()" [attr.aria-busy]="isLoading()">
     @if (leadsError()) {
       <div class="error-banner">
         Impossibile caricare i lead — i dati sulle chiamate potrebbero non essere aggiornati.
@@ -39,7 +95,7 @@
       />
       <app-stat-card
         icon="check"
-        label="Incassato questo mese"
+        [label]="hasRange() ? 'Incassato nel periodo' : 'Incassato questo mese'"
         [value]="eurFmt(incassatoMese())"
         [trend]="8"
       />
@@ -233,5 +289,6 @@
       </div>
     }
 
+    </div>
   }
 </div>

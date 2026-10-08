@@ -8,6 +8,108 @@
   margin-bottom: 16px;
 }
 
+/* ── Date range filter ────────────────────────────────────── */
+.range-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.range-inputs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.range-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+
+.range-field:focus-within { border-color: var(--accent); }
+
+.range-field.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.range-hint {
+  flex-basis: 100%;
+  text-align: right;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.range-active {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  color: var(--ink);
+  font-size: 13px;
+  padding: 9px 12px;
+  margin-bottom: 16px;
+}
+
+.range-active strong { color: var(--accent); }
+.range-active-hint { color: var(--ink-2); }
+
+.range-active-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.range-clear {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.range-clear:hover { background: var(--accent); color: #fff; }
+
+.range-field input {
+  border: none;
+  outline: none;
+  background: none;
+  font-size: 13px;
+  color: var(--ink);
+  font-family: inherit;
+}
+
+.dash-body { transition: opacity .15s; }
+.dash-body.reloading { opacity: .55; pointer-events: none; }
+
+@media (max-width: 860px) {
+  .page-head { flex-wrap: wrap; }
+  .range-bar { justify-content: flex-start; }
+}
+
 /* ── KPI grid ─────────────────────────────────────────────── */
 .kpi-grid {
   display: grid;

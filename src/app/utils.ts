@@ -90,3 +90,15 @@ export function atTime(today: Date, dayOffset: number, h: number, m: number): st
   d.setHours(h, m, 0, 0);
   return d.toISOString();
 }
+
+export interface DateRange {
+  from?: string; // YYYY-MM-DD
+  to?: string; // YYYY-MM-DD
+}
+
+export function rangeParams(range?: DateRange): Record<string, string> {
+  const params: Record<string, string> = {};
+  if (range?.from) params['from'] = range.from;
+  if (range?.to) params['to'] = range.to;
+  return params;
+}
