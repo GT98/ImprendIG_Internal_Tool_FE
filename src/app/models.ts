@@ -50,7 +50,7 @@ export interface Client {
   contact: string;
   plan: string;
   mrr: number;
-  payStatus: 'pagato' | 'pending' | 'fallito';
+  payStatus: 'pagato' | 'prova' | 'pending' | 'fallito';
   lastPay: string;
   nextPay: string;
   stripe: string;

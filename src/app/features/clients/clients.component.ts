@@ -30,14 +30,21 @@ function makeDisplaySetter(s: SaleDto['setter'], colorIdx: number): Seller {
   return { id: String(s?.id ?? 0), name, initials, color: SETTER_COLORS[colorIdx % SETTER_COLORS.length], role: 'Setter' };
 }
 
+// An installment belongs to a month by its paymentDate once paid, otherwise by its dueDate.
+// Matching paid installments on dueDate too would drag sales paid early (e.g. in September,
+// with an October dueDate) into the October list.
+function instInMonth(inst: InstallmentDto, month: string): boolean {
+  return !!(inst.status === 'paid' ? inst.paymentDate?.startsWith(month) : inst.dueDate?.startsWith(month));
+}
+
 // Status based on the installment(s) in the selected month:
-// paid → pagato, draft/trial → pending, failed → fallito
-function derivePayStatus(installments: InstallmentDto[], month: string): 'pagato' | 'pending' | 'fallito' {
-  const monthInsts = installments.filter(i =>
-    i.dueDate?.startsWith(month) || i.paymentDate?.startsWith(month)
-  );
+// failed → fallito, draft → pending, trial → prova, paid → pagato.
+// 'prova' is separate from 'pending': nothing is due yet (any deposit already counts as cashed in).
+function derivePayStatus(installments: InstallmentDto[], month: string): 'pagato' | 'prova' | 'pending' | 'fallito' {
+  const monthInsts = installments.filter(i => instInMonth(i, month));
   if (monthInsts.some(i => i.status === 'failed')) return 'fallito';
-  if (monthInsts.some(i => i.status === 'draft' || i.status === 'trial')) return 'pending';
+  if (monthInsts.some(i => i.status === 'draft')) return 'pending';
+  if (monthInsts.some(i => i.status === 'trial')) return 'prova';
   if (monthInsts.some(i => i.status === 'paid'))   return 'pagato';
   return 'pending';
 }
@@ -85,7 +92,12 @@ function isoCurrentMonth(): string {
 
 function isCurrentMonthInst(inst: InstallmentDto): boolean {
   const m = isoCurrentMonth();
-  return !!(inst.dueDate?.startsWith(m) || inst.paymentDate?.startsWith(m));
+  return instInMonth(inst, m);
+}
+
+// Installment currently in free trial (first balance installment not yet charged).
+function trialInst(installments: InstallmentDto[]): InstallmentDto | undefined {
+  return installments.find(i => i.status === 'trial');
 }
 
 function balanceTotal(installments: InstallmentDto[]): number {
@@ -484,6 +496,7 @@ export class ClientDrawerComponent implements OnInit {
   bannerText(): string {
     const s = this.client().payStatus;
     if (s === 'pagato') return 'Pagamenti regolari';
+    if (s === 'prova') return 'In prova gratuita — primo addebito alla fine della prova';
     if (s === 'pending') return 'Fattura in attesa di addebito';
     return 'Ultimo addebito non riuscito — da recuperare';
   }
@@ -639,6 +652,12 @@ export class ClientDrawerComponent implements OnInit {
                           {{ row.sale.paymentMethod === 'bonifico' ? 'Bonifico' : 'Stripe ITA' }}
                         </span>
                       }
+                      @if (trialInstFn(row.sale.installments); as trial) {
+                        <span class="pay-method-badge" data-method="trial"
+                              [attr.title]="trial.dueDate ? 'Prima rata il ' + fmtDate(trial.dueDate) : null">
+                          prova gratuita
+                        </span>
+                      }
                     </span>
                     <span class="r mono strong col-total">{{ eurFmt(row.client.totalPaid) }}</span>
                     <span class="r"><app-status-badge [status]="row.client.payStatus" kind="pay" /></span>
@@ -736,7 +755,7 @@ export class ClientsComponent {
   readonly monthSales = computed(() => {
     const m = this.selectedMonth();
     return (this.salesResource.value() ?? []).filter(s =>
-      s.installments.some(i => i.paymentDate?.startsWith(m) || i.dueDate?.startsWith(m))
+      s.installments.some(i => instInMonth(i, m))
     );
   });
 
@@ -820,11 +839,11 @@ export class ClientsComponent {
   saleToClientFn = (sale: SaleDto): Client => saleToClient(sale, this.selectedMonth());
   readonly sortedInstsFn = sortedInstallments;
   readonly balanceTotalFn = balanceTotal;
+  readonly trialInstFn = trialInst;
   readonly instStatusLabelFn = instStatusLabel;
 
   isCurrentMonthInstFn = (inst: InstallmentDto): boolean => {
-    const m = this.selectedMonth();
-    return !!(inst.dueDate?.startsWith(m) || inst.paymentDate?.startsWith(m));
+    return instInMonth(inst, this.selectedMonth());
   };
   readonly eurFmt = eur;
   readonly fmtDate = fmtDate;
@@ -833,6 +852,7 @@ export class ClientsComponent {
   readonly payOptions = [
     { value: 'tutti', label: 'Tutti' },
     { value: 'pagato', label: 'Pagati' },
+    { value: 'prova', label: 'In prova' },
     { value: 'pending', label: 'In attesa' },
     { value: 'fallito', label: 'Falliti' },
   ];
@@ -884,7 +904,7 @@ export class ClientsComponent {
   readonly fallitiCount = computed(() => {
     const m = this.selectedMonth();
     return this.monthClientSales()
-      .filter(s => s.installments.some(i => i.status === 'failed' && (i.dueDate?.startsWith(m) || i.paymentDate?.startsWith(m))))
+      .filter(s => s.installments.some(i => i.status === 'failed' && instInMonth(i, m)))
       .length;
   });
 
@@ -899,7 +919,7 @@ export class ClientsComponent {
     const m = this.selectedMonth();
     const total = this.monthClientSales()
       .flatMap(s => s.installments)
-      .filter(i => i.paymentDate?.startsWith(m) || i.dueDate?.startsWith(m))
+      .filter(i => instInMonth(i, m))
       .reduce((sum, i) => sum + Number(i.amount ?? 0), 0);
     return eur(total);
   });

@@ -65,6 +65,9 @@
 [data-theme="dark"] .drawer-banner[data-st="pending"] {
   background: rgba(180,83,9,.18); border-color: rgba(180,83,9,.35); color: #fcd34d;
 }
+[data-theme="dark"] .drawer-banner[data-st="prova"] {
+  background: rgba(2,132,199,.18); border-color: rgba(2,132,199,.35); color: #7dd3fc;
+}
 
 /* Topbar blur surface */
 [data-theme="dark"] .topbar {
@@ -588,6 +591,7 @@ app-root { display: block; height: 100%; }
 }
 .drawer-banner[data-st="fallito"] { background: #fdeceb; border-color: #f7c9c5; color: #b91c1c; }
 .drawer-banner[data-st="pending"] { background: #fef6e7; border-color: #f5e3bc; color: #b45309; }
+.drawer-banner[data-st="prova"]   { background: #e0f2fe; border-color: #bae6fd; color: #0369a1; }
 .btn-recover {
   margin-left: auto; background: #dc2626; color: #fff; font-weight: 700;
   font-size: 12px; padding: 7px 12px; border-radius: 8px;

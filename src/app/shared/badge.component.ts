@@ -20,6 +20,7 @@ export const CALL_TYPE: Record<string, { label: string; fg: string }> = {
 
 export const PAY_STATUS: Record<string, { label: string; bg: string; fg: string; dot: string }> = {
   'pagato':  { label: 'Pagato',    bg: '#e7f5ee', fg: '#15803d', dot: '#16a34a' },
+  'prova':   { label: 'In prova',  bg: '#e0f2fe', fg: '#0369a1', dot: '#0284c7' },
   'pending': { label: 'In attesa', bg: '#fef6e7', fg: '#b45309', dot: '#d97706' },
   'fallito': { label: 'Fallito',   bg: '#fdeceb', fg: '#b91c1c', dot: '#dc2626' },
 };
