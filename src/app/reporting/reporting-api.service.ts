@@ -73,18 +73,35 @@ export interface AdjustBalancePayload {
   notes?: string;
 }
 
+export interface PartnerPayoutExtraItem {
+  id: number;
+  title: string;
+  amount: number;
+}
+
 export interface PartnerPayoutDto {
   month: string;
   partnerClientId: number;
+  partnerPercentage: number;
   grossRevenue: number;
+  otherAcademiesGross: number;
+  partnerAcademyGross: number;
   sellerCommissions: number;
+  otherCommissions: number;
   extras: number;
+  extraItems: PartnerPayoutExtraItem[];
   net: number;
   annaFee: number;
-  netSplit: number;
+  partnerUgcShare: number;
+  partnerCommissionShare: number;
+  partnerExtrasShare: number;
+  imprendigUgcShare: number;
+  imprendigCommissionShare: number;
+  imprendigExtrasShare: number;
+  partnerGrossShare: number;
   partnerShare: number;
+  imprendigSplitShare: number;
   imprendigShare: number;
-  partnerPercentage: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -122,9 +139,24 @@ export class ReportingApiService {
     return this.http.get<MonthlyReportDto>(`${API_URL}/reporting/my-report`, { params: { month } });
   }
 
-  getPartnerPayout(clientId: number, month: string, extras: number): Observable<PartnerPayoutDto> {
+  getPartnerPayout(clientId: number, month: string): Observable<PartnerPayoutDto> {
     return this.http.get<PartnerPayoutDto>(`${API_URL}/client-revenue/partner-payout`, {
-      params: { clientId: String(clientId), month, extras: String(extras) },
+      params: { clientId: String(clientId), month },
     });
   }
+
+  addPartnerPayoutExtra(clientId: number, month: string, title: string, amount: number): Observable<unknown> {
+    return this.http.post(`${API_URL}/client-revenue/partner-payout/extras`, { clientId, month, title, amount });
+  }
+
+  deletePartnerPayoutExtra(id: number): Observable<unknown> {
+    return this.http.delete(`${API_URL}/client-revenue/partner-payout/extras/${id}`);
+  }
+
+  getPartnerPayoutHistory(clientId: number, months = 12): Observable<PartnerPayoutDto[]> {
+    return this.http.get<PartnerPayoutDto[]>(`${API_URL}/client-revenue/partner-payout/history`, {
+      params: { clientId, months },
+    });
+  }
+
 }

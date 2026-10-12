@@ -73,8 +73,12 @@ export class RendicontazioniComponent {
   readonly payoutData    = signal<PartnerPayoutDto | null>(null);
   readonly payoutLoading = signal(false);
   readonly payoutError   = signal(false);
-  payoutExtrasInput      = '0';
+  readonly extraTitle    = signal('');
+  readonly extraAmount   = signal('');
+  readonly extraSaving   = signal(false);
+  readonly extraRemovingId = signal<number | null>(null);
   readonly PARTNER_CLIENT_ID = 3;
+  readonly payoutHistory = signal<PartnerPayoutDto[]>([]);
 
   // ── Admin: Timesheets tab ──────────────────────────────────────
   readonly adminTimesheets   = signal<AdminTimesheetSummary[]>([]);
@@ -139,13 +143,18 @@ export class RendicontazioniComponent {
       switchMap(([m]) => {
         this.payoutLoading.set(true);
         this.payoutError.set(false);
-        const extras = parseFloat(this.payoutExtrasInput) || 0;
-        return this.api.getPartnerPayout(this.PARTNER_CLIENT_ID, m, extras).pipe(
+        return this.api.getPartnerPayout(this.PARTNER_CLIENT_ID, m).pipe(
           catchError(() => { this.payoutError.set(true); this.payoutLoading.set(false); return EMPTY; }),
         );
       }),
       takeUntilDestroyed(),
     ).subscribe(data => { this.payoutData.set(data); this.payoutLoading.set(false); });
+
+    toObservable(this.activeTab).pipe(
+      filter(tab => tab === 'payout'),
+      switchMap(() => this.api.getPartnerPayoutHistory(this.PARTNER_CLIENT_ID).pipe(catchError(() => EMPTY))),
+      takeUntilDestroyed(),
+    ).subscribe(rows => this.payoutHistory.set(rows));
   }
 
   private initEmployeeStreams() {
@@ -198,14 +207,42 @@ export class RendicontazioniComponent {
   }
 
   loadPayout() {
-    this.payoutLoading.set(true);
-    this.payoutError.set(false);
-    const extras = parseFloat(this.payoutExtrasInput) || 0;
-    this.api.getPartnerPayout(this.PARTNER_CLIENT_ID, this.month(), extras).subscribe({
-      next: data => { this.payoutData.set(data); this.payoutLoading.set(false); },
-      error: () => { this.payoutError.set(true); this.payoutLoading.set(false); },
+    this.api.getPartnerPayout(this.PARTNER_CLIENT_ID, this.month()).subscribe({
+      next: data => this.payoutData.set(data),
+      error: () => this.payoutError.set(true),
+    });
+    this.api.getPartnerPayoutHistory(this.PARTNER_CLIENT_ID).subscribe({
+      next: rows => this.payoutHistory.set(rows),
     });
   }
+
+  addPayoutExtra() {
+    const title = this.extraTitle().trim();
+    const amount = parseFloat(this.extraAmount().replace(',', '.'));
+    if (!title || !(amount > 0)) {
+      this.toast.error('Inserisci titolo e importo della spesa');
+      return;
+    }
+    this.extraSaving.set(true);
+    this.api.addPartnerPayoutExtra(this.PARTNER_CLIENT_ID, this.month(), title, amount).subscribe({
+      next: () => {
+        this.extraSaving.set(false);
+        this.extraTitle.set('');
+        this.extraAmount.set('');
+        this.loadPayout();
+      },
+      error: () => { this.extraSaving.set(false); this.toast.error('Errore nel salvataggio della spesa'); },
+    });
+  }
+
+  removePayoutExtra(id: number) {
+    this.extraRemovingId.set(id);
+    this.api.deletePartnerPayoutExtra(id).subscribe({
+      next: () => { this.extraRemovingId.set(null); this.loadPayout(); },
+      error: () => { this.extraRemovingId.set(null); this.toast.error('Errore nella rimozione della spesa'); },
+    });
+  }
+
 
   // ── Admin: approve / request revision ─────────────────────────
   approveTimesheet(ts: AdminTimesheetSummary) {
@@ -439,6 +476,7 @@ export class RendicontazioniComponent {
 
   // ── Helpers ───────────────────────────────────────────────────
   formatAmount(n: number | null | undefined): string { return Number(n ?? 0).toFixed(2); }
+  formatMonthLabel(m: string): string { return formatMonth(m); }
   // TODO: reintrodurre saldo/credito/debito una volta definiti i dettagli funzionali
   // balanceClass(b: number): string { return b < 0 ? 'neg' : b > 0 ? 'pos' : 'zero'; }
 
