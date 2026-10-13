@@ -194,8 +194,8 @@
                   <strong class="payout-kpi-value">€ {{ formatAmount(p.grossRevenue) }}</strong>
                 </div>
                 <div class="payout-kpi partner">
-                  <span class="payout-kpi-label">Quota Carlotta</span>
-                  <strong class="payout-kpi-value">€ {{ formatAmount(p.partnerShare) }}</strong>
+                  <span class="payout-kpi-label">Da versare a Carlotta</span>
+                  <strong class="payout-kpi-value">€ {{ formatAmount(p.partnerToPay) }}</strong>
                 </div>
                 <div class="payout-kpi">
                   <span class="payout-kpi-label">Quota Imprendig</span>
@@ -251,6 +251,16 @@
                   <span class="payout-row-label">Quota Carlotta</span>
                   <strong class="payout-row-value partner-amount">€ {{ formatAmount(p.partnerShare) }}</strong>
                 </div>
+                @if (p.partnerDirectReceived > 0) {
+                  <div class="payout-row deduct">
+                    <span class="payout-row-label">— Bonifici già incassati da Carlotta</span>
+                    <span class="payout-row-value neg">− € {{ formatAmount(p.partnerDirectReceived) }}</span>
+                  </div>
+                  <div class="payout-row result partner">
+                    <span class="payout-row-label">{{ p.partnerToPay < 0 ? 'Da restituire da Carlotta' : 'Da versare a Carlotta' }}</span>
+                    <strong class="payout-row-value partner-amount">€ {{ formatAmount(p.partnerToPay) }}</strong>
+                  </div>
+                }
 
                 <div class="payout-divider"></div>
                 <div class="payout-party">Imprendig</div>
@@ -328,7 +338,9 @@
                       <th>Mese</th>
                       <th class="num">Incasso</th>
                       <th class="num">Quota UGC</th>
-                      <th class="num">Carlotta</th>
+                      <th class="num">Quota Carlotta</th>
+                      <th class="num">Bonifici incassati</th>
+                      <th class="num">Da versare</th>
                       <th class="num">Imprendig</th>
                     </tr>
                   </thead>
@@ -338,7 +350,9 @@
                         <td>{{ formatMonthLabel(h.month) }}</td>
                         <td class="num">€ {{ formatAmount(h.grossRevenue) }}</td>
                         <td class="num">€ {{ formatAmount(h.partnerAcademyGross) }}</td>
-                        <td class="num partner-amount">€ {{ formatAmount(h.partnerShare) }}</td>
+                        <td class="num">€ {{ formatAmount(h.partnerShare) }}</td>
+                        <td class="num">€ {{ formatAmount(h.partnerDirectReceived) }}</td>
+                        <td class="num partner-amount">€ {{ formatAmount(h.partnerToPay) }}</td>
                         <td class="num">€ {{ formatAmount(h.imprendigShare) }}</td>
                       </tr>
                     }

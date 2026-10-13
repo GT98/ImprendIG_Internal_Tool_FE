@@ -100,6 +100,8 @@ export interface PartnerPayoutDto {
   imprendigExtrasShare: number;
   partnerGrossShare: number;
   partnerShare: number;
+  partnerDirectReceived: number;
+  partnerToPay: number;
   imprendigSplitShare: number;
   imprendigShare: number;
 }
