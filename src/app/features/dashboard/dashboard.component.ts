@@ -281,6 +281,17 @@ export class DashboardComponent {
       .reduce((s, i) => s + Number(i.amount ?? 0), 0);
   });
 
+  /** Valore totale delle vendite chiuse nel periodo: tutte le rate, pagate e future (escluse le fallite). */
+  readonly fatturatoPrevisto = computed(() => {
+    const inst = this.sales()
+      .flatMap((s) => s.installments)
+      .filter((i) => i.status !== 'failed');
+    const sumOf = (arr: typeof inst) => arr.reduce((s, i) => s + Number(i.amount ?? 0), 0);
+    const paid = sumOf(inst.filter((i) => i.status === 'paid'));
+    const total = sumOf(inst);
+    return { total, paid, toCollect: total - paid };
+  });
+
   readonly conversionRate = computed(() => {
     const fatte = this.callsByCategory().fatta;
     const deals = this.sales().length;

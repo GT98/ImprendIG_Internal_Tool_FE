@@ -99,6 +99,12 @@
         [value]="eurFmt(incassatoMese())"
         [trend]="8"
       />
+      <app-stat-card
+        icon="trending"
+        [label]="hasRange() ? 'Fatturato previsto nel periodo' : 'Fatturato previsto'"
+        [value]="eurFmt(fatturatoPrevisto().total)"
+        [sub]="eurFmt(fatturatoPrevisto().paid) + ' incassati · ' + eurFmt(fatturatoPrevisto().toCollect) + ' da incassare'"
+      />
     </div>
 
     <!-- ── Calls + Payments ─────────────────────────────────── -->
