@@ -95,13 +95,13 @@
       />
       <app-stat-card
         icon="check"
-        [label]="hasRange() ? 'Generato nel periodo' : 'Generato questo mese'"
+        [label]="hasRange() ? 'Incassato nel periodo' : 'Incassato questo mese'"
         [value]="eurFmt(incassatoMese())"
         [trend]="8"
       />
       <app-stat-card
         icon="trending"
-        [label]="hasRange() ? 'Fatturato previsto nel periodo' : 'Fatturato previsto'"
+        [label]="hasRange() ? 'Fatturato generato nel periodo' : 'Fatturato previsto'"
         [value]="eurFmt(fatturatoPrevisto().total)"
         [sub]="eurFmt(fatturatoPrevisto().paid) + ' incassati · ' + eurFmt(fatturatoPrevisto().toCollect) + ' da incassare'"
       />
