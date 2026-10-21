@@ -4,7 +4,6 @@ import { authGuard } from './auth/auth.guard';
 import { adminGuard } from './auth/admin.guard';
 import { clientGuard } from './auth/client.guard';
 import { notClientGuard } from './auth/not-client.guard';
-import { referrerGuard } from './auth/referrer.guard';
 import { setterGuard } from './auth/setter.guard';
 import { AuthService } from './auth/auth.service';
 
@@ -22,12 +21,6 @@ export const routes: Routes = [
     title: 'Form onboarding',
   },
   {
-    path: 'r/:referralToken',
-    loadComponent: () =>
-      import('./features/referral/referral-booking.component').then(m => m.ReferralBookingComponent),
-    title: 'Prenota una chiamata',
-  },
-  {
     path: '',
     loadComponent: () =>
       import('./features/shell/shell.component').then(m => m.ShellComponent),
@@ -40,7 +33,6 @@ export const routes: Routes = [
           const role = inject(AuthService).currentUser()?.role;
           if (role === 'admin') return 'dashboard';
           if (role === 'client') return 'area-cliente';
-          if (role === 'referrer') return 'area-referral';
           return 'chiamate';
         },
       },
@@ -163,20 +155,6 @@ export const routes: Routes = [
       //     import('./features/bot-log/bot-log.component').then(m => m.BotLogComponent),
       //   title: 'Attività Bot',
       // },
-      {
-        path: 'area-referral',
-        canActivate: [referrerGuard],
-        loadComponent: () =>
-          import('./features/area-referral/area-referral.component').then(m => m.AreaReferralComponent),
-        title: 'Il mio programma',
-      },
-      {
-        path: 'referrals',
-        canActivate: [adminGuard],
-        loadComponent: () =>
-          import('./features/referrals/referrals-list.component').then(m => m.ReferralsListComponent),
-        title: 'Referral',
-      },
       {
         path: 'wix-routing',
         canActivate: [adminGuard],

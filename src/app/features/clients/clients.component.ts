@@ -306,7 +306,7 @@ function instStatusLabel(status: string): string {
                       @if (inst.status === 'paid' && inst.paymentDate) { Pag. {{ fmtDate(inst.paymentDate) }} }
                       @else if (inst.dueDate) { Scad. {{ fmtDate(inst.dueDate) }} }
                     </span>
-                    @if (inst.status === 'draft' || inst.status === 'paid' || inst.status === 'failed') {
+                    @if (isAdmin() && (inst.status === 'draft' || inst.status === 'paid' || inst.status === 'failed')) {
                       <button
                         class="inst-toggle-btn"
                         [class.paid]="inst.status === 'paid'"

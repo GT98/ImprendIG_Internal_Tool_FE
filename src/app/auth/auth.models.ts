@@ -6,7 +6,6 @@ export interface AuthUser {
   setterId: number | null;
   clientId: number | null;
   customerId: number | null;
-  referralToken: string | null;
   name: string | null;
   lastName: string | null;
 }

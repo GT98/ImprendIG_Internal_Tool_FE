@@ -54,7 +54,6 @@ export interface OnboardingSubmissionDto {
   token: string;
   status: 'pending' | 'completed';
   formLinkSentAt: string | null;
-  unlockSentAt: string | null;
   submittedAt: string | null;
   createdAt: string;
   customer: { id: number; name: string | null; surname: string | null; email: string | null } | null;

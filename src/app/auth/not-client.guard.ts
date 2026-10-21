@@ -7,6 +7,5 @@ export const notClientGuard: CanActivateFn = () => {
   const router = inject(Router);
   const role = auth.currentUser()?.role;
   if (role === 'client') return router.createUrlTree(['/area-cliente']);
-  if (role === 'referrer') return router.createUrlTree(['/area-referral']);
   return true;
 };

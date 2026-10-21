@@ -15,16 +15,10 @@ import { IconComponent } from '../../shared/icon.component';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { ToastContainerComponent } from '../../shared/toast.component';
 
-interface NavItem  { path: string; label: string; icon: string; adminOnly?: boolean; clientOnly?: boolean; referrerOnly?: boolean; setterOnly?: boolean; hideFromClient?: boolean; exactMatch?: boolean }
-interface NavGroup { id: string; label: string; items: NavItem[]; adminOnly?: boolean; clientOnly?: boolean; referrerOnly?: boolean; hideFromClient?: boolean }
+interface NavItem  { path: string; label: string; icon: string; adminOnly?: boolean; clientOnly?: boolean; setterOnly?: boolean; hideFromClient?: boolean; exactMatch?: boolean }
+interface NavGroup { id: string; label: string; items: NavItem[]; adminOnly?: boolean; clientOnly?: boolean; hideFromClient?: boolean }
 
 const NAV_GROUPS: NavGroup[] = [
-  {
-    id: 'referral', label: 'Il mio programma', referrerOnly: true,
-    items: [
-      { path: 'area-referral', label: 'Dashboard', icon: 'home', referrerOnly: true },
-    ],
-  },
   {
     id: 'cliente', label: 'La mia area', clientOnly: true,
     items: [
@@ -68,7 +62,6 @@ const NAV_GROUPS: NavGroup[] = [
       { path: 'commesse', label: 'Commesse', icon: 'edit' },
       // { path: 'onboarding', label: 'Onboarding', icon: 'send' },
       { path: 'team', label: 'Team', icon: 'users' },
-      { path: 'referrals', label: 'Referral', icon: 'target', adminOnly: true },
       { path: 'wix-routing', label: 'Automazioni Wix', icon: 'zap', adminOnly: true },
       // TODO: implementare Bot AI
       // { path: 'bot-log', label: 'Attività Bot', icon: 'activity' },
@@ -100,7 +93,6 @@ export class ShellComponent {
     const role = user?.role;
     const isAdmin = role === 'admin';
     const isClient = role === 'client';
-    const isReferrer = role === 'referrer';
     const isSetter = isAdmin || user?.setterId != null;
     return NAV_GROUPS
       .map(g => ({
@@ -108,15 +100,13 @@ export class ShellComponent {
         items: g.items.filter(i =>
           (!i.adminOnly || isAdmin) &&
           (!i.clientOnly || isClient) &&
-          (!i.referrerOnly || isReferrer) &&
           (!i.setterOnly || isSetter),
         ),
       }))
       .filter(g =>
         (!g.adminOnly || isAdmin) &&
         (!g.clientOnly || isClient) &&
-        (!g.referrerOnly || isReferrer) &&
-        (!g.hideFromClient || (!isClient && !isReferrer)) &&
+        (!g.hideFromClient || !isClient) &&
         g.items.length > 0,
       );
   });
