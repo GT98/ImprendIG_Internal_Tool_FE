@@ -1,52 +1,72 @@
 import { Component, computed, input } from '@angular/core';
 import { CommissionPoint } from '../models';
+import { formatEuro } from './format';
 
 // ---- Bar Chart --------------------------------------------------
+// In HTML/CSS (non SVG stirato) così le etichette restano leggibili a ogni larghezza.
 @Component({
   selector: 'app-bar-chart',
   template: `
-    <svg class="chart" [attr.viewBox]="'0 0 ' + W + ' ' + H" preserveAspectRatio="none" style="width:100%;height:220px">
-      @for (g of gridLines; track $index) {
-        <line [attr.x1]="padL" [attr.x2]="W" [attr.y1]="g" [attr.y2]="g" stroke="var(--border)" stroke-width="1" />
-      }
-      @for (item of barItems(); track item.i) {
-        <rect [attr.x]="item.x" [attr.y]="item.y" [attr.width]="barW" [attr.height]="item.h" rx="6"
-          [attr.fill]="item.last ? 'var(--accent)' : 'var(--accent-soft-2)'" />
-        <text [attr.x]="item.x + barW / 2" [attr.y]="H - 9" text-anchor="middle" class="chart-axis">{{ item.m }}</text>
-      }
-    </svg>
+    <div class="bar-chart" role="img" [attr.aria-label]="ariaLabel()">
+      <div class="bar-plot">
+        @for (g of [0.25, 0.5, 0.75, 1]; track g) {
+          <span class="bar-grid" [style.bottom.%]="(g / 1.18) * 100" aria-hidden="true"></span>
+        }
+        @for (item of barItems(); track item.i) {
+          <div class="bar-col" [title]="item.m + ': € ' + item.label">
+            <span class="bar-value" [class.last]="item.last">€ {{ item.short }}</span>
+            <div class="bar" [class.last]="item.last" [style.height.%]="item.pct"></div>
+          </div>
+        }
+      </div>
+      <div class="bar-axis" aria-hidden="true">
+        @for (item of barItems(); track item.i) {
+          <span class="bar-month" [class.last]="item.last">{{ item.m }}</span>
+        }
+      </div>
+    </div>
   `,
+  styles: [`
+    :host { display: block; }
+    .bar-chart { display: flex; flex-direction: column; gap: 8px; }
+    .bar-plot { position: relative; height: 200px; display: flex; align-items: flex-end; gap: 4%; padding: 0 2%; border-bottom: 1px solid var(--border); }
+    .bar-grid { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed var(--border); }
+    .bar-col { position: relative; flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; z-index: 1; }
+    .bar { width: 100%; max-width: 72px; min-height: 3px; border-radius: 8px 8px 3px 3px; background: var(--accent-soft-2); transition: height .3s ease; }
+    .bar.last { background: var(--accent); }
+    .bar-col:hover .bar:not(.last) { background: color-mix(in srgb, var(--accent) 45%, var(--accent-soft-2)); }
+    .bar-value { font-size: 12px; font-weight: 700; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .bar-value.last { color: var(--accent); }
+    .bar-axis { display: flex; gap: 4%; padding: 0 2%; }
+    .bar-month { flex: 1; text-align: center; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+    .bar-month.last { color: var(--ink); font-weight: 700; }
+    @media (max-width: 520px) {
+      .bar-value { font-size: 10px; }
+      .bar-month { font-size: 11px; }
+    }
+  `],
 })
 export class BarChartComponent {
   readonly data = input.required<CommissionPoint[]>();
-
-  readonly W = 560;
-  readonly H = 220;
-  readonly padB = 28;
-  readonly padT = 14;
-  readonly padL = 4;
-
-  get barW(): number {
-    return Math.min(46, ((this.W - this.padL) / (this.data()?.length || 1)) * 0.5);
-  }
-
-  get gridLines(): number[] {
-    return [0.25, 0.5, 0.75, 1].map(g => this.padT + (this.H - this.padT - this.padB) * (1 - g));
-  }
 
   readonly barItems = computed(() => {
     const data = this.data();
     if (!data.length) return [];
     const rawMax = Math.max(...data.map(d => d.v));
     const max = (rawMax > 0 ? rawMax : 1) * 1.18;
-    const bw = (this.W - this.padL) / data.length;
-    const barW = Math.min(46, bw * 0.5);
-    return data.map((d, i) => {
-      const h = (this.H - this.padT - this.padB) * (d.v / max);
-      const x = this.padL + bw * i + (bw - barW) / 2;
-      return { i, x, y: this.H - this.padB - h, h, m: d.m, last: i === data.length - 1 };
-    });
+    return data.map((d, i) => ({
+      i,
+      m: d.m,
+      pct: (d.v / max) * 100,
+      label: formatEuro(d.v),
+      short: d.v >= 1000 ? formatEuro(d.v, 0) : formatEuro(d.v, d.v % 1 ? 2 : 0),
+      last: i === data.length - 1,
+    }));
   });
+
+  readonly ariaLabel = computed(() =>
+    'Grafico a barre: ' + this.barItems().map(b => `${b.m} € ${b.label}`).join(', '),
+  );
 }
 
 // ---- Area Chart -------------------------------------------------

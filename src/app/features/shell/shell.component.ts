@@ -30,8 +30,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { path: 'area-cliente', label: 'Dashboard', icon: 'home', clientOnly: true, exactMatch: true },
       { path: 'area-cliente/leads', label: 'Lead', icon: 'phone', clientOnly: true },
-      { path: 'area-cliente/vendite', label: 'Vendite', icon: 'users', clientOnly: true },
-      { path: 'clienti', label: 'Il mio percorso', icon: 'receipt', clientOnly: true },
+      { path: 'area-cliente/clienti', label: 'Clienti', icon: 'users', clientOnly: true },
     ],
   },
   {

@@ -59,12 +59,13 @@ export const routes: Routes = [
         title: 'I miei lead',
       },
       {
-        path: 'area-cliente/vendite',
+        path: 'area-cliente/clienti',
         canActivate: [clientGuard],
         loadComponent: () =>
-          import('./features/area-cliente/area-cliente-vendite.component').then(m => m.AreaClienteVenditeComponent),
-        title: 'Le mie vendite',
+          import('./features/area-cliente/area-cliente-clienti.component').then(m => m.AreaClienteClientiComponent),
+        title: 'Le mie clienti',
       },
+      { path: 'area-cliente/vendite', redirectTo: 'area-cliente/clienti' },
       {
         path: 'dashboard',
         canActivate: [adminGuard],
@@ -88,6 +89,7 @@ export const routes: Routes = [
       },
       {
         path: 'clienti',
+        canActivate: [notClientGuard],
         loadComponent: () =>
           import('./features/clients/clients.component').then(m => m.ClientsComponent),
         title: 'Vendite',

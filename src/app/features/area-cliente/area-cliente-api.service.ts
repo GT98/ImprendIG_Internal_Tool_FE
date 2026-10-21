@@ -32,7 +32,14 @@ export interface ClientSaleDto {
   status: string;
   paymentMethod: string;
   createdAt: string;
-  customer: { id: number; name: string | null; surname: string | null; email: string | null; startDate: string | null } | null;
+  customer: {
+    id: number;
+    name: string | null;
+    surname: string | null;
+    email: string | null;
+    phone: string | null;
+    startDate: string | null;
+  } | null;
   pricePlan: {
     id: number;
     name: string | null;
@@ -40,6 +47,7 @@ export interface ClientSaleDto {
     installmentCount: number | null;
     serviceVariant: { id: number; name: string | null; service: { id: number; name: string | null } | null } | null;
   } | null;
+  seller: { id: number; name: string | null; lastName: string | null } | null;
   installments: { id: number; amount: string | null; installmentNumber: number; status: string; type: string; dueDate: string | null; paymentDate: string | null }[];
 }
 

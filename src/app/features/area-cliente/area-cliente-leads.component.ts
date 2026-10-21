@@ -60,6 +60,7 @@ const STATUS_LABEL: Record<string, string> = {
                 <th>Nome</th>
                 <th>Email</th>
                 <th>Telefono</th>
+                <th>Venditrice</th>
                 <th>Data chiamata</th>
                 <th>Stato</th>
               </tr>
@@ -70,6 +71,7 @@ const STATUS_LABEL: Record<string, string> = {
                   <td class="name-cell">{{ fullName(lead) }}</td>
                   <td class="muted">{{ lead.email ?? '—' }}</td>
                   <td class="muted">{{ lead.phone ?? '—' }}</td>
+                  <td>{{ sellerName(lead) }}</td>
                   <td class="muted sm">{{ fmtDateTime(lead.callStartDate) }}</td>
                   <td>
                     @if (lead.statusOption) {

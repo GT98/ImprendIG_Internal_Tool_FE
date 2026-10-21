@@ -7,6 +7,7 @@ import { IconComponent } from '../../shared/icon.component';
 import { StatCardComponent } from '../../shared/stat-card.component';
 import { BarChartComponent } from '../../shared/charts.component';
 import { CommissionPoint } from '../../models';
+import { formatEuro } from '../../shared/format';
 
 const IT_MONTHS_SHORT = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 const IT_MONTHS_LONG  = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
@@ -45,7 +46,7 @@ function fmtMonth(iso: string): string {
           <app-stat-card icon="euro" label="Fatturato {{ fmtMonth(currentMonth) }}" [value]="'€ ' + currentMonthRevenue()" [accent]="true" />
           <app-stat-card icon="chart" label="Fatturato totale" [value]="'€ ' + totalRevenue()" />
           <app-stat-card icon="phone" label="Lead attivi" [value]="leadCount()" />
-          <app-stat-card icon="users" label="Vendite totali" [value]="salesCount()" />
+          <app-stat-card icon="users" label="Clienti totali" [value]="salesCount()" />
         </div>
 
         <!-- Revenue chart -->
@@ -70,7 +71,7 @@ function fmtMonth(iso: string): string {
                 @for (r of sortedRevenue(); track r.month) {
                   <tr [class.current-month]="r.month === currentMonth">
                     <td>{{ fmtMonth(r.month) }}</td>
-                    <td class="text-right mono font-600">€ {{ (+r.total).toFixed(2) }}</td>
+                    <td class="text-right mono font-600">€ {{ formatEuro(r.total) }}</td>
                   </tr>
                 }
               </tbody>
@@ -90,9 +91,9 @@ function fmtMonth(iso: string): string {
             <span>Vedi tutti i lead</span>
             <app-icon name="chevron" [size]="16" />
           </a>
-          <a class="quick-link-card" routerLink="/area-cliente/vendite">
+          <a class="quick-link-card" routerLink="/area-cliente/clienti">
             <app-icon name="users" [size]="20" />
-            <span>Vedi tutte le vendite</span>
+            <span>Vedi tutte le clienti</span>
             <app-icon name="chevron" [size]="16" />
           </a>
         </div>
@@ -130,6 +131,7 @@ export class AreaClienteComponent {
 
   readonly currentMonth = currentIsoMonth();
   readonly fmtMonth = fmtMonth;
+  readonly formatEuro = formatEuro;
 
   private readonly clientId = computed(() => this.auth.currentUser()?.clientId ?? 0);
 
@@ -152,11 +154,11 @@ export class AreaClienteComponent {
 
   readonly currentMonthRevenue = computed(() => {
     const r = (this.revenueResource.value() ?? []).find(x => x.month === this.currentMonth);
-    return (+( r?.total ?? 0)).toFixed(2);
+    return formatEuro(r?.total);
   });
 
   readonly totalRevenue = computed(() =>
-    (this.revenueResource.value() ?? []).reduce((s, r) => s + +(r.total), 0).toFixed(2),
+    formatEuro((this.revenueResource.value() ?? []).reduce((s, r) => s + +(r.total), 0)),
   );
 
   readonly leadCount = computed(() => (this.leadResource.value() ?? []).length);
