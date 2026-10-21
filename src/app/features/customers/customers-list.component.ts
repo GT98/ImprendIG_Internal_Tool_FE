@@ -151,7 +151,7 @@ interface CustomerRow {
                       <span>{{ addrStr(row.customer) }}</span>
                     </div>
                   }
-                  @if (row.customer.sale?.client?.id === 3) {
+                  @if (hasAffiancamento(row.customer)) {
                     <div class="start-date-edit">
                       <label class="start-date-label" [for]="'sd-' + row.customer.id">Inizio affiancamento</label>
                       <div class="start-date-row">
@@ -237,6 +237,11 @@ export class CustomersListComponent {
       return true;
     });
   });
+
+  // L'id bigint arriva come stringa dal BE
+  hasAffiancamento(c: CustomerDto): boolean {
+    return Number(c.sale?.client?.id) === 3;
+  }
 
   toggleExpand(id: number): void {
     this.expandedId.update(cur => (cur === id ? null : id));
