@@ -5,6 +5,8 @@ export interface AffiancamentoDto {
   position: number;
   unlockInstallment: number | null;
   startDate: string | null;
+  durationMonths: number | null;
+  endDate: string | null;
   source: 'auto' | 'manual' | null;
 }
 

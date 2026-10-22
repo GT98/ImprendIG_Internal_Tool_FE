@@ -42,7 +42,10 @@ interface CustomerRow {
   phone: string | null;
   course: string;
   seller: string;
+  hasAffiancamento: boolean;
   startDate: string | null;
+  endDate: string | null;
+  durationMonths: number | null;
   unlockInstallment: number | null;
   paid: number;
   total: number;
@@ -158,6 +161,11 @@ type SortKey = 'start' | 'purchase' | 'name';
                     <td class="nowrap">
                       @if (row.startDate) {
                         <span class="start-date" [class.future]="row.startDate >= today">{{ fmtDate(row.startDate) }}</span>
+                        @if (row.endDate) {
+                          <span class="sub">fino al {{ fmtDate(row.endDate) }}</span>
+                        }
+                      } @else if (!row.hasAffiancamento) {
+                        <span class="muted">Non incluso</span>
                       } @else {
                         <span class="pill missing">{{ row.unlockInstallment ? 'Alla rata ' + row.unlockInstallment : 'Da definire' }}</span>
                       }
@@ -184,7 +192,12 @@ type SortKey = 'start' | 'purchase' | 'name';
                             <div><dt>Venditrice</dt><dd>{{ row.seller }}</dd></div>
                             <div><dt>Piano</dt><dd>{{ row.sale.pricePlan?.name ?? '—' }}</dd></div>
                             <div><dt>Metodo di pagamento</dt><dd>{{ row.sale.paymentMethod }}</dd></div>
+                            @if (row.hasAffiancamento) {
                             <div><dt>Inizio affiancamento</dt><dd>{{ row.startDate ? fmtDate(row.startDate) : (row.unlockInstallment ? 'Al pagamento della rata ' + row.unlockInstallment : 'Da definire') }}</dd></div>
+                            <div><dt>Fine affiancamento</dt><dd>{{ row.endDate ? fmtDate(row.endDate) : (row.durationMonths ? row.durationMonths + ' mesi dall\'inizio' : '—') }}</dd></div>
+                            } @else {
+                            <div><dt>Affiancamento</dt><dd>Non incluso nel piano</dd></div>
+                            }
                           </dl>
 
                           @if (row.sale.installments.length) {
@@ -343,7 +356,10 @@ export class AreaClienteClientiComponent {
         phone: c?.phone ?? null,
         course: svc ? (variant ? `${svc} · ${variant}` : svc) : (sale.pricePlan?.name ?? '—'),
         seller: [sale.seller?.name, sale.seller?.lastName].filter(Boolean).join(' ') || '—',
+        hasAffiancamento: !!aff,
         startDate: aff?.startDate ?? null,
+        endDate: aff?.endDate ?? null,
+        durationMonths: aff?.durationMonths ?? null,
         unlockInstallment: aff?.unlockInstallment ?? null,
         paid: sum(paidInst),
         total: sum(inst),
@@ -357,7 +373,7 @@ export class AreaClienteClientiComponent {
     const rows = this.rows();
     return {
       upcoming: rows.filter((r) => r.startDate && r.startDate >= this.today).length,
-      missing: rows.filter((r) => !r.startDate).length,
+      missing: rows.filter((r) => r.hasAffiancamento && !r.startDate).length,
       past: rows.filter((r) => r.startDate && r.startDate < this.today).length,
     };
   });
@@ -367,7 +383,7 @@ export class AreaClienteClientiComponent {
     const f = this.dateFilter();
     const filtered = this.rows().filter((r) => {
       if (f === 'upcoming' && !(r.startDate && r.startDate >= this.today)) return false;
-      if (f === 'missing' && r.startDate) return false;
+      if (f === 'missing' && !(r.hasAffiancamento && !r.startDate)) return false;
       if (f === 'past' && !(r.startDate && r.startDate < this.today)) return false;
       if (!q) return true;
       return [r.name, r.email, r.phone, r.seller].some((v) => (v ?? '').toLowerCase().includes(q));
@@ -388,8 +404,9 @@ export class AreaClienteClientiComponent {
     return [...rows].sort((a, b) => {
       if (key === 'name') return a.name.localeCompare(b.name, 'it');
       if (key === 'purchase') return byPurchase(a, b);
-      // Data affiancamento: prima le prossime (più vicine), poi quelle senza data, poi le passate (più recenti prima)
-      const rank = (r: CustomerRow) => (!r.startDate ? 1 : r.startDate >= this.today ? 0 : 2);
+      // Data affiancamento: prima le prossime (più vicine), poi quelle senza data, poi le passate (più recenti prima), in fondo quelle senza affiancamento
+      const rank = (r: CustomerRow) =>
+        !r.hasAffiancamento ? 3 : !r.startDate ? 1 : r.startDate >= this.today ? 0 : 2;
       const ra = rank(a);
       const rb = rank(b);
       if (ra !== rb) return ra - rb;

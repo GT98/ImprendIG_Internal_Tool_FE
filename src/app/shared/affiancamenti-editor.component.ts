@@ -2,7 +2,7 @@ import { Component, inject, input, linkedSignal, output, signal } from '@angular
 import { SaleApiService } from '../sales/sale-api.service';
 import { ToastService } from './toast.service';
 import { IconComponent } from './icon.component';
-import { AffiancamentoDto, UpdateAffiancamentoDto, affiancamentoLabel } from './affiancamento';
+import { AffiancamentoDto, UpdateAffiancamentoDto, affiancamentoLabel, fmtIsoDate } from './affiancamento';
 
 // Date di affiancamento per percorso. La data si imposta da sola al pagamento
 // della rata di sblocco; l'admin può cambiare l'ordine dei percorsi o forzare una data.
@@ -11,7 +11,7 @@ import { AffiancamentoDto, UpdateAffiancamentoDto, affiancamentoLabel } from './
   imports: [IconComponent],
   template: `
     @if (items().length === 0) {
-      <span class="muted">Nessun affiancamento per questo percorso</span>
+      <span class="muted">Affiancamento non incluso nel piano</span>
     } @else {
       <ul class="aff-list">
         @for (a of items(); track a.clientId; let first = $first; let last = $last) {
@@ -38,6 +38,12 @@ import { AffiancamentoDto, UpdateAffiancamentoDto, affiancamentoLabel } from './
               </button>
             } @else {
               <span class="aff-date" [class.pending]="!a.startDate">{{ label(a) }}</span>
+              @if (a.endDate) {
+                <span class="aff-end">→ {{ fmtDate(a.endDate) }}</span>
+              }
+              @if (a.durationMonths) {
+                <span class="aff-tag">{{ a.durationMonths }} mesi</span>
+              }
               @if (a.source === 'manual') {
                 <span class="aff-tag">manuale</span>
               }
@@ -72,6 +78,9 @@ import { AffiancamentoDto, UpdateAffiancamentoDto, affiancamentoLabel } from './
       @if (editable() && items().length > 1) {
         <p class="aff-hint">Predefinito: UGC Level Up come primo percorso. Cambia l'ordine se la cliente ha scelto diversamente.</p>
       }
+      @if (editable()) {
+        <p class="aff-hint">La fine si calcola dall'inizio: +3 mesi per i piani Base, +6 per gli Avanzato.</p>
+      }
     }
   `,
   styles: [`
@@ -82,6 +91,7 @@ import { AffiancamentoDto, UpdateAffiancamentoDto, affiancamentoLabel } from './
     .aff-name { font-weight: 600; color: var(--ink); }
     .aff-date { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
     .aff-date.pending { color: var(--ink-2); font-weight: 600; }
+    .aff-end { color: var(--ink-2); font-weight: 600; font-variant-numeric: tabular-nums; }
     .aff-tag { font-size: 0.7rem; font-weight: 700; padding: 1px 7px; border-radius: 20px; background: var(--surface-2); color: var(--ink-2); }
     .aff-actions { display: inline-flex; gap: 2px; margin-left: auto; }
     .aff-input { background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 6px; padding: 3px 6px; font-size: 0.85rem; }
@@ -104,6 +114,7 @@ export class AffiancamentiEditorComponent {
   readonly saving = signal(false);
 
   readonly label = affiancamentoLabel;
+  readonly fmtDate = fmtIsoDate;
 
   startEdit(a: AffiancamentoDto): void {
     this.draft.set(a.startDate ?? '');
