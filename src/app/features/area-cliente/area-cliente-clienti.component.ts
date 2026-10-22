@@ -43,6 +43,7 @@ interface CustomerRow {
   course: string;
   seller: string;
   startDate: string | null;
+  unlockInstallment: number | null;
   paid: number;
   total: number;
   paidCount: number;
@@ -75,9 +76,9 @@ type SortKey = 'start' | 'purchase' | 'name';
             <span class="summary-value">{{ counts().upcoming }}</span>
             <span class="summary-label">Affiancamenti in programma</span>
           </div>
-          <div class="summary-item" [class.warn]="counts().missing > 0">
+          <div class="summary-item">
             <span class="summary-value">{{ counts().missing }}</span>
-            <span class="summary-label">Senza data di affiancamento</span>
+            <span class="summary-label">In attesa della rata di sblocco</span>
           </div>
           <div class="summary-item">
             <span class="summary-value">{{ counts().past }}</span>
@@ -158,7 +159,7 @@ type SortKey = 'start' | 'purchase' | 'name';
                       @if (row.startDate) {
                         <span class="start-date" [class.future]="row.startDate >= today">{{ fmtDate(row.startDate) }}</span>
                       } @else {
-                        <span class="pill missing">Da definire</span>
+                        <span class="pill missing">{{ row.unlockInstallment ? 'Alla rata ' + row.unlockInstallment : 'Da definire' }}</span>
                       }
                     </td>
                     <td class="text-right nowrap">
@@ -183,7 +184,7 @@ type SortKey = 'start' | 'purchase' | 'name';
                             <div><dt>Venditrice</dt><dd>{{ row.seller }}</dd></div>
                             <div><dt>Piano</dt><dd>{{ row.sale.pricePlan?.name ?? '—' }}</dd></div>
                             <div><dt>Metodo di pagamento</dt><dd>{{ row.sale.paymentMethod }}</dd></div>
-                            <div><dt>Inizio affiancamento</dt><dd>{{ row.startDate ? fmtDate(row.startDate) : 'Da definire' }}</dd></div>
+                            <div><dt>Inizio affiancamento</dt><dd>{{ row.startDate ? fmtDate(row.startDate) : (row.unlockInstallment ? 'Al pagamento della rata ' + row.unlockInstallment : 'Da definire') }}</dd></div>
                           </dl>
 
                           @if (row.sale.installments.length) {
@@ -317,7 +318,7 @@ export class AreaClienteClientiComponent {
   readonly filterOptions: SegOption[] = [
     { value: 'all', label: 'Tutte' },
     { value: 'upcoming', label: 'In programma' },
-    { value: 'missing', label: 'Senza data' },
+    { value: 'missing', label: 'In attesa' },
     { value: 'past', label: 'Già iniziati' },
   ];
 
@@ -331,6 +332,8 @@ export class AreaClienteClientiComponent {
       const inst = (sale.installments ?? []).filter((i) => i.status !== 'failed');
       const paidInst = inst.filter((i) => i.status === 'paid');
       const sum = (arr: typeof inst) => arr.reduce((s, i) => s + Number(i.amount ?? 0), 0);
+      // Data del proprio percorso (il BE restituisce solo quelle del cliente)
+      const aff = sale.affiancamenti?.[0];
       const svc = sale.pricePlan?.serviceVariant?.service?.name;
       const variant = sale.pricePlan?.serviceVariant?.name;
       return {
@@ -340,7 +343,8 @@ export class AreaClienteClientiComponent {
         phone: c?.phone ?? null,
         course: svc ? (variant ? `${svc} · ${variant}` : svc) : (sale.pricePlan?.name ?? '—'),
         seller: [sale.seller?.name, sale.seller?.lastName].filter(Boolean).join(' ') || '—',
-        startDate: c?.startDate || null,
+        startDate: aff?.startDate ?? null,
+        unlockInstallment: aff?.unlockInstallment ?? null,
         paid: sum(paidInst),
         total: sum(inst),
         paidCount: paidInst.length,

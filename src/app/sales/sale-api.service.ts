@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { AffiancamentoDto, UpdateAffiancamentoDto } from '../shared/affiancamento';
 import { HttpClient } from '@angular/common/http';
 import type { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -37,6 +38,7 @@ export interface SaleDto {
     } | null;
   } | null;
   installments: InstallmentDto[];
+  affiancamenti?: AffiancamentoDto[];
 }
 
 export interface CreateNeutralSaleDto {
@@ -89,6 +91,10 @@ export class SaleApiService {
 
   reassignSetter(saleId: number, setterId: number | null): Observable<SaleDto> {
     return this.http.post<SaleDto>(`${API_URL}/sales/${saleId}/reassign-setter`, { setterId });
+  }
+
+  updateAffiancamento(saleId: number, dto: UpdateAffiancamentoDto): Observable<{ affiancamenti: AffiancamentoDto[] }> {
+    return this.http.patch<{ affiancamenti: AffiancamentoDto[] }>(`${API_URL}/sales/${saleId}/affiancamento`, dto);
   }
 
   recalculateCommissions(saleId: number): Observable<{ totalAmount: number }> {

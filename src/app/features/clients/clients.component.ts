@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../auth/auth.service';
 import { SaleApiService, SaleDto, InstallmentDto } from '../../sales/sale-api.service';
@@ -6,6 +6,7 @@ import { LeadsService, SellerBasicDto } from '../../leads/lead.service';
 import { ToastService } from '../../shared/toast.service';
 import { Client, Seller } from '../../models';
 import { IconComponent } from '../../shared/icon.component';
+import { AffiancamentiEditorComponent } from '../../shared/affiancamenti-editor.component';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { StatCardComponent } from '../../shared/stat-card.component';
 import { StatusBadgeComponent } from '../../shared/badge.component';
@@ -74,6 +75,7 @@ function saleToClient(sale: SaleDto, month: string): Client {
     method: '',
     customerId: sale.customer?.id ?? null,
     startDate: sale.customer?.startDate ?? null,
+    affiancamenti: sale.affiancamenti ?? [],
   };
 }
 
@@ -114,7 +116,7 @@ function instStatusLabel(status: string): string {
 // ---- CLIENT DRAWER ----------------------------------------------
 @Component({
   selector: 'app-client-drawer',
-  imports: [IconComponent, AvatarComponent, StatusBadgeComponent],
+  imports: [IconComponent, AvatarComponent, StatusBadgeComponent, AffiancamentiEditorComponent],
   styleUrl: './clients.component.css',
   template: `
     <div class="drawer-overlay" (click)="closedChange.emit()" role="dialog" aria-modal="true">
@@ -258,28 +260,11 @@ function instStatusLabel(status: string): string {
             <span>Ultimo pagamento</span>
             <span>{{ fmtDate(client().lastPay) }}</span>
           </div>
-          @if (isImprendig()) {
-          <div class="kv affiancamento-row">
-            <span>Data inizio affiancamento</span>
-            <span class="kv-edit">
-                <input
-                  class="select-inline"
-                  type="date"
-                  [value]="affiancamentoDate()"
-                  (input)="affiancamentoDate.set($any($event.target).value)"
-                  [disabled]="savingAffiancamento()"
-                  aria-label="Data inizio affiancamento"
-                />
-                <button
-                  class="icon-btn sm"
-                  (click)="saveAffiancamento()"
-                  [disabled]="savingAffiancamento()"
-                  aria-label="Salva data"
-                >
-                  <app-icon name="check" [size]="14" />
-                </button>
-              </span>
-          </div>
+          @if (client().affiancamenti?.length) {
+            <div class="kv affiancamento-row">
+              <span>Affiancamento 1:1</span>
+              <app-affiancamenti-editor [saleId]="saleId()" [affiancamenti]="client().affiancamenti" [editable]="isAdmin()" />
+            </div>
           }
         </div>
 
@@ -349,9 +334,8 @@ function instStatusLabel(status: string): string {
     </div>
   `,
 })
-export class ClientDrawerComponent implements OnInit {
+export class ClientDrawerComponent {
   readonly client = input.required<Client>();
-  readonly isImprendig = computed(() => Number(this.client().id) === 3);
   readonly saleId = input.required<number>();
   readonly seller = input.required<Seller>();
   readonly setter = input<Seller | null>(null);
@@ -370,8 +354,6 @@ export class ClientDrawerComponent implements OnInit {
   private readonly toast = inject(ToastService);
 
   readonly togglingId = signal<number | null>(null);
-  readonly affiancamentoDate = signal('');
-  readonly savingAffiancamento = signal(false);
   readonly recalculating = signal(false);
 
   readonly sellersResource = rxResource({ stream: () => this.leadsService.getSellers() });
@@ -396,26 +378,6 @@ export class ClientDrawerComponent implements OnInit {
     const bal = this.installments().filter(i => i.type === 'balance');
     return bal[0]?.totalInstallment || bal.length;
   });
-
-  ngOnInit(): void {
-    this.affiancamentoDate.set(this.client().startDate ?? '');
-  }
-
-  saveAffiancamento(): void {
-    const customerId = this.client().customerId;
-    if (!customerId) return;
-    this.savingAffiancamento.set(true);
-    this.leadsService.patchCustomer(customerId, { startDate: this.affiancamentoDate() || null }).subscribe({
-      next: () => {
-        this.savingAffiancamento.set(false);
-        this.toast.success('Data inizio affiancamento salvata');
-      },
-      error: () => {
-        this.savingAffiancamento.set(false);
-        this.toast.error('Impossibile salvare la data');
-      },
-    });
-  }
 
   startEditSeller(): void {
     this.newSellerId.set(Number(this.seller().id) || null);

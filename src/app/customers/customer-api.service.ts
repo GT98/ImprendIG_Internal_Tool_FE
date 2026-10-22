@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { AffiancamentoDto } from '../shared/affiancamento';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -16,6 +17,7 @@ export interface CustomerSale {
   status: string;
   client: { id: number } | null;
   seller: CustomerSeller | null;
+  affiancamenti?: AffiancamentoDto[];
   pricePlan: {
     id: number;
     name: string;
@@ -71,7 +73,6 @@ export interface SubmitOnboardingFormDto {
   city: string;
   province: string;
   cap: string;
-  startDate: string;
   termsAccepted: boolean;
 }
 

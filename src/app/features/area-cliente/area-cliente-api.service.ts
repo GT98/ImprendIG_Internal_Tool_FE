@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import { AffiancamentoDto } from '../../shared/affiancamento';
 
 const API = environment.apiUrl;
 
@@ -48,6 +49,7 @@ export interface ClientSaleDto {
     serviceVariant: { id: number; name: string | null; service: { id: number; name: string | null } | null } | null;
   } | null;
   seller: { id: number; name: string | null; lastName: string | null } | null;
+  affiancamenti?: AffiancamentoDto[];
   installments: { id: number; amount: string | null; installmentNumber: number; status: string; type: string; dueDate: string | null; paymentDate: string | null }[];
 }
 

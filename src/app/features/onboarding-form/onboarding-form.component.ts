@@ -133,16 +133,6 @@ type PageState = 'loading' | 'form' | 'completed' | 'error';
               </div>
             </div>
 
-            <div class="field">
-              <label for="startDate">Data inizio affiancamento 1:1 *</label>
-              <input id="startDate" type="text" formControlName="startDate"
-                [class.invalid]="invalid('startDate')" placeholder="GG/MM" maxlength="5" />
-              <span class="hint">Solo giorno e mese, es. 15/03</span>
-              @if (invalid('startDate')) {
-                <span class="err" role="alert">Inserisci una data valida nel formato GG/MM</span>
-              }
-            </div>
-
             <div class="checkbox-row">
               <input id="terms" type="checkbox" formControlName="termsAccepted" />
               <label for="terms">
@@ -189,7 +179,6 @@ export class OnboardingFormComponent implements OnInit {
     city:           ['', Validators.required],
     province:       ['', [Validators.required, Validators.pattern(/^[A-Za-z]{2}$/)]],
     cap:            ['', [Validators.required, Validators.pattern(/^\d{5}$/)]],
-    startDate:      ['', [Validators.required, Validators.pattern(/^\d{2}\/\d{2}$/)]],
     termsAccepted:  [false, Validators.requiredTrue],
   });
 
@@ -234,7 +223,6 @@ export class OnboardingFormComponent implements OnInit {
         city:           v.city ?? '',
         province:       (v.province ?? '').toUpperCase(),
         cap:            v.cap ?? '',
-        startDate:      v.startDate ?? '',
         termsAccepted:  v.termsAccepted ?? false,
       })
       .subscribe({

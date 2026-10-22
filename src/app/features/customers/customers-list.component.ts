@@ -9,8 +9,8 @@ import {
   OnboardingSubmissionDto,
 } from '../../customers/customer-api.service';
 import { IconComponent } from '../../shared/icon.component';
+import { AffiancamentiEditorComponent } from '../../shared/affiancamenti-editor.component';
 import { AuthService } from '../../auth/auth.service';
-import { ToastService } from '../../shared/toast.service';
 
 interface CustomerRow {
   customer: CustomerDto;
@@ -19,7 +19,7 @@ interface CustomerRow {
 
 @Component({
   selector: 'app-customers-list',
-  imports: [IconComponent],
+  imports: [IconComponent, AffiancamentiEditorComponent],
   styleUrl: './customers-list.component.css',
   template: `
     <div class="page">
@@ -151,26 +151,15 @@ interface CustomerRow {
                       <span>{{ addrStr(row.customer) }}</span>
                     </div>
                   }
-                  @if (hasAffiancamento(row.customer)) {
+                  @if (row.customer.sale?.affiancamenti?.length) {
                     <div class="start-date-edit">
-                      <label class="start-date-label" [for]="'sd-' + row.customer.id">Inizio affiancamento</label>
-                      <div class="start-date-row">
-                        <input
-                          type="date"
-                          class="date-input"
-                          [id]="'sd-' + row.customer.id"
-                          [value]="getDate(row.customer.id, row.customer.startDate)"
-                          (change)="setDate(row.customer.id, $any($event.target).value)"
-                          [disabled]="savingId() === row.customer.id"
-                        />
-                        @if (isDirty(row.customer.id, row.customer.startDate)) {
-                          <button
-                            class="save-btn"
-                            (click)="saveStartDate(row.customer.id)"
-                            [disabled]="savingId() === row.customer.id"
-                          >{{ savingId() === row.customer.id ? '…' : 'Salva' }}</button>
-                        }
-                      </div>
+                      <span class="start-date-label">Affiancamento 1:1</span>
+                      <app-affiancamenti-editor
+                        [saleId]="row.customer.sale!.id"
+                        [affiancamenti]="row.customer.sale!.affiancamenti"
+                        [editable]="isAdmin()"
+                        (changed)="customersResource.reload()"
+                      />
                     </div>
                   }
                 </div>
@@ -186,13 +175,10 @@ export class CustomersListComponent {
   private readonly api = inject(CustomerApiService);
   private readonly onboardingApi = inject(OnboardingFormApiService);
   private readonly auth = inject(AuthService);
-  private readonly toast = inject(ToastService);
 
   readonly searchQuery = signal('');
   readonly statusFilter = signal('');
   readonly expandedId = signal<number | null>(null);
-  readonly editedDates = signal<Record<number, string>>({});
-  readonly savingId = signal<number | null>(null);
 
   readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'admin');
 
@@ -238,44 +224,8 @@ export class CustomersListComponent {
     });
   });
 
-  // L'id bigint arriva come stringa dal BE
-  hasAffiancamento(c: CustomerDto): boolean {
-    return Number(c.sale?.client?.id) === 3;
-  }
-
   toggleExpand(id: number): void {
     this.expandedId.update(cur => (cur === id ? null : id));
-  }
-
-  getDate(id: number, current: string | null): string {
-    const edited = this.editedDates()[id];
-    return edited !== undefined ? edited : (current ?? '');
-  }
-
-  setDate(id: number, val: string): void {
-    this.editedDates.update(m => ({ ...m, [id]: val }));
-  }
-
-  isDirty(id: number, current: string | null): boolean {
-    const edited = this.editedDates()[id];
-    return edited !== undefined && edited !== (current ?? '');
-  }
-
-  saveStartDate(customerId: number): void {
-    const date = this.editedDates()[customerId];
-    if (date === undefined) return;
-    this.savingId.set(customerId);
-    this.api.patch(customerId, { startDate: date || null }).subscribe({
-      next: () => {
-        this.savingId.set(null);
-        this.toast.success('Data affiancamento salvata');
-        this.customersResource.reload();
-      },
-      error: () => {
-        this.savingId.set(null);
-        this.toast.error('Impossibile salvare la data');
-      },
-    });
   }
 
   fullName(c: CustomerDto): string {

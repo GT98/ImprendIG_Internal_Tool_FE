@@ -290,3 +290,6 @@
   }
   .inst-summary-row .inst-date { display: none; }
 }
+
+/* Affiancamenti per percorso: etichetta sopra, elenco sotto */
+.kv.affiancamento-row { flex-direction: column; align-items: stretch; gap: 8px; }

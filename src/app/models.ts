@@ -1,3 +1,4 @@
+import type { AffiancamentoDto } from './shared/affiancamento';
 export interface Seller {
   id: string;
   name: string;
@@ -58,6 +59,7 @@ export interface Client {
   method: string;
   customerId: number | null;
   startDate: string | null;
+  affiancamenti?: AffiancamentoDto[];
 }
 
 export type NavRoute = 'chiamate' | 'provvigioni' | 'clienti' | 'catalogo';
