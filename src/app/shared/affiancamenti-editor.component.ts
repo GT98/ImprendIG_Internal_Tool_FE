@@ -49,7 +49,7 @@ import { AffiancamentoDto, UpdateAffiancamentoDto, affiancamentoLabel, fmtIsoDat
               }
               @if (editable()) {
                 <span class="aff-actions">
-                  @if (items().length > 1) {
+                  @if (canReorder() && items().length > 1) {
                     <button type="button" class="icon-btn sm" (click)="move(a, -1)" [disabled]="saving() || first"
                       [attr.aria-label]="'Sposta ' + a.academy + ' prima'">
                       <app-icon name="arrowUp" [size]="13" />
@@ -75,7 +75,7 @@ import { AffiancamentoDto, UpdateAffiancamentoDto, affiancamentoLabel, fmtIsoDat
           </li>
         }
       </ul>
-      @if (editable() && items().length > 1) {
+      @if (editable() && canReorder() && items().length > 1) {
         <p class="aff-hint">Predefinito: UGC Level Up come primo percorso. Cambia l'ordine se la cliente ha scelto diversamente.</p>
       }
       @if (editable()) {
@@ -106,6 +106,8 @@ export class AffiancamentiEditorComponent {
   readonly saleId = input.required<number>();
   readonly affiancamenti = input<AffiancamentoDto[] | undefined>([]);
   readonly editable = input(false);
+  // l'ordine dei percorsi nei bundle lo cambia solo l'admin
+  readonly canReorder = input(true);
   readonly changed = output<AffiancamentoDto[]>();
 
   readonly items = linkedSignal(() => this.affiancamenti() ?? []);

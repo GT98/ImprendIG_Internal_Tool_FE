@@ -263,7 +263,7 @@ function instStatusLabel(status: string): string {
           @if (client().affiancamenti?.length) {
             <div class="kv affiancamento-row">
               <span>Affiancamento 1:1</span>
-              <app-affiancamenti-editor [saleId]="saleId()" [affiancamenti]="client().affiancamenti" [editable]="isAdmin()" />
+              <app-affiancamenti-editor [saleId]="saleId()" [affiancamenti]="client().affiancamenti" [editable]="canEditAffiancamento()" [canReorder]="isAdmin()" />
             </div>
           }
         </div>
@@ -352,6 +352,14 @@ export class ClientDrawerComponent {
   private readonly saleApiService = inject(SaleApiService);
   private readonly leadsService = inject(LeadsService);
   private readonly toast = inject(ToastService);
+  private readonly auth = inject(AuthService);
+
+  /** Date di affiancamento: l'admin sempre, la venditrice sulle proprie vendite */
+  readonly canEditAffiancamento = computed(() => {
+    if (this.isAdmin()) return true;
+    const own = this.auth.currentUser()?.sellerId;
+    return own != null && Number(own) === Number(this.seller().id);
+  });
 
   readonly togglingId = signal<number | null>(null);
   readonly recalculating = signal(false);

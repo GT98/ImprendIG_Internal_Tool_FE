@@ -4,6 +4,7 @@ import { of } from 'rxjs';
 import {
   CustomerApiService,
   CustomerDto,
+  CustomerSale,
   CustomerSeller,
   OnboardingFormApiService,
   OnboardingSubmissionDto,
@@ -157,7 +158,8 @@ interface CustomerRow {
                       <app-affiancamenti-editor
                         [saleId]="row.customer.sale!.id"
                         [affiancamenti]="row.customer.sale!.affiancamenti"
-                        [editable]="isAdmin()"
+                        [editable]="canEditAffiancamento(row.customer.sale!)"
+                        [canReorder]="isAdmin()"
                         (changed)="customersResource.reload()"
                       />
                     </div>
@@ -181,6 +183,13 @@ export class CustomersListComponent {
   readonly expandedId = signal<number | null>(null);
 
   readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'admin');
+
+  /** Date di affiancamento: l'admin sempre, la venditrice sulle proprie vendite */
+  canEditAffiancamento(sale: CustomerSale): boolean {
+    if (this.isAdmin()) return true;
+    const own = this.auth.currentUser()?.sellerId;
+    return own != null && Number(own) === Number(sale.seller?.id);
+  }
 
   readonly customersResource = rxResource({
     stream: () => this.api.getAll(),
