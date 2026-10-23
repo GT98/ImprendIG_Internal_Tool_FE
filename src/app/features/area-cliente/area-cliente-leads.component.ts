@@ -2,6 +2,7 @@ import { Component, computed, signal, inject } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { AreaClienteApiService, ClientLeadDto } from './area-cliente-api.service';
 import { IconComponent } from '../../shared/icon.component';
+import { OnboardingAnswersModalComponent } from '../../shared/onboarding-answers-modal.component';
 import { MonthNavComponent } from '../commissions/month-nav.component';
 
 function currentIsoMonth(): string {
@@ -29,7 +30,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 @Component({
   selector: 'app-area-cliente-leads',
-  imports: [IconComponent, MonthNavComponent],
+  imports: [IconComponent, MonthNavComponent, OnboardingAnswersModalComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -136,8 +137,17 @@ const STATUS_LABEL: Record<string, string> = {
           @if (lead.notes) {
             <div class="drawer-section">
               <div class="ds-title">Dati onboarding</div>
-              <div class="note-box">{{ lead.notes }}</div>
+              <button type="button" class="btn-ghost full" (click)="onboardingOpen.set(true)">
+                <app-icon name="eye" [size]="15" /> Vedi il modulo compilato
+              </button>
             </div>
+            @if (onboardingOpen()) {
+              <app-onboarding-answers-modal
+                [notes]="lead.notes"
+                [name]="fullName(lead)"
+                (closed)="onboardingOpen.set(false)"
+              />
+            }
           }
 
           @if (lead.sellerNotes) {
@@ -205,6 +215,7 @@ export class AreaClienteLeadsComponent {
 
   readonly selectedMonth = signal(currentIsoMonth());
   readonly selectedLead = signal<ClientLeadDto | null>(null);
+  readonly onboardingOpen = signal(false);
 
   readonly leadsResource = rxResource({
     params: () => this.selectedMonth(),
@@ -218,7 +229,10 @@ export class AreaClienteLeadsComponent {
   );
 
   openLead(lead: ClientLeadDto): void { this.selectedLead.set(lead); }
-  closeLead(): void { this.selectedLead.set(null); }
+  closeLead(): void {
+    this.selectedLead.set(null);
+    this.onboardingOpen.set(false);
+  }
 
   fullName(lead: ClientLeadDto): string {
     return [lead.name, lead.surname].filter(Boolean).join(' ') || '—';

@@ -67,6 +67,7 @@ function leadToCall(lead: Lead): Call {
     notes: lead.notes ?? null,
     sellerNotes: lead.sellerNotes ?? null,
     formCliente: lead.formCliente ?? null,
+    clientId: lead.client?.id != null ? Number(lead.client.id) : null,
   };
 }
 
@@ -433,9 +434,10 @@ export class CallQuickActionModalComponent {
         this.done.emit();
         this.closed.emit();
       },
-      error: () => {
+      error: (err: { status?: number; error?: { message?: unknown } }) => {
         this.acting.set(false);
-        this.toast.error('Impossibile trasferire la chiamata. Riprova.');
+        const msg = err?.error?.message;
+        this.toast.error(err?.status === 409 && typeof msg === 'string' ? msg : 'Impossibile trasferire la chiamata. Riprova.');
       },
     });
   }
@@ -463,9 +465,10 @@ export class CallQuickActionModalComponent {
         this.done.emit();
         this.closed.emit();
       },
-      error: () => {
+      error: (err: { status?: number; error?: { message?: unknown } }) => {
         this.acting.set(false);
-        this.toast.error('Impossibile riprogrammare la chiamata. Riprova.');
+        const msg = err?.error?.message;
+        this.toast.error(err?.status === 409 && typeof msg === 'string' ? msg : 'Impossibile riprogrammare la chiamata. Riprova.');
       },
     });
   }

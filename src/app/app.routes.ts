@@ -15,6 +15,18 @@ export const routes: Routes = [
     title: 'Accedi',
   },
   {
+    path: 'prenota/gestisci/:token',
+    loadComponent: () =>
+      import('./features/prenota/gestisci.component').then(m => m.GestisciComponent),
+    title: 'La tua call',
+  },
+  {
+    path: 'prenota/:academy',
+    loadComponent: () =>
+      import('./features/prenota/prenota.component').then(m => m.PrenotaComponent),
+    title: 'Prenota una call',
+  },
+  {
     path: 'form/:token',
     loadComponent: () =>
       import('./features/onboarding-form/onboarding-form.component').then(m => m.OnboardingFormComponent),
@@ -155,6 +167,21 @@ export const routes: Routes = [
       //     import('./features/bot-log/bot-log.component').then(m => m.BotLogComponent),
       //   title: 'Attività Bot',
       // },
+      {
+        path: 'disponibilita',
+        // TODO lancio prenotazioni: notClientGuard per aprirla alle venditrici
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/agenda/disponibilita.component').then(m => m.DisponibilitaComponent),
+        title: 'Disponibilità',
+      },
+      {
+        path: 'prenotazioni',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/agenda/prenotazioni-config.component').then(m => m.PrenotazioniConfigComponent),
+        title: 'Prenotazioni',
+      },
       {
         path: 'wix-routing',
         canActivate: [adminGuard],

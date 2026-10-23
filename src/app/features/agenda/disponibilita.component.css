@@ -1,0 +1,34 @@
+.page { padding: 28px 24px 80px; max-width: 980px; margin: 0 auto; }
+.page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.page-head h1 { font-size: 1.4rem; font-weight: 700; margin: 0 0 4px; }
+.page-sub { max-width: 620px; }
+.select, .field input, .range input {
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface);
+  color: var(--ink); font-size: 13px; font-family: inherit;
+}
+.muted { color: var(--ink-3); }
+.small { font-size: 13px; margin: 0 0 12px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
+.card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+.card-head h2 { margin: 0; font-size: 1rem; }
+.rows { display: flex; flex-direction: column; }
+.row { display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border-2, var(--border)); }
+.row:first-child { border-top: none; }
+.wd { font-weight: 700; font-size: 13.5px; }
+.ranges { display: flex; flex-wrap: wrap; gap: 8px; }
+.range { display: inline-flex; align-items: center; gap: 6px; }
+.off { color: var(--ink-3); font-size: 13px; }
+.btn-ghost.sm { padding: 6px 10px; font-size: 12px; }
+.icon-btn.sm { width: 28px; height: 28px; }
+.warn { color: #b45309; font-size: 13px; margin: 10px 0 0; }
+.off-form { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 14px; }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.field.grow { flex: 1 1 160px; }
+.conflicts { background: #fdf3e2; border: 1px solid #f3d39b; color: #7a4a00; border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-bottom: 12px; }
+.conflicts ul { margin: 6px 0 0; padding-left: 18px; }
+.off-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.off-list li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; text-transform: none; }
+
+@media (max-width: 640px) {
+  .row { grid-template-columns: 1fr; gap: 6px; }
+}

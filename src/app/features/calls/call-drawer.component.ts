@@ -11,6 +11,7 @@ import { ToastService } from '../../shared/toast.service';
 import { AuthService } from '../../auth/auth.service';
 import { VoiceRecorderService } from './voice-recorder.service';
 import { CallRecordingApiService } from './call-recording-api.service';
+import { OnboardingAnswersModalComponent } from '../../shared/onboarding-answers-modal.component';
 
 function sellerDisplayName(s: { name: string | null; lastName: string | null } | null): string {
   return [s?.name, s?.lastName].filter(Boolean).join(' ') || '—';
@@ -23,7 +24,7 @@ function parsePayload(raw: string | null): Record<string, string> {
 
 @Component({
   selector: 'app-call-drawer',
-  imports: [IconComponent, AvatarComponent, StatusBadgeComponent, TypeChipComponent],
+  imports: [IconComponent, AvatarComponent, StatusBadgeComponent, TypeChipComponent, OnboardingAnswersModalComponent],
   templateUrl: './call-drawer.component.html',
   styleUrl: './call-drawer.component.css',
 })
@@ -79,7 +80,7 @@ export class CallDrawerComponent {
 
   // ── existing signals ──────────────────────────────────────────
   readonly selectedOptionId = signal<number | null>(null);
-  readonly notes = signal<string>('');
+  readonly showOnboarding = signal(false);
   readonly sellerNotes = signal<string>('');
   readonly selectedSetterId = signal<number | null>(null);
   readonly saving = signal(false);
@@ -129,7 +130,6 @@ export class CallDrawerComponent {
 
   ngOnInit(): void {
     this.selectedOptionId.set(this.call().statusOptionId);
-    this.notes.set(this.call().notes ?? '');
     this.sellerNotes.set(this.call().sellerNotes ?? '');
     this.rescheduleDate.set(this.call().when.slice(0, 16));
     this.selectedSetterId.set(this.call().setterId ? parseInt(this.call().setterId!) : null);
@@ -156,10 +156,10 @@ export class CallDrawerComponent {
   save(): void {
     this.saving.set(true);
     const statusOptionId = this.selectedOptionId();
-    const notes = this.notes().trim() || null;
     const sellerNotes = this.sellerNotes().trim() || null;
     const setterId = this.canEditSetter() ? this.selectedSetterId() : undefined;
-    this.leadsService.patch(this.call().id, { statusOptionId, notes, sellerNotes, setterId }).subscribe({
+    // i dati onboarding non si modificano più da qui: non li rimandiamo
+    this.leadsService.patch(this.call().id, { statusOptionId, sellerNotes, setterId }).subscribe({
       next: () => {
         this.saving.set(false);
         this.toast.success('Esito e note salvati correttamente');
@@ -204,9 +204,10 @@ export class CallDrawerComponent {
         this.saved.emit();
         this.closed.emit();
       },
-      error: () => {
+      error: (err: { status?: number; error?: { message?: unknown } }) => {
         this.acting.set(false);
-        this.toast.error('Impossibile trasferire la chiamata. Riprova.');
+        const msg = err?.error?.message;
+        this.toast.error(err?.status === 409 && typeof msg === 'string' ? msg : 'Impossibile trasferire la chiamata. Riprova.');
       },
     });
   }
@@ -249,9 +250,10 @@ export class CallDrawerComponent {
         this.saved.emit();
         this.closed.emit();
       },
-      error: () => {
+      error: (err: { status?: number; error?: { message?: unknown } }) => {
         this.acting.set(false);
-        this.toast.error('Impossibile riprogrammare la chiamata. Riprova.');
+        const msg = err?.error?.message;
+        this.toast.error(err?.status === 409 && typeof msg === 'string' ? msg : 'Impossibile riprogrammare la chiamata. Riprova.');
       },
     });
   }

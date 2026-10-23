@@ -23,6 +23,8 @@ export interface Call {
   notes: string | null;
   sellerNotes: string | null;
   formCliente: string | null;
+  // academy del lead, per riconoscere le domande del modulo di prenotazione
+  clientId?: number | null;
 }
 
 export interface Deal {
