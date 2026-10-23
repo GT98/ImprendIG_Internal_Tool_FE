@@ -93,15 +93,18 @@ interface CustomerRow {
                 <div class="td-contacts">
                   <span class="td-contact">{{ row.customer.email || '—' }}</span>
                   <span class="td-sub">{{ row.customer.phone || '—' }}</span>
-                  <button class="addr-toggle" (click)="toggleExpand(row.customer.id)" [attr.aria-expanded]="expandedId() === row.customer.id">
-                    @if (hasAddress(row.customer)) {
-                      <app-icon name="home" [size]="12" />
-                      {{ row.customer.city || 'Indirizzo' }}{{ row.customer.province ? ' (' + row.customer.province + ')' : '' }}
-                    } @else {
-                      <app-icon name="calendar" [size]="12" />
-                      Affiancamento
-                    }
-                  </button>
+                  <!-- Niente da espandere se non c'è indirizzo e il piano non prevede l'affiancamento -->
+                  @if (hasAddress(row.customer) || row.customer.sale?.affiancamenti?.length) {
+                    <button class="addr-toggle" (click)="toggleExpand(row.customer.id)" [attr.aria-expanded]="expandedId() === row.customer.id">
+                      @if (hasAddress(row.customer)) {
+                        <app-icon name="home" [size]="12" />
+                        {{ row.customer.city || 'Indirizzo' }}{{ row.customer.province ? ' (' + row.customer.province + ')' : '' }}
+                      } @else {
+                        <app-icon name="calendar" [size]="12" />
+                        Affiancamento
+                      }
+                    </button>
+                  }
                 </div>
 
                 <!-- Venditore -->
