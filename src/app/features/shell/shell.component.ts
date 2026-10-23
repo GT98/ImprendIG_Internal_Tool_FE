@@ -31,6 +31,8 @@ const NAV_GROUPS: NavGroup[] = [
     id: 'commerciale', label: 'Commerciale', hideFromClient: true,
     items: [
       { path: 'chiamate', label: 'Chiamate', icon: 'phone' },
+      // TODO lancio prenotazioni: togliere adminOnly per farla usare alle venditrici
+      { path: 'disponibilita', label: 'Disponibilità', icon: 'clock', adminOnly: true },
       { path: 'clienti', label: 'Vendite', icon: 'users' },
       { path: 'customers', label: 'Clienti', icon: 'users' },
       { path: 'leads', label: 'Lead', icon: 'target', setterOnly: true },
@@ -62,6 +64,7 @@ const NAV_GROUPS: NavGroup[] = [
       { path: 'commesse', label: 'Commesse', icon: 'edit' },
       // { path: 'onboarding', label: 'Onboarding', icon: 'send' },
       { path: 'team', label: 'Team', icon: 'users' },
+      { path: 'prenotazioni', label: 'Prenotazioni', icon: 'calendar', adminOnly: true },
       { path: 'wix-routing', label: 'Automazioni Wix', icon: 'zap', adminOnly: true },
       // TODO: implementare Bot AI
       // { path: 'bot-log', label: 'Attività Bot', icon: 'activity' },

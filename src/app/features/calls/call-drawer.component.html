@@ -71,6 +71,34 @@
     }
 
     <div class="drawer-section">
+      <div class="ds-title">Dati onboarding</div>
+      @if (call().notes) {
+        <button type="button" class="btn-ghost full" (click)="showOnboarding.set(true)">
+          <app-icon name="eye" [size]="15" /> Vedi il modulo compilato
+        </button>
+      } @else {
+        <p class="muted">Nessun modulo compilato per questa chiamata.</p>
+      }
+    </div>
+
+    @if (showOnboarding()) {
+      <app-onboarding-answers-modal
+        [notes]="call().notes"
+        [name]="call().client"
+        [academy]="call().company"
+        [clientId]="call().clientId"
+        (closed)="showOnboarding.set(false)"
+      />
+    }
+
+    @if (call().formCliente) {
+      <div class="drawer-section">
+        <div class="ds-title">Form cliente</div>
+        <div class="form-cliente-box">{{ call().formCliente }}</div>
+      </div>
+    }
+
+    <div class="drawer-section">
       <label class="ds-title" for="esito-select">Esito chiamata</label>
       @if (statusOptionsResource.isLoading()) {
         <div class="esito-loading">Caricamento…</div>
@@ -86,24 +114,6 @@
           }
         </select>
       }
-    </div>
-
-    @if (call().formCliente) {
-      <div class="drawer-section">
-        <div class="ds-title">Form cliente</div>
-        <div class="form-cliente-box">{{ call().formCliente }}</div>
-      </div>
-    }
-
-    <div class="drawer-section">
-      <label class="ds-title" for="notes-area">Dati onboarding</label>
-      <textarea
-        id="notes-area"
-        class="note-area"
-        placeholder="Dati raccolti durante l'onboarding…"
-        [value]="notes()"
-        (input)="notes.set($any($event.target).value)"
-      ></textarea>
     </div>
 
     <div class="drawer-section">
