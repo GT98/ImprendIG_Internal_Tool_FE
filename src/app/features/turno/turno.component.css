@@ -55,3 +55,5 @@
 .search-bar input { flex: 1 1 220px; }
 :host-context([data-theme='dark']) .count.alert { background: rgba(248,113,113,.15); color: #fca5a5; border-color: transparent; }
 .tab-hint.note { color: var(--ink-2); background: var(--accent-soft); border-radius: 9px; padding: 8px 12px; }
+.group.upcoming { margin-top: 28px; padding-top: 14px; border-top: 1px dashed var(--border); }
+.muted-count { color: var(--ink-3); }

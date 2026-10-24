@@ -73,6 +73,8 @@ export interface ShiftBoard {
   queue: Prospect[];
   backlog: Prospect[];
   followUp: Prospect[];
+  /** Già assegnati ai turni successivi (es. arrivati di notte per il 2° turno) */
+  upcoming: Prospect[];
   links: SetterLinks[];
 }
 

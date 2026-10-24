@@ -29,7 +29,7 @@ const SLOT_LABEL: Record<number, string> = { 1: '1° turno', 2: '2° turno', 3: 
         <span class="pc-when">
           arrivato {{ arrived() }}
           @if (showShift()) {
-            · {{ slotLabel() }} del {{ shortDay(p.shiftDate) }}{{ p.shiftSetter ? ' (' + p.shiftSetter + ')' : '' }}
+            · {{ slotLabel() }} di {{ shortDay(p.shiftDate) }}{{ p.shiftSetter ? ' (' + p.shiftSetter + ')' : '' }}
           }
         </span>
       </header>

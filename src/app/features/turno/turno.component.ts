@@ -94,6 +94,7 @@ type Tab = 'queue' | 'backlog' | 'followUp' | 'search';
           <button role="tab" type="button" [attr.aria-selected]="tab() === 'queue'" [class.on]="tab() === 'queue'" (click)="tab.set('queue')">
             {{ b.focus === 'current' ? 'Coda del turno' : 'Coda del prossimo turno' }}
             <span class="count">{{ openCount(b.queue) }}/{{ b.queue.length }}</span>
+            @if (b.upcoming.length) { <span class="count muted-count">+{{ b.upcoming.length }} dopo</span> }
           </button>
           <button role="tab" type="button" [attr.aria-selected]="tab() === 'backlog'" [class.on]="tab() === 'backlog'" (click)="tab.set('backlog')">
             Arretrati <span class="count" [class.alert]="b.backlog.length">{{ b.backlog.length }}</span>
@@ -120,6 +121,13 @@ type Tab = 'queue' | 'backlog' | 'followUp' | 'search';
                 <app-prospect-card [prospect]="p" (changed)="board.reload()" />
               } @empty {
                 <p class="empty">Nessun lead in coda per questo turno. 🎉</p>
+              }
+              @if (b.upcoming.length) {
+                <h3 class="group upcoming">Per i prossimi turni ({{ b.upcoming.length }})</h3>
+                <p class="tab-hint">Già arrivati ma assegnati a un turno successivo, secondo la tabella dei turni.</p>
+                @for (p of b.upcoming; track p.id) {
+                  <app-prospect-card [prospect]="p" [showShift]="true" (changed)="board.reload()" />
+                }
               }
             }
             @case ('backlog') {
