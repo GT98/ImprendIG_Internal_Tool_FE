@@ -169,7 +169,8 @@ export const routes: Routes = [
       // },
       {
         path: 'turno',
-        canActivate: [setterGuard],
+        // TODO lancio turni: setterGuard per aprirla alle setter
+        canActivate: [adminGuard],
         loadComponent: () =>
           import('./features/turno/turno.component').then(m => m.TurnoComponent),
         title: 'Turno',
