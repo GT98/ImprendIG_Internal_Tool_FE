@@ -5,6 +5,7 @@ import { PublicBookingApiService, PublicBookingSettings } from '../../booking/bo
 import { addDays, romeDate, romeLabel } from '../../booking/rome-time';
 import { SlotPickerComponent } from './slot-picker.component';
 import { Attribution, captureAttribution } from './booking-attribution';
+import { PublicProspectApiService } from '../../shift/shift-api.service';
 
 type Step = 'loading' | 'pick' | 'form' | 'done' | 'error';
 
@@ -168,6 +169,7 @@ type Step = 'loading' | 'pick' | 'form' | 'done' | 'error';
 export class PrenotaComponent {
   private readonly api = inject(PublicBookingApiService);
   private readonly route = inject(ActivatedRoute);
+  private readonly prospectApi = inject(PublicProspectApiService);
 
   private readonly slug = this.route.snapshot.paramMap.get('academy') ?? '';
   private readonly attribution: Attribution = captureAttribution(
@@ -204,6 +206,7 @@ export class PrenotaComponent {
   readonly label = romeLabel;
 
   constructor() {
+    this.prefill();
     this.api.settings(this.slug).subscribe({
       next: s => {
         this.settings.set(s);
@@ -213,6 +216,22 @@ export class PrenotaComponent {
         this.errorMsg.set('Il link non è corretto o le prenotazioni sono chiuse.');
         this.step.set('error');
       },
+    });
+  }
+
+  /** Dal link mandato dalla setter: i dati del lead sono già noti */
+  private prefill(): void {
+    const token = this.attribution.prospect;
+    if (!token) return;
+    this.prospectApi.prefill(token).subscribe({
+      next: p => {
+        if (!this.name()) this.name.set(p.name);
+        if (!this.surname()) this.surname.set(p.surname);
+        if (!this.email()) this.email.set(p.email);
+        if (!this.phone()) this.phone.set(p.phone);
+      },
+      // link vecchio o sbagliato: la persona compila a mano
+      error: () => undefined,
     });
   }
 
@@ -274,6 +293,7 @@ export class PrenotaComponent {
       answers: this.answers(),
       ref: this.attribution.ref,
       utm: this.attribution.utm,
+      prospect: this.attribution.prospect,
       website: this.website() || undefined,
     }).subscribe({
       next: () => {
