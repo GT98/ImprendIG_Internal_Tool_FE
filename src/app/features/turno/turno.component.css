@@ -57,3 +57,19 @@
 .tab-hint.note { color: var(--ink-2); background: var(--accent-soft); border-radius: 9px; padding: 8px 12px; }
 .group.upcoming { margin-top: 28px; padding-top: 14px; border-top: 1px dashed var(--border); }
 .muted-count { color: var(--ink-3); }
+
+/* Viste e sezioni */
+.views { display: inline-flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); margin-bottom: 16px; flex-wrap: wrap; }
+.views button {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border: none; border-radius: 9px; background: none;
+  font: inherit; font-size: 13.5px; font-weight: 600; color: var(--ink-2); cursor: pointer;
+}
+.views button.on { background: var(--surface); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.sec { margin-bottom: 22px; }
+.sec h2 { display: flex; align-items: center; gap: 8px; font-size: 1rem; margin: 0 0 4px; }
+.sec-alert { padding: 14px 14px 4px; border-radius: 14px; border: 1px solid #fecaca; background: #fef2f2; }
+:host-context([data-theme='dark']) .sec-alert { border-color: rgba(248,113,113,.35); background: rgba(248,113,113,.07); }
+.upcoming summary { cursor: pointer; list-style: none; }
+.upcoming summary::-webkit-details-marker { display: none; }
+.upcoming summary h2::before { content: '▸'; color: var(--ink-3); }
+.upcoming[open] summary h2::before { content: '▾'; }

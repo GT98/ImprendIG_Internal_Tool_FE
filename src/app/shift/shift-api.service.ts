@@ -18,7 +18,7 @@ export type ProspectStatus =
 // Stati della fase chat/discovery (gli stessi della tabella Notion)
 export const PROSPECT_STATUS: Record<ProspectStatus, { label: string; tone: string }> = {
   nuovo:               { label: 'Da contattare',        tone: 'blue' },
-  in_corso:            { label: 'Chat in corso',        tone: 'amber' },
+  in_corso:            { label: 'In corso',             tone: 'amber' },
   non_risponde:        { label: 'Non risponde',         tone: 'gray' },
   non_qualificata:     { label: 'Non qualificata',      tone: 'red' },
   discovery_rifiutata: { label: 'Discovery rifiutata',  tone: 'red' },
@@ -65,6 +65,16 @@ export interface SetterLinks {
   organic: string;
 }
 
+export interface ProspectFilters {
+  text?: string;
+  status?: string;
+  from?: string;
+  to?: string;
+  setterId?: number;
+  slot?: number;
+  clientId?: number;
+}
+
 export interface ShiftBoard {
   now: string;
   current: ShiftView | null;
@@ -97,9 +107,9 @@ export class ShiftApiService {
     return this.http.get<ShiftBoard>(`${API_URL}/shifts/board`);
   }
 
-  search(q: { text?: string; status?: string; from?: string; to?: string }): Observable<Prospect[]> {
+  search(q: ProspectFilters): Observable<Prospect[]> {
     let params = new HttpParams();
-    for (const [k, v] of Object.entries(q)) if (v) params = params.set(k, v);
+    for (const [k, v] of Object.entries(q)) if (v) params = params.set(k, String(v));
     return this.http.get<Prospect[]>(`${API_URL}/shifts/prospects`, { params });
   }
 
@@ -107,8 +117,9 @@ export class ShiftApiService {
     return this.http.patch<Prospect>(`${API_URL}/shifts/prospects/${id}`, dto);
   }
 
-  whatsapp(id: number): Observable<{ url: string }> {
-    return this.http.post<{ url: string }>(`${API_URL}/shifts/prospects/${id}/whatsapp`, {});
+  /** Primo contatto: 409 se il lead lo segue già un'altra setter (force per procedere) */
+  contact(id: number, channel: 'call' | 'whatsapp', force = false): Observable<{ url: string }> {
+    return this.http.post<{ url: string }>(`${API_URL}/shifts/prospects/${id}/contact`, { channel, force });
   }
 
   bookingLink(id: number): Observable<{ url: string }> {
