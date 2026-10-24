@@ -1,32 +1,24 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { of } from 'rxjs';
-import {
-  PROSPECT_STATUS,
-  Prospect,
-  ProspectStatus,
-  ShiftApiService,
-  ShiftView,
-} from '../../shift/shift-api.service';
+import { Prospect, ShiftApiService, ShiftBoard, ShiftView } from '../../shift/shift-api.service';
 import { ToastService } from '../../shared/toast.service';
 import { AuthService } from '../../auth/auth.service';
 import { IconComponent } from '../../shared/icon.component';
 import { addDays, romeDate, romeLongDay } from '../../booking/rome-time';
 import { ProspectCardComponent } from './prospect-card.component';
+import { ProspectTableComponent } from './prospect-table.component';
 
-type Tab = 'queue' | 'backlog' | 'followUp' | 'search';
-
-// Pagina delle setter: turno attivo, coda dei lead ADS da chiamare e link personali
+// Lead ADS: turno attivo, lead da chiamare adesso (vista predefinita) e tutti i lead in tabella
 @Component({
   selector: 'app-turno',
-  imports: [IconComponent, ProspectCardComponent],
+  imports: [IconComponent, ProspectCardComponent, ProspectTableComponent],
   styleUrl: './turno.component.css',
   template: `
     <div class="page">
       <div class="page-head">
         <div>
           <h1>Lead ADS</h1>
-          <p class="page-sub">I lead arrivati dai form Meta, smistati per turno e nell'ordine in cui chiamarli. La pagina si aggiorna da sola ogni minuto.</p>
+          <p class="page-sub">I lead arrivati dai form Meta. Tutte vedono tutto: su ogni lead c'è chi lo segue, così nessuno viene contattato due volte.</p>
         </div>
         <button type="button" class="btn-ghost" (click)="board.reload()" [disabled]="board.isLoading()">
           <app-icon name="refresh" [size]="15" /> Aggiorna
@@ -89,27 +81,30 @@ type Tab = 'queue' | 'backlog' | 'followUp' | 'search';
           </details>
         }
 
-        <!-- Schede -->
-        <div class="tabs" role="tablist" aria-label="Elenchi lead">
-          <button role="tab" type="button" [attr.aria-selected]="tab() === 'queue'" [class.on]="tab() === 'queue'" (click)="tab.set('queue')">
-            {{ b.focus === 'current' ? 'Coda del turno' : 'Coda del prossimo turno' }}
-            <span class="count">{{ openCount(b.queue) }}/{{ b.queue.length }}</span>
-            @if (b.upcoming.length) { <span class="count muted-count">+{{ b.upcoming.length }} dopo</span> }
+        <!-- Viste -->
+        <div class="views" role="tablist" aria-label="Viste dei lead">
+          <button role="tab" type="button" [attr.aria-selected]="view() === 'now'" [class.on]="view() === 'now'" (click)="view.set('now')">
+            Da chiamare adesso <span class="count" [class.alert]="toCall(b) > 0">{{ toCall(b) }}</span>
           </button>
-          <button role="tab" type="button" [attr.aria-selected]="tab() === 'backlog'" [class.on]="tab() === 'backlog'" (click)="tab.set('backlog')">
-            Arretrati <span class="count" [class.alert]="b.backlog.length">{{ b.backlog.length }}</span>
-          </button>
-          <button role="tab" type="button" [attr.aria-selected]="tab() === 'followUp'" [class.on]="tab() === 'followUp'" (click)="tab.set('followUp')">
-            Da riprendere <span class="count">{{ b.followUp.length }}</span>
-          </button>
-          <button role="tab" type="button" [attr.aria-selected]="tab() === 'search'" [class.on]="tab() === 'search'" (click)="tab.set('search')">
-            <app-icon name="search" [size]="14" /> Cerca
+          <button role="tab" type="button" [attr.aria-selected]="view() === 'all'" [class.on]="view() === 'all'" (click)="view.set('all')">
+            Tutti i lead
           </button>
         </div>
 
-        <div role="tabpanel">
-          @switch (tab()) {
-            @case ('queue') {
+        @if (view() === 'now') {
+          <div role="tabpanel">
+            @if (b.backlog.length) {
+              <section class="sec sec-alert">
+                <h2>Rimasti indietro dai turni precedenti <span class="count alert">{{ b.backlog.length }}</span></h2>
+                <p class="tab-hint">Mai contattati: vanno chiamati per primi, da chiunque sia di turno.</p>
+                @for (p of b.backlog; track p.id) {
+                  <app-prospect-card [prospect]="p" [showShift]="true" (changed)="refresh()" />
+                }
+              </section>
+            }
+
+            <section class="sec">
+              <h2>{{ b.focus === 'current' ? 'Turno in corso' : 'Prossimo turno' }} <span class="count">{{ openCount(b.queue) }} da contattare su {{ b.queue.length }}</span></h2>
               <p class="tab-hint">Prima i lead della fascia più vecchia (mattina presto, sera prima, notte), poi quelli arrivati nel turno.</p>
               @if (b.current?.slot === 3 && afterSeven()) {
                 <p class="tab-hint note">Dopo le 19 i nuovi lead ADS vanno nella coda del primo turno di domani: ora si risponde ai messaggi organici.</p>
@@ -118,56 +113,37 @@ type Tab = 'queue' | 'backlog' | 'followUp' | 'search';
                 @if (i === 0 || b.queue[i - 1].arrivalGroup !== p.arrivalGroup) {
                   <h3 class="group">{{ p.arrivalGroup }}</h3>
                 }
-                <app-prospect-card [prospect]="p" (changed)="board.reload()" />
+                <app-prospect-card [prospect]="p" (changed)="refresh()" />
               } @empty {
-                <p class="empty">Nessun lead in coda per questo turno. 🎉</p>
+                <p class="empty">Nessun lead in questo turno.</p>
               }
-              @if (b.upcoming.length) {
-                <h3 class="group upcoming">Per i prossimi turni ({{ b.upcoming.length }})</h3>
+            </section>
+
+            @if (b.followUp.length) {
+              <section class="sec">
+                <h2>Da riprendere <span class="count">{{ b.followUp.length }}</span></h2>
+                <p class="tab-hint">Conversazioni aperte nei turni precedenti: in corso, non risponde, discovery fatta.</p>
+                @for (p of b.followUp; track p.id) {
+                  <app-prospect-card [prospect]="p" [showShift]="true" (changed)="refresh()" />
+                }
+              </section>
+            }
+
+            @if (b.upcoming.length) {
+              <details class="sec upcoming">
+                <summary><h2>Per i prossimi turni <span class="count">{{ b.upcoming.length }}</span></h2></summary>
                 <p class="tab-hint">Già arrivati ma assegnati a un turno successivo, secondo la tabella dei turni.</p>
                 @for (p of b.upcoming; track p.id) {
-                  <app-prospect-card [prospect]="p" [showShift]="true" (changed)="board.reload()" />
+                  <app-prospect-card [prospect]="p" [showShift]="true" (changed)="refresh()" />
                 }
-              }
+              </details>
             }
-            @case ('backlog') {
-              <p class="tab-hint">Lead di turni passati (ultimi 14 giorni) mai contattati. Vanno chiamati per primi.</p>
-              @for (p of b.backlog; track p.id) {
-                <app-prospect-card [prospect]="p" [showShift]="true" (changed)="board.reload()" />
-              } @empty {
-                <p class="empty">Nessun arretrato.</p>
-              }
-            }
-            @case ('followUp') {
-              <p class="tab-hint">Conversazioni aperte nei turni precedenti: chat in corso, non risponde, discovery fatta.</p>
-              @for (p of b.followUp; track p.id) {
-                <app-prospect-card [prospect]="p" [showShift]="true" (changed)="board.reload()" />
-              } @empty {
-                <p class="empty">Niente da riprendere.</p>
-              }
-            }
-            @case ('search') {
-              <div class="search-bar">
-                <input type="search" placeholder="Nome, email o telefono…" aria-label="Cerca lead" [value]="text()" (input)="text.set($any($event.target).value)" />
-                <select aria-label="Stato" (change)="status.set($any($event.target).value)">
-                  <option value="">Tutti gli stati</option>
-                  @for (s of statuses; track s.key) {
-                    <option [value]="s.key" [selected]="status() === s.key">{{ s.label }}</option>
-                  }
-                </select>
-              </div>
-              @if (results.isLoading()) {
-                <p class="muted">Ricerca…</p>
-              } @else {
-                @for (p of results.value() ?? []; track p.id) {
-                  <app-prospect-card [prospect]="p" [showShift]="true" (changed)="results.reload()" />
-                } @empty {
-                  <p class="empty">Nessun lead trovato.</p>
-                }
-              }
-            }
-          }
-        </div>
+          </div>
+        } @else {
+          <div role="tabpanel">
+            <app-prospect-table (changed)="board.reload()" />
+          </div>
+        }
       } @else {
         <p class="muted">Caricamento…</p>
       }
@@ -179,22 +155,10 @@ export class TurnoComponent {
   private readonly toast = inject(ToastService);
   private readonly auth = inject(AuthService);
 
-  readonly tab = signal<Tab>('queue');
-  readonly text = signal('');
-  readonly status = signal('');
+  readonly view = signal<'now' | 'all'>('now');
   readonly now = signal(Date.now());
 
-  readonly statuses = Object.entries(PROSPECT_STATUS).map(([key, v]) => ({
-    key: key as ProspectStatus,
-    label: v.label,
-  }));
-
   readonly board = rxResource({ stream: () => this.api.board() });
-
-  readonly results = rxResource({
-    params: () => (this.tab() === 'search' ? { text: this.text().trim(), status: this.status() } : null),
-    stream: ({ params }) => (params ? this.api.search(params) : of([])),
-  });
 
   private readonly mySetterId = computed(() => {
     const id = this.auth.currentUser()?.setterId;
@@ -202,10 +166,10 @@ export class TurnoComponent {
   });
 
   constructor() {
-    // aggiornamento automatico e orologio del turno
+    // aggiornamento frequente: chi segue cosa deve essere visibile alle altre quasi subito
     const refresh = setInterval(() => {
       if (document.visibilityState === 'visible') this.board.reload();
-    }, 60_000);
+    }, 20_000);
     const tick = setInterval(() => this.now.set(Date.now()), 30_000);
     inject(DestroyRef).onDestroy(() => {
       clearInterval(refresh);
@@ -244,6 +208,15 @@ export class TurnoComponent {
 
   academyName(title: string): string {
     return title.split(/\s[–-]\s/)[0];
+  }
+
+  refresh(): void {
+    this.board.reload();
+  }
+
+  /** Lead mai contattati tra arretrati e turno in corso */
+  toCall(b: ShiftBoard): number {
+    return this.openCount(b.backlog) + this.openCount(b.queue);
   }
 
   openCount(list: Prospect[]): number {
