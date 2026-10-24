@@ -82,6 +82,11 @@ export interface ShiftAssignment {
   setter: { id: number; name: string };
 }
 
+export interface ShiftDefault {
+  slot: number;
+  setter: { id: number; name: string } | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ShiftApiService {
   private readonly http = inject(HttpClient);
@@ -114,6 +119,14 @@ export class ShiftApiService {
 
   setShift(date: string, slot: number, setterId: number | null): Observable<unknown> {
     return this.http.post(`${API_URL}/shifts`, { date, slot, setterId });
+  }
+
+  defaults(): Observable<ShiftDefault[]> {
+    return this.http.get<ShiftDefault[]>(`${API_URL}/shifts/defaults`);
+  }
+
+  setDefault(slot: number, setterId: number | null): Observable<ShiftDefault[]> {
+    return this.http.post<ShiftDefault[]>(`${API_URL}/shifts/defaults`, { slot, setterId });
   }
 
   copyWeek(fromStart: string, toStart: string): Observable<ShiftAssignment[]> {

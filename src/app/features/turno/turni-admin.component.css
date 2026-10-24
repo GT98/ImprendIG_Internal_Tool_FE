@@ -23,8 +23,20 @@
   width: 100%; padding: 7px 8px; border: 1px solid var(--border); border-radius: 8px;
   background: var(--surface); color: var(--ink); font: inherit; font-size: 12.5px;
 }
-.shift-table td.unassigned select { border-style: dashed; color: var(--ink-3); }
+.shift-table td select { color: var(--ink-3); }
+.shift-table td.changed select { color: var(--ink); font-weight: 700; border-color: #f59e0b; background: #fffbeb; }
+:host-context([data-theme='dark']) .shift-table td.changed select { background: rgba(245,158,11,.12); }
+.legend { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.swatch { width: 14px; height: 14px; border-radius: 4px; border: 1px solid #f59e0b; background: #fffbeb; }
+.defaults { display: flex; flex-wrap: wrap; gap: 12px 20px; }
+.default { display: flex; flex-direction: column; gap: 6px; flex: 1 1 220px; font-size: 13.5px; }
+.default select {
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: 9px;
+  background: var(--surface); color: var(--ink); font: inherit; font-size: 13.5px;
+}
 
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 18px; margin-top: 16px; }
+.card .small { margin: 0 0 12px; }
 .card h2 { margin: 0 0 8px; font-size: 1rem; }
 .summary { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13.5px; }
+.default-label { display: flex; gap: 8px; align-items: baseline; }

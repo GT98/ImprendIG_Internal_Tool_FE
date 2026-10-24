@@ -110,6 +110,9 @@ type Tab = 'queue' | 'backlog' | 'followUp' | 'search';
           @switch (tab()) {
             @case ('queue') {
               <p class="tab-hint">Prima i lead della fascia più vecchia (mattina presto, sera prima, notte), poi quelli arrivati nel turno.</p>
+              @if (b.current?.slot === 3 && afterSeven()) {
+                <p class="tab-hint note">Dopo le 19 i nuovi lead ADS vanno nella coda del primo turno di domani: ora si risponde ai messaggi organici.</p>
+              }
               @for (p of b.queue; track p.id; let i = $index) {
                 @if (i === 0 || b.queue[i - 1].arrivalGroup !== p.arrivalGroup) {
                   <h3 class="group">{{ p.arrivalGroup }}</h3>
@@ -201,6 +204,11 @@ export class TurnoComponent {
       clearInterval(tick);
     });
   }
+
+  readonly afterSeven = computed(() => {
+    const t = new Date(this.now()).toLocaleTimeString('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', hour12: false });
+    return Number(t.slice(0, 2)) >= 19;
+  });
 
   isMine(s: ShiftView): boolean {
     return s.setter != null && s.setter.id === this.mySetterId();
