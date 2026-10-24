@@ -168,6 +168,21 @@ export const routes: Routes = [
       //   title: 'Attività Bot',
       // },
       {
+        path: 'turno',
+        // TODO lancio turni: setterGuard per aprirla alle setter
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/turno/turno.component').then(m => m.TurnoComponent),
+        title: 'Turno',
+      },
+      {
+        path: 'turni',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/turno/turni-admin.component').then(m => m.TurniAdminComponent),
+        title: 'Turni setter',
+      },
+      {
         path: 'disponibilita',
         // TODO lancio prenotazioni: notClientGuard per aprirla alle venditrici
         canActivate: [adminGuard],

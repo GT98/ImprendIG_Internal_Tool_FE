@@ -46,6 +46,7 @@ export interface CreatePublicBooking {
   answers: Record<string, string>;
   ref?: string;
   utm?: Record<string, string>;
+  prospect?: string;
   website?: string;
 }
 

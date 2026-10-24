@@ -7,24 +7,29 @@ const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'ut
 export interface Attribution {
   ref?: string;
   utm?: Record<string, string>;
+  /** Token del lead ADS (?l=): collega la call al lead e precompila il form */
+  prospect?: string;
 }
 
 export function captureAttribution(params: URLSearchParams | Record<string, string | undefined>): Attribution {
   const get = (k: string) =>
     params instanceof URLSearchParams ? params.get(k) ?? undefined : params[k];
   const ref = get('ref')?.trim().toLowerCase() || undefined;
+  const prospect = get('l')?.trim() || undefined;
   const utm = Object.fromEntries(
     UTM_KEYS.map(k => [k, get(k)]).filter((e): e is [string, string] => Boolean(e[1])),
   );
-  const fresh: Attribution = { ref, utm: Object.keys(utm).length ? utm : undefined };
+  const fresh: Attribution = { ref, prospect, utm: Object.keys(utm).length ? utm : undefined };
 
   try {
-    if (fresh.ref || fresh.utm) {
+    if (fresh.ref || fresh.utm || fresh.prospect) {
       localStorage.setItem(KEY, JSON.stringify({ ...fresh, at: Date.now() }));
       return fresh;
     }
     const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null') as (Attribution & { at: number }) | null;
-    if (saved && Date.now() - saved.at < TTL_MS) return { ref: saved.ref, utm: saved.utm };
+    if (saved && Date.now() - saved.at < TTL_MS) {
+      return { ref: saved.ref, utm: saved.utm, prospect: saved.prospect };
+    }
   } catch {
     // storage non disponibile (navigazione privata): vale solo l'URL
   }
