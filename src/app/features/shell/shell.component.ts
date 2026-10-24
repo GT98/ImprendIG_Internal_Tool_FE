@@ -31,7 +31,7 @@ const NAV_GROUPS: NavGroup[] = [
     id: 'commerciale', label: 'Commerciale', hideFromClient: true,
     items: [
       // TODO lancio turni: setterOnly al posto di adminOnly (e SHIFT_NOTIFY=true sul backend)
-      { path: 'turno', label: 'Turno', icon: 'zap', adminOnly: true },
+      { path: 'lead-ads', label: 'Lead ADS', icon: 'zap', adminOnly: true },
       { path: 'chiamate', label: 'Chiamate', icon: 'phone' },
       // TODO lancio prenotazioni: togliere adminOnly per farla usare alle venditrici
       { path: 'disponibilita', label: 'Disponibilità', icon: 'clock', adminOnly: true },

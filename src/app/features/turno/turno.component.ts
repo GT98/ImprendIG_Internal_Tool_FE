@@ -25,8 +25,8 @@ type Tab = 'queue' | 'backlog' | 'followUp' | 'search';
     <div class="page">
       <div class="page-head">
         <div>
-          <h1>Turno</h1>
-          <p class="page-sub">I lead ADS da chiamare, nell'ordine giusto. La pagina si aggiorna da sola ogni minuto.</p>
+          <h1>Lead ADS</h1>
+          <p class="page-sub">I lead arrivati dai form Meta, smistati per turno e nell'ordine in cui chiamarli. La pagina si aggiorna da sola ogni minuto.</p>
         </div>
         <button type="button" class="btn-ghost" (click)="board.reload()" [disabled]="board.isLoading()">
           <app-icon name="refresh" [size]="15" /> Aggiorna

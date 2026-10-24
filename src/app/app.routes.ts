@@ -168,13 +168,14 @@ export const routes: Routes = [
       //   title: 'Attività Bot',
       // },
       {
-        path: 'turno',
+        path: 'lead-ads',
         // TODO lancio turni: setterGuard per aprirla alle setter
         canActivate: [adminGuard],
         loadComponent: () =>
           import('./features/turno/turno.component').then(m => m.TurnoComponent),
-        title: 'Turno',
+        title: 'Lead ADS',
       },
+      { path: 'turno', redirectTo: 'lead-ads' },
       {
         path: 'turni',
         canActivate: [adminGuard],
