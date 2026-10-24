@@ -47,8 +47,20 @@ function slugify(s: string): string {
       </div>
 
       <h2 class="section-title">Pagine delle academy</h2>
-      <div class="academies">
-        @for (s of drafts(); track s.id; let si = $index) {
+      @if (drafts().length) {
+        <div class="tabs" role="tablist" aria-label="Academy">
+          @for (d of drafts(); track d.id; let i = $index) {
+            <button type="button" role="tab" [id]="'academy-tab-' + d.id" [attr.aria-selected]="tab() === i" [attr.aria-controls]="'academy-panel'" [class.on]="tab() === i" (click)="tab.set(i)">
+              <span class="dot" [class.live]="d.active" aria-hidden="true"></span>
+              {{ d.title.split(' – ')[0] || d.client.name }}
+              <span class="sr-only">{{ d.active ? '(attiva)' : '(spenta)' }}</span>
+            </button>
+          }
+        </div>
+      }
+      <div class="academies" id="academy-panel" role="tabpanel">
+        @if (drafts()[tab()]; as s) {
+          @let si = tab();
           <section class="card">
             <div class="card-head">
               <div>
@@ -126,7 +138,7 @@ function slugify(s: string): string {
               </button>
             </div>
           </section>
-        } @empty {
+        } @else {
           <p class="muted">Nessuna pagina configurata: lancia lo script SQL delle prenotazioni.</p>
         }
       </div>
@@ -198,6 +210,9 @@ function slugify(s: string): string {
   `,
 })
 export class PrenotazioniConfigComponent {
+  /** Academy mostrata (una alla volta, a schede) */
+  readonly tab = signal(0);
+
   private readonly api = inject(BookingApiService);
   private readonly sellerApi = inject(SellerApiService);
   private readonly setterApi = inject(SetterApiService);
