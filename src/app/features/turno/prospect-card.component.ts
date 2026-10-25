@@ -23,80 +23,86 @@ type Channel = 'call' | 'whatsapp';
   styleUrl: './prospect-card.component.css',
   template: `
     @let p = prospect();
-    <article class="pc" [class.done]="p.status !== 'nuovo'" [class.other]="takenByOther()" [attr.aria-label]="p.name">
+    <article class="pc" [attr.aria-label]="p.name">
       <header class="pc-head">
-        <div class="pc-title">
-          <strong>{{ p.name }}</strong>
-          @if (p.client) { <span class="chip">{{ p.client.name }}</span> }
-          <span class="status" [attr.data-tone]="tone()">{{ statusLabel() }}</span>
+        <div class="pc-id">
+          <span class="pc-mono" aria-hidden="true">{{ initials() }}</span>
+          <div>
+            <h3>{{ p.name }}</h3>
+            <span class="pc-meta">
+              {{ p.client?.name ?? 'Academy n.d.' }} · arrivato {{ arrived() }}{{ showShift() ? ' · ' + slotLabel() + ' di ' + shortDay(p.shiftDate) : '' }}
+            </span>
+          </div>
         </div>
-        <span class="pc-when">
-          arrivato {{ arrived() }}
-          @if (showShift()) { · {{ slotLabel() }} di {{ shortDay(p.shiftDate) }} }
-        </span>
+        <span class="badge" [attr.data-tone]="tone()"><span class="badge-dot"></span>{{ statusLabel() }}</span>
       </header>
 
-      <p class="owner" [class.mine]="isMine()" [class.taken]="takenByOther()">
-        <app-icon name="users" [size]="13" />
-        @if (p.owner) {
-          {{ isMine() ? 'Lead tuo' : 'Lead di ' + p.owner.name }}
-        } @else {
-          Turno senza setter: è di chi lo contatta per prima
-        }
-        · {{ p.firstContactAt ? 'contattato alle ' + time(p.firstContactAt) : 'non ancora contattato' }}
-      </p>
-
-      @if (answerList().length) {
-        <ul class="answers">
-          @for (a of answerList(); track a.k) {
-            <li><span>{{ a.k }}</span> {{ a.v }}</li>
-          }
-        </ul>
-      }
-
-      <div class="contacts">
-        @if (p.phone) { <span><app-icon name="phone" [size]="13" /> {{ p.phone }}</span> }
-        @if (p.email) { <span>{{ p.email }}</span> }
+      <div class="pc-grid">
+        <div>
+          <span class="dg-label">Setter</span>
+          <span class="dg-val sm">{{ p.owner ? (isMine() ? 'Tu' : p.owner.name) : 'Nessuna' }}</span>
+        </div>
+        <div>
+          <span class="dg-label">Primo contatto</span>
+          <span class="dg-val sm">{{ p.firstContactAt ? time(p.firstContactAt) : '—' }}</span>
+        </div>
+        <div>
+          <span class="dg-label">Telefono</span>
+          <span class="dg-val sm">{{ p.phone ?? '—' }}</span>
+        </div>
+        <div>
+          <span class="dg-label">Email</span>
+          <span class="dg-val sm ellipsis" [title]="p.email ?? ''">{{ p.email ?? '—' }}</span>
+        </div>
       </div>
 
+      @if (answerList().length) {
+        <div class="pc-answers">
+          @for (a of answerList(); track a.k) {
+            <div class="kv"><span>{{ a.k }}</span><strong>{{ a.v }}</strong></div>
+          }
+        </div>
+      }
+
       @if (p.call) {
-        <p class="call" [class.cancelled]="p.call.status === 'cancelled'">
-          <app-icon name="calendar" [size]="14" />
-          Call {{ p.call.status === 'cancelled' ? 'annullata' : '' }} {{ label(p.call.startsAt) }}
-          @if (p.call.outcome) { · esito: <strong>{{ p.call.outcome }}</strong> }
-        </p>
+        <div class="kv call" [class.cancelled]="p.call.status === 'cancelled'">
+          <span><app-icon name="calendar" [size]="13" /> Call {{ p.call.status === 'cancelled' ? 'annullata' : 'prenotata' }}</span>
+          <strong>{{ label(p.call.startsAt) }}{{ p.call.outcome ? ' · ' + p.call.outcome : '' }}</strong>
+        </div>
       }
 
       @if (canWork()) {
-      <div class="actions">
-        <button type="button" class="btn-primary sm" (click)="contact('call')" [disabled]="!p.phone || busy()">
-          <app-icon name="phone" [size]="14" /> Chiama
-        </button>
-        <button type="button" class="btn-ghost sm wa" (click)="contact('whatsapp')" [disabled]="!p.phone || busy()">
-          <app-icon name="send" [size]="14" /> WhatsApp
-        </button>
-        <button type="button" class="btn-ghost sm" (click)="copyBookingLink()" [disabled]="busy()">
-          <app-icon name="copy" [size]="14" /> Link prenotazione
-        </button>
-        <select class="status-select" [attr.aria-label]="'Stato di ' + p.name" (change)="setStatus($any($event.target).value)" [disabled]="busy()">
-          @for (s of statuses; track s.key) {
-            <option [value]="s.key" [selected]="s.key === p.status" [disabled]="s.key === 'call_prenotata' && !p.call">{{ s.label }}</option>
-          }
-        </select>
-        <button type="button" class="btn-ghost sm" (click)="notesOpen.set(!notesOpen())" [attr.aria-expanded]="notesOpen()">
-          <app-icon name="edit" [size]="14" /> Note{{ p.notes ? ' •' : '' }}
-        </button>
-      </div>
-
+        <div class="pc-actions">
+          <button type="button" class="btn-primary sm" (click)="contact('call')" [disabled]="!p.phone || busy()">
+            <app-icon name="phone" [size]="14" /> Chiama
+          </button>
+          <button type="button" class="btn-ghost sm" (click)="contact('whatsapp')" [disabled]="!p.phone || busy()">
+            <app-icon name="send" [size]="14" /> WhatsApp
+          </button>
+          <button type="button" class="btn-ghost sm" (click)="copyBookingLink()" [disabled]="busy()">
+            <app-icon name="copy" [size]="14" /> Link prenotazione
+          </button>
+          <span class="spacer"></span>
+          <select class="select-inline" [attr.aria-label]="'Stato di ' + p.name" (change)="setStatus($any($event.target).value)" [disabled]="busy()">
+            @for (s of statuses; track s.key) {
+              <option [value]="s.key" [selected]="s.key === p.status" [disabled]="s.key === 'call_prenotata' && !p.call">{{ s.label }}</option>
+            }
+          </select>
+          <button type="button" class="btn-ghost-xs" (click)="notesOpen.set(!notesOpen())" [attr.aria-expanded]="notesOpen()">
+            <app-icon name="edit" [size]="13" /> Note{{ p.notes ? ' •' : '' }}
+          </button>
+        </div>
+      } @else {
+        <p class="pc-locked">Lead di {{ p.owner?.name }}: può contattarlo solo lei.</p>
       }
 
       @if (notesOpen() && canWork()) {
-        <div class="notes">
-          <textarea rows="3" [attr.aria-label]="'Note su ' + p.name" placeholder="Es. risponde dopo le 18, vuole info sui pagamenti…" [value]="p.notes ?? ''" (input)="draft.set($any($event.target).value)"></textarea>
+        <div class="pc-notes">
+          <textarea class="note-area" [attr.aria-label]="'Note su ' + p.name" placeholder="Es. risponde dopo le 18, vuole info sui pagamenti…" [value]="p.notes ?? ''" (input)="draft.set($any($event.target).value)"></textarea>
           <button type="button" class="btn-primary sm" (click)="saveNotes()" [disabled]="busy() || draft() === null">Salva note</button>
         </div>
       } @else if (p.notes) {
-        <p class="notes-preview">{{ p.notes }}</p>
+        <p class="pc-note-preview"><span class="dg-label">Note</span>{{ p.notes }}</p>
       }
     </article>
   `,
@@ -117,7 +123,15 @@ export class ProspectCardComponent {
   readonly statuses = Object.entries(PROSPECT_STATUS).map(([key, v]) => ({ key: key as ProspectStatus, label: v.label }));
   readonly statusLabel = computed(() => PROSPECT_STATUS[this.prospect().status]?.label ?? this.prospect().status);
   readonly tone = computed(() => PROSPECT_STATUS[this.prospect().status]?.tone ?? 'gray');
-  readonly answerList = computed(() => Object.entries(this.prospect().answers ?? {}).map(([k, v]) => ({ k, v })));
+  // campi tecnici di Meta, non risposte del form
+  readonly answerList = computed(() =>
+    Object.entries(this.prospect().answers ?? {})
+      .filter(([k]) => !/^is[ _](qualified|organic)$|^inbox[ _]url$/i.test(k))
+      .map(([k, v]) => ({ k, v })),
+  );
+  readonly initials = computed(() =>
+    this.prospect().name.split(/\s+/).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join(''),
+  );
   readonly slotLabel = computed(() => SLOT_LABEL[this.prospect().shiftSlot] ?? '');
   readonly arrived = computed(() => {
     const at = this.prospect().arrivedAt;

@@ -18,19 +18,19 @@
 .name { border: none; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--ink); cursor: pointer; text-align: left; }
 .name:hover { color: var(--accent); }
 .sub { display: block; font-size: 11.5px; color: var(--ink-3); }
-.detail td { background: var(--surface-2); padding: 10px 12px 2px; }
+.detail td { background: var(--surface-2); padding: 12px 12px 0; }
 .empty-row { text-align: center; padding: 24px; }
 
-.status { padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
-.status[data-tone='blue']   { background: #dbeafe; color: #1e40af; }
-.status[data-tone='amber']  { background: #fef3c7; color: #92400e; }
-.status[data-tone='gray']   { background: #f3f4f6; color: #4b5563; }
-.status[data-tone='red']    { background: #fee2e2; color: #b91c1c; }
-.status[data-tone='violet'] { background: #ede9fe; color: #6d28d9; }
-.status[data-tone='green']  { background: #d1fae5; color: #065f46; }
-:host-context([data-theme='dark']) .status[data-tone='blue']   { background: rgba(96,165,250,.15); color: #93c5fd; }
-:host-context([data-theme='dark']) .status[data-tone='amber']  { background: rgba(251,191,36,.15); color: #fcd34d; }
-:host-context([data-theme='dark']) .status[data-tone='gray']   { background: rgba(156,163,175,.15); color: #d1d5db; }
-:host-context([data-theme='dark']) .status[data-tone='red']    { background: rgba(248,113,113,.15); color: #fca5a5; }
-:host-context([data-theme='dark']) .status[data-tone='violet'] { background: rgba(167,139,250,.15); color: #c4b5fd; }
-:host-context([data-theme='dark']) .status[data-tone='green']  { background: rgba(74,222,128,.15); color: #86efac; }
+.badge .badge-dot { background: currentColor; }
+.badge[data-tone='blue']   { background: #dbeafe; color: #1e40af; }
+.badge[data-tone='amber']  { background: #fef3c7; color: #92400e; }
+.badge[data-tone='gray']   { background: #f3f4f6; color: #4b5563; }
+.badge[data-tone='red']    { background: #fee2e2; color: #b91c1c; }
+.badge[data-tone='violet'] { background: #ede9fe; color: #6d28d9; }
+.badge[data-tone='green']  { background: #d1fae5; color: #065f46; }
+:host-context([data-theme='dark']) .badge[data-tone='blue']   { background: rgba(96,165,250,.15); color: #93c5fd; }
+:host-context([data-theme='dark']) .badge[data-tone='amber']  { background: rgba(251,191,36,.15); color: #fcd34d; }
+:host-context([data-theme='dark']) .badge[data-tone='gray']   { background: rgba(156,163,175,.15); color: #d1d5db; }
+:host-context([data-theme='dark']) .badge[data-tone='red']    { background: rgba(248,113,113,.15); color: #fca5a5; }
+:host-context([data-theme='dark']) .badge[data-tone='violet'] { background: rgba(167,139,250,.15); color: #c4b5fd; }
+:host-context([data-theme='dark']) .badge[data-tone='green']  { background: rgba(74,222,128,.15); color: #86efac; }

@@ -73,7 +73,7 @@ const PERIODS = [
                 <td class="nowrap">{{ p.phone ?? '—' }}</td>
                 <td class="nowrap">{{ p.shiftSlot }}° turno</td>
                 <td>{{ p.owner?.name ?? '—' }}</td>
-                <td><span class="status" [attr.data-tone]="tone(p.status)">{{ statusLabel(p.status) }}</span></td>
+                <td><span class="badge" [attr.data-tone]="tone(p.status)"><span class="badge-dot"></span>{{ statusLabel(p.status) }}</span></td>
                 <td class="nowrap">
                   @if (p.call) {
                     {{ callLabel(p.call.startsAt) }}@if (p.call.outcome) { · {{ p.call.outcome }} }
