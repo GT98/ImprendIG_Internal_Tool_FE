@@ -16,7 +16,7 @@ const SLOT_LABEL: Record<number, string> = { 1: '1° turno', 2: '2° turno', 3: 
 type Channel = 'call' | 'whatsapp';
 
 // Un lead ADS: chiamata, WhatsApp, link di prenotazione, stato e note.
-// Mostra chi ne è responsabile e avvisa prima di contattare un lead seguito da un'altra.
+// Il lead è della setter del suo turno: le altre lo vedono ma non possono contattarlo.
 @Component({
   selector: 'app-prospect-card',
   imports: [IconComponent],
@@ -38,13 +38,12 @@ type Channel = 'call' | 'whatsapp';
 
       <p class="owner" [class.mine]="isMine()" [class.taken]="takenByOther()">
         <app-icon name="users" [size]="13" />
-        @if (p.handledBy) {
-          {{ isMine() ? 'Lo stai seguendo tu' : 'Lo segue ' + p.handledBy.name }}{{ p.firstContactAt ? ' dalle ' + time(p.firstContactAt) : '' }}
-        } @else if (p.shiftSetter) {
-          Di turno: {{ p.shiftSetter }} · nessuno l'ha ancora contattato
+        @if (p.owner) {
+          {{ isMine() ? 'Lead tuo' : 'Lead di ' + p.owner.name }}
         } @else {
-          Nessuna setter di turno · nessuno l'ha ancora contattato
+          Turno senza setter: è di chi lo contatta per prima
         }
+        · {{ p.firstContactAt ? 'contattato alle ' + time(p.firstContactAt) : 'non ancora contattato' }}
       </p>
 
       @if (answerList().length) {
@@ -68,16 +67,7 @@ type Channel = 'call' | 'whatsapp';
         </p>
       }
 
-      @if (conflict(); as c) {
-        <div class="conflict" role="alert">
-          <span><strong>Attenzione:</strong> questo lead lo sta già seguendo {{ c.by }}. Vuoi contattarlo lo stesso?</span>
-          <div class="conflict-actions">
-            <button type="button" class="btn-ghost sm" (click)="conflict.set(null)">Lascio a {{ c.by }}</button>
-            <button type="button" class="btn-primary sm" (click)="contact(c.channel, true)">Contatta comunque</button>
-          </div>
-        </div>
-      }
-
+      @if (canWork()) {
       <div class="actions">
         <button type="button" class="btn-primary sm" (click)="contact('call')" [disabled]="!p.phone || busy()">
           <app-icon name="phone" [size]="14" /> Chiama
@@ -98,7 +88,9 @@ type Channel = 'call' | 'whatsapp';
         </button>
       </div>
 
-      @if (notesOpen()) {
+      }
+
+      @if (notesOpen() && canWork()) {
         <div class="notes">
           <textarea rows="3" [attr.aria-label]="'Note su ' + p.name" placeholder="Es. risponde dopo le 18, vuole info sui pagamenti…" [value]="p.notes ?? ''" (input)="draft.set($any($event.target).value)"></textarea>
           <button type="button" class="btn-primary sm" (click)="saveNotes()" [disabled]="busy() || draft() === null">Salva note</button>
@@ -121,7 +113,6 @@ export class ProspectCardComponent {
   readonly busy = signal(false);
   readonly notesOpen = signal(false);
   readonly draft = signal<string | null>(null);
-  readonly conflict = signal<{ by: string; channel: Channel } | null>(null);
 
   readonly statuses = Object.entries(PROSPECT_STATUS).map(([key, v]) => ({ key: key as ProspectStatus, label: v.label }));
   readonly statusLabel = computed(() => PROSPECT_STATUS[this.prospect().status]?.label ?? this.prospect().status);
@@ -142,10 +133,12 @@ export class ProspectCardComponent {
     return id != null ? Number(id) : null;
   });
   readonly isMine = computed(() => {
-    const h = this.prospect().handledBy;
-    return h != null && h.id === this.mySetterId();
+    const o = this.prospect().owner;
+    return o != null && o.id === this.mySetterId();
   });
-  readonly takenByOther = computed(() => this.prospect().handledBy != null && !this.isMine() && this.mySetterId() != null);
+  /** Lead di un'altra setter: lo vedo ma non posso contattarlo (gli admin sì) */
+  readonly takenByOther = computed(() => this.prospect().owner != null && !this.isMine() && this.mySetterId() != null);
+  readonly canWork = computed(() => !this.takenByOther());
 
   readonly label = romeLabel;
   readonly time = romeTime;
@@ -160,12 +153,11 @@ export class ProspectCardComponent {
     this.toast.error(typeof msg === 'string' ? msg : fallback);
   }
 
-  contact(channel: Channel, force = false): void {
+  contact(channel: Channel): void {
     // WhatsApp: apro la scheda subito, nel clic, così il browser non la blocca come popup
     const tab = channel === 'whatsapp' ? window.open('', '_blank') : null;
     this.busy.set(true);
-    this.conflict.set(null);
-    this.api.contact(this.prospect().id, channel, force).subscribe({
+    this.api.contact(this.prospect().id, channel).subscribe({
       next: ({ url }) => {
         this.busy.set(false);
         if (channel === 'call') {
@@ -180,11 +172,6 @@ export class ProspectCardComponent {
       },
       error: (err: HttpErrorResponse) => {
         tab?.close();
-        if (err.status === 409 && err.error?.takenBy) {
-          this.busy.set(false);
-          this.conflict.set({ by: err.error.takenBy, channel });
-          return;
-        }
         this.fail(err, 'Contatto non riuscito');
       },
     });

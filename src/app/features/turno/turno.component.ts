@@ -18,7 +18,7 @@ import { ProspectTableComponent } from './prospect-table.component';
       <div class="page-head">
         <div>
           <h1>Lead ADS</h1>
-          <p class="page-sub">I lead arrivati dai form Meta. Tutte vedono tutto: su ogni lead c'è chi lo segue, così nessuno viene contattato due volte.</p>
+          <p class="page-sub">I lead arrivati dai form Meta. Ogni lead è della setter del turno in cui arriva: tutte vedono tutto, ma solo lei può contattarlo.</p>
         </div>
         <button type="button" class="btn-ghost" (click)="board.reload()" [disabled]="board.isLoading()">
           <app-icon name="refresh" [size]="15" /> Aggiorna
@@ -66,15 +66,15 @@ import { ProspectTableComponent } from './prospect-table.component';
           <details class="card links">
             <summary>
               <app-icon name="copy" [size]="15" />
-              <span>I tuoi link di prenotazione</span>
-              <small>la call prenotata da questi link è attribuita a te</small>
+              <span>Il tuo link per l'organico (DM Instagram)</span>
+              <small>la call la fa una venditrice libera, la setter risulti tu</small>
             </summary>
+            <p class="links-hint">Per i lead ADS usa "Link prenotazione" sulla scheda del lead: mostra solo i tuoi orari e la call la fai tu.</p>
             <div class="links-grid">
               @for (l of b.links; track l.slug) {
                 <div class="link-row">
                   <span class="link-academy">{{ academyName(l.academy) }}</span>
-                  <button type="button" class="btn-ghost sm" (click)="copy(l.ads, 'Link ADS copiato')">ADS</button>
-                  <button type="button" class="btn-ghost sm" (click)="copy(l.organic, 'Link organico copiato')">Organico (IG)</button>
+                  <button type="button" class="btn-ghost sm" (click)="copy(l.organic, 'Link copiato: mandalo in DM')"><app-icon name="copy" [size]="13" /> Copia link</button>
                 </div>
               }
             </div>
@@ -95,8 +95,8 @@ import { ProspectTableComponent } from './prospect-table.component';
           <div role="tabpanel">
             @if (b.backlog.length) {
               <section class="sec sec-alert">
-                <h2>Rimasti indietro dai turni precedenti <span class="count alert">{{ b.backlog.length }}</span></h2>
-                <p class="tab-hint">Mai contattati: vanno chiamati per primi, da chiunque sia di turno.</p>
+                <h2>Turni passati, mai contattati <span class="count alert">{{ b.backlog.length }}</span></h2>
+                <p class="tab-hint">Restano della setter del loro turno: è lei che ne segna l'esito.</p>
                 @for (p of b.backlog; track p.id) {
                   <app-prospect-card [prospect]="p" [showShift]="true" (changed)="refresh()" />
                 }

@@ -154,8 +154,11 @@ export class PublicBookingApiService {
     return this.http.get<PublicBookingSettings>(`${this.base}/${slug}`);
   }
 
-  slots(slug: string, from: string, to: string): Observable<string[]> {
-    return this.http.get<string[]>(`${this.base}/${slug}/slots`, { params: { from, to } });
+  /** prospect = token del lead ADS: solo gli orari della sua setter */
+  slots(slug: string, from: string, to: string, prospect?: string): Observable<string[]> {
+    const params: Record<string, string> = { from, to };
+    if (prospect) params['l'] = prospect;
+    return this.http.get<string[]>(`${this.base}/${slug}/slots`, { params });
   }
 
   create(slug: string, dto: CreatePublicBooking): Observable<{ startsAt: string; manageToken: string }> {

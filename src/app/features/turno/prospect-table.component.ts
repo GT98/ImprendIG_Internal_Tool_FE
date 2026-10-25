@@ -31,8 +31,8 @@ const PERIODS = [
           <option [value]="s.key" [selected]="status() === s.key">{{ s.label }}</option>
         }
       </select>
-      <select aria-label="Seguito da" (change)="setterId.set(+$any($event.target).value || 0)">
-        <option value="0">Seguito da: tutte</option>
+      <select aria-label="Setter proprietaria" (change)="setterId.set(+$any($event.target).value || 0)">
+        <option value="0">Di: tutte le setter</option>
         @for (s of setters(); track s.id) {
           <option [value]="s.id" [selected]="setterId() === +s.id">{{ s.name }} {{ s.lastName ?? '' }}</option>
         }
@@ -57,8 +57,8 @@ const PERIODS = [
               <th scope="col">Nome</th>
               <th scope="col">Telefono</th>
               <th scope="col">Turno</th>
+              <th scope="col">Di</th>
               <th scope="col">Stato</th>
-              <th scope="col">Seguito da</th>
               <th scope="col">Call</th>
             </tr>
           </thead>
@@ -71,9 +71,9 @@ const PERIODS = [
                   @if (p.client) { <span class="sub">{{ p.client.name }}</span> }
                 </td>
                 <td class="nowrap">{{ p.phone ?? '—' }}</td>
-                <td class="nowrap">{{ p.shiftSlot }}° · {{ p.shiftSetter ?? '—' }}</td>
+                <td class="nowrap">{{ p.shiftSlot }}° turno</td>
+                <td>{{ p.owner?.name ?? '—' }}</td>
                 <td><span class="status" [attr.data-tone]="tone(p.status)">{{ statusLabel(p.status) }}</span></td>
-                <td>{{ p.handledBy?.name ?? '—' }}</td>
                 <td class="nowrap">
                   @if (p.call) {
                     {{ callLabel(p.call.startsAt) }}@if (p.call.outcome) { · {{ p.call.outcome }} }

@@ -7,8 +7,8 @@
 .owner { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; font-size: 12.5px; color: var(--ink-3); }
 .owner.mine { color: var(--accent); font-weight: 600; }
 .owner.taken { color: #b45309; font-weight: 600; }
-.conflict { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: #fffbeb; border: 1px solid #fcd34d; color: #78350f; font-size: 13px; }
-.conflict-actions { display: flex; gap: 8px; }
+
+
 .pc-head { display: flex; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; align-items: baseline; }
 .pc-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .pc-title strong { font-size: 15px; }
@@ -60,5 +60,4 @@
 :host-context([data-theme='dark']) .call.cancelled { background: rgba(248,113,113,.12); color: #fca5a5; }
 
 :host-context([data-theme='dark']) .owner.taken { color: #fbbf24; }
-:host-context([data-theme='dark']) .conflict { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.4); color: #fcd34d; }
 :host-context([data-theme='dark']) .btn-ghost.wa { color: #4ade80; }
