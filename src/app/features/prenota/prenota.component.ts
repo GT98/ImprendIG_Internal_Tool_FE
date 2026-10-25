@@ -239,7 +239,7 @@ export class PrenotaComponent {
     const s = this.settings();
     if (!s) return;
     const from = romeDate(new Date());
-    this.api.slots(this.slug, from, addDays(from, s.horizonDays)).subscribe({
+    this.api.slots(this.slug, from, addDays(from, s.horizonDays), this.attribution.prospect).subscribe({
       next: slots => {
         this.slots.set(slots);
         this.step.set('pick');

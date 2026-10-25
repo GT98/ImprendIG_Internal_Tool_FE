@@ -52,6 +52,8 @@ export interface Prospect {
   priority: number;
   arrivalGroup: string | null;
   status: ProspectStatus;
+  /** Setter del turno a cui è assegnato: solo lei può lavorarlo */
+  owner: { id: number; name: string } | null;
   handledBy: { id: number; name: string } | null;
   firstContactAt: string | null;
   notes: string | null;
@@ -61,7 +63,6 @@ export interface Prospect {
 export interface SetterLinks {
   academy: string;
   slug: string;
-  ads: string;
   organic: string;
 }
 
@@ -117,9 +118,9 @@ export class ShiftApiService {
     return this.http.patch<Prospect>(`${API_URL}/shifts/prospects/${id}`, dto);
   }
 
-  /** Primo contatto: 409 se il lead lo segue già un'altra setter (force per procedere) */
-  contact(id: number, channel: 'call' | 'whatsapp', force = false): Observable<{ url: string }> {
-    return this.http.post<{ url: string }>(`${API_URL}/shifts/prospects/${id}/contact`, { channel, force });
+  /** Primo contatto: solo la proprietaria del lead (403 per le altre setter) */
+  contact(id: number, channel: 'call' | 'whatsapp'): Observable<{ url: string }> {
+    return this.http.post<{ url: string }>(`${API_URL}/shifts/prospects/${id}/contact`, { channel });
   }
 
   bookingLink(id: number): Observable<{ url: string }> {
