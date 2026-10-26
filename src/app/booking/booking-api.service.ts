@@ -182,6 +182,14 @@ export class PublicBookingApiService {
   }
 }
 
+export interface AcademyCoverage {
+  id: number;
+  slug: string;
+  sellers: number;
+  withoutHours: string[];
+  freeSlots7d: number;
+}
+
 export interface SellerAcademy {
   id: number;
   slug: string;
@@ -198,6 +206,11 @@ export class BookingApiService {
 
   availability(sellerId: number): Observable<AvailabilityWindow[]> {
     return this.http.get<AvailabilityWindow[]>(`${this.base}/availability/${sellerId}`);
+  }
+
+  /** Copertura dei percorsi: chi è senza orari, orari prenotabili nei prossimi 7 giorni */
+  coverage(): Observable<AcademyCoverage[]> {
+    return this.http.get<AcademyCoverage[]>(`${this.base}/coverage`);
   }
 
   /** Academy in cui la venditrice è a rotazione */

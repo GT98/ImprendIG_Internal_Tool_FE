@@ -53,6 +53,9 @@ function slugify(s: string): string {
             <button type="button" role="tab" [id]="'academy-tab-' + d.id" [attr.aria-selected]="tab() === i" [attr.aria-controls]="'academy-panel'" [class.on]="tab() === i" (click)="tab.set(i)">
               <span class="dot" [class.live]="d.active" aria-hidden="true"></span>
               {{ d.title.split(' – ')[0] || d.client.name }}
+              @if (issue(d.id); as w) {
+                <span class="warn-dot" [attr.aria-label]="w.level === 'alert' ? 'percorso scoperto' : 'da controllare'" [class.alert]="w.level === 'alert'">!</span>
+              }
               <span class="sr-only">{{ d.active ? '(attiva)' : '(spenta)' }}</span>
             </button>
           }
@@ -61,6 +64,17 @@ function slugify(s: string): string {
       <div class="academies" id="academy-panel" role="tabpanel">
         @if (drafts()[tab()]; as s) {
           @let si = tab();
+          @if (coverageOf(s.id); as c) {
+            <div class="coverage" [class.alert]="c.freeSlots7d === 0 && s.active" [class.ok]="c.freeSlots7d > 0 && !c.withoutHours.length" role="status">
+              <strong>{{ c.sellers }} venditric{{ c.sellers === 1 ? 'e' : 'i' }} a rotazione · {{ c.freeSlots7d }} orari prenotabili nei prossimi 7 giorni</strong>
+              @if (c.freeSlots7d === 0) {
+                <span>Percorso scoperto: chi apre la pagina non vede nessun orario.</span>
+              }
+              @if (c.withoutHours.length) {
+                <span>Senza orari settimanali: {{ c.withoutHours.join(', ') }}. Finché non li inseriscono in Disponibilità non ricevono call di questo percorso.</span>
+              }
+            </div>
+          }
           <section class="card">
             <div class="card-head">
               <div>
@@ -213,6 +227,20 @@ export class PrenotazioniConfigComponent {
   /** Academy mostrata (una alla volta, a schede) */
   readonly tab = signal(0);
 
+  readonly coverageResource = rxResource({ stream: () => this.api.coverage() });
+
+  coverageOf(id: number) {
+    return this.coverageResource.value()?.find(c => c.id === Number(id)) ?? null;
+  }
+
+  /** Segnale sulla scheda: scoperto (rosso) o qualcuna senza orari (giallo) */
+  issue(id: number): { level: 'alert' | 'warn' } | null {
+    const c = this.coverageOf(id);
+    if (!c) return null;
+    if (c.freeSlots7d === 0) return { level: 'alert' };
+    return c.withoutHours.length ? { level: 'warn' } : null;
+  }
+
   private readonly api = inject(BookingApiService);
   private readonly sellerApi = inject(SellerApiService);
   private readonly setterApi = inject(SetterApiService);
@@ -319,6 +347,7 @@ export class PrenotazioniConfigComponent {
       active: s.active,
     }).subscribe({
       next: () => {
+        this.coverageResource.reload();
         this.savingId.set(null);
         this.toast.success('Pagina salvata');
         this.settingsResource.reload();
