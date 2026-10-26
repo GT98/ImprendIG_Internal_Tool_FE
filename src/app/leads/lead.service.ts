@@ -73,6 +73,16 @@ export class LeadsService {
     return this.http.patch<Lead>(`${API_URL}/leads/${id}`, dto);
   }
 
+  /** Call degli ultimi 30 giorni ancora senza setter */
+  withoutSetter() {
+    return this.http.get<Lead[]>(`${API_URL}/leads/senza-setter`);
+  }
+
+  /** La setter prende il lead (mine) o lo lascia */
+  claimSetter(id: number, mine: boolean) {
+    return this.http.post<Lead>(`${API_URL}/leads/${id}/setter`, { mine });
+  }
+
   patchCustomer(customerId: number, dto: PatchCustomerDto) {
     return this.http.patch(`${API_URL}/customers/${customerId}`, dto);
   }

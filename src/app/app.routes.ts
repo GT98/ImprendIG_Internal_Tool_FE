@@ -169,8 +169,8 @@ export const routes: Routes = [
       // },
       {
         path: 'lead-ads',
-        // TODO lancio turni: setterGuard per aprirla alle setter
-        canActivate: [adminGuard],
+        // anteprima di prova per admin e setter
+        canActivate: [setterGuard],
         loadComponent: () =>
           import('./features/turno/turno.component').then(m => m.TurnoComponent),
         title: 'Lead ADS',
@@ -185,8 +185,8 @@ export const routes: Routes = [
       },
       {
         path: 'disponibilita',
-        // TODO lancio prenotazioni: notClientGuard per aprirla alle venditrici
-        canActivate: [adminGuard],
+        // anteprima: admin e setter (venditrici anche loro). TODO lancio prenotazioni: notClientGuard per tutte le venditrici
+        canActivate: [setterGuard],
         loadComponent: () =>
           import('./features/agenda/disponibilita.component').then(m => m.DisponibilitaComponent),
         title: 'Disponibilità',

@@ -1,10 +1,12 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { LeadsService } from '../../leads/lead.service';
 import type { Lead, LeadStatusOption } from '../../leads/lead.model';
 import { ToastService } from '../../shared/toast.service';
 import { ThemeService } from '../../theme.service';
 import { IconComponent } from '../../shared/icon.component';
+import { AuthService } from '../../auth/auth.service';
 
 interface StatusStyle { bg: string; color: string }
 
@@ -59,6 +61,31 @@ const NEUTRAL_DARK: StatusStyle = { bg: 'rgba(156,163,175,.15)', color: '#9ca3af
           <span class="muted-pill">{{ filtered().length }}</span>
         }
       </div>
+
+      <!-- Call senza setter: chi ha seguito il lead lo prende -->
+      @if (mySetterId() !== null && unassigned().length) {
+        <section class="ua" aria-labelledby="ua-title">
+          <div class="ua-head">
+            <h2 id="ua-title">Call senza setter <span class="chip-count">{{ unassigned().length }}</span></h2>
+            <p>Call prenotate negli ultimi 30 giorni che nessuna setter ha ancora preso. Se il lead l'hai seguito tu, prendilo: la call conta come tua.</p>
+          </div>
+          <ul class="ua-list">
+            @for (l of shownUnassigned(); track l.id) {
+              <li class="ua-row">
+                <div class="ua-who">
+                  <strong>{{ fullName(l) }}</strong>
+                  <span>{{ l.client?.name ?? 'Academy n.d.' }} · call {{ formatDateTime(l.callStartDate) }}{{ l.seller ? ' con ' + sellerName(l.seller) : '' }}</span>
+                  @if (l.email || l.phone) { <span class="ua-contact">{{ l.email ?? '' }}{{ l.email && l.phone ? ' · ' : '' }}{{ l.phone ?? '' }}</span> }
+                </div>
+                <button type="button" class="btn-ghost ua-btn" (click)="claim(l, true)" [disabled]="busyId() === l.id">L'ho seguita io</button>
+              </li>
+            }
+          </ul>
+          @if (unassigned().length > shownUnassigned().length) {
+            <button type="button" class="btn-ghost-xs ua-more" (click)="showAll.set(true)">Mostra tutte ({{ unassigned().length }})</button>
+          }
+        </section>
+      }
 
       <!-- Status filter chips -->
       @if ((statusOptions.value() ?? []).length > 0) {
@@ -145,8 +172,19 @@ const NEUTRAL_DARK: StatusStyle = { bg: 'rgba(156,163,175,.15)', color: '#9ca3af
                   @if (lead.setter) {
                     <span class="lc-meta-item lc-setter">
                       <app-icon name="phone" [size]="12" />
-                      {{ sellerName(lead.setter) }}
+                      {{ isMySetter(lead) ? 'Setter: tu' : sellerName(lead.setter) }}
                     </span>
+                    @if (isMySetter(lead)) {
+                      @if (confirmReleaseId() === lead.id) {
+                        <span class="lc-release">
+                          Non l'hai seguita tu?
+                          <button type="button" class="btn-ghost-xs" (click)="claim(lead, false)" [disabled]="busyId() === lead.id">Sì, lasciala</button>
+                          <button type="button" class="btn-ghost-xs" (click)="confirmReleaseId.set(null)">No</button>
+                        </span>
+                      } @else {
+                        <button type="button" class="btn-ghost-xs" (click)="confirmReleaseId.set(lead.id)">Non l'ho seguita io</button>
+                      }
+                    }
                   }
                 </div>
               }
@@ -192,6 +230,12 @@ export class LeadsListComponent {
   private readonly leadsService = inject(LeadsService);
   private readonly toast = inject(ToastService);
   private readonly theme = inject(ThemeService);
+  private readonly auth = inject(AuthService);
+
+  readonly mySetterId = computed(() => {
+    const id = this.auth.currentUser()?.setterId;
+    return id != null ? Number(id) : null;
+  });
 
   readonly searchQuery = signal('');
   readonly selectedStatus = signal<string | null>(null);
@@ -203,6 +247,16 @@ export class LeadsListComponent {
   readonly leadsResource = rxResource({
     stream: () => this.leadsService.getAll(),
   });
+
+  readonly unassignedResource = rxResource({
+    params: () => this.mySetterId() ?? undefined,
+    stream: () => this.leadsService.withoutSetter(),
+  });
+  readonly unassigned = computed(() => this.unassignedResource.value() ?? []);
+  readonly showAll = signal(false);
+  readonly shownUnassigned = computed(() => (this.showAll() ? this.unassigned() : this.unassigned().slice(0, 5)));
+  readonly busyId = signal<number | null>(null);
+  readonly confirmReleaseId = signal<number | null>(null);
 
   readonly statusOverrides = signal<Record<number, LeadStatusOption | null>>({});
 
@@ -267,6 +321,37 @@ export class LeadsListComponent {
     } catch {
       return iso;
     }
+  }
+
+  formatDateTime(iso: string | null): string {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleString('it-IT', {
+      timeZone: 'Europe/Rome', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+    });
+  }
+
+  isMySetter(lead: Lead): boolean {
+    return lead.setter != null && Number(lead.setter.id) === this.mySetterId();
+  }
+
+  /** Prendo il lead (mine) o lo lascio: la call passa nelle "senza setter" */
+  claim(lead: Lead, mine: boolean): void {
+    this.busyId.set(lead.id);
+    this.leadsService.claimSetter(lead.id, mine).subscribe({
+      next: () => {
+        this.busyId.set(null);
+        this.confirmReleaseId.set(null);
+        this.toast.success(mine ? `${this.fullName(lead)} ora è tra i tuoi lead` : 'Lead lasciato: torna tra le call senza setter');
+        this.leadsResource.reload();
+        this.unassignedResource.reload();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.busyId.set(null);
+        const msg = err.error?.message;
+        this.toast.error(typeof msg === 'string' ? msg : 'Operazione non riuscita');
+        this.unassignedResource.reload();
+      },
+    });
   }
 
   updateStatus(lead: Lead, statusOptionId: number): void {

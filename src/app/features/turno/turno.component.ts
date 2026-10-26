@@ -25,6 +25,15 @@ import { ProspectTableComponent } from './prospect-table.component';
         </button>
       </div>
 
+      <!-- TODO lancio turni: togliere il banner -->
+      <div class="preview-note" role="note">
+        <app-icon name="info" [size]="16" />
+        <p>
+          <strong>Anteprima di prova.</strong> I lead si lavorano ancora su Notion: qui provate il flusso e segnalate cosa non torna.
+          Il "Link prenotazione" prenota davvero sul portale, quindi per ora mandatelo solo a contatti di prova.
+        </p>
+      </div>
+
       @if (board.error()) {
         <p class="muted">Non riesco a caricare il turno. Riprova tra poco.</p>
       } @else if (board.value(); as b) {
