@@ -88,6 +88,29 @@ function toRows(windows: AvailabilityWindow[]): DayRow[] {
 
         <section class="card">
           <div class="card-head">
+            <h2>Percorsi in cui vende</h2>
+          </div>
+          <p class="muted small">Gli orari sopra valgono per tutti i percorsi spuntati: chi prenota su un percorso vede gli orari liberi delle venditrici di quel percorso. Una call presa su un percorso blocca l'orario anche sugli altri.</p>
+          @if (academiesResource.isLoading() && !academiesResource.value()) {
+            <p class="muted">Caricamento…</p>
+          } @else {
+            <div class="academy-list">
+              @for (a of academiesResource.value() ?? []; track a.id) {
+                <label class="academy" [class.on]="a.selected">
+                  <input type="checkbox" [checked]="a.selected" [disabled]="!isAdmin() || savingAcademies()" (change)="toggleAcademy(a.id, $any($event.target).checked)" />
+                  <span>{{ academyName(a.title) }}</span>
+                  @if (!a.active) { <span class="muted">(pagina spenta)</span> }
+                </label>
+              }
+            </div>
+            @if (!isAdmin()) {
+              <p class="muted small hint">Per cambiare i percorsi chiedi all'amministrazione.</p>
+            }
+          }
+        </section>
+
+        <section class="card">
+          <div class="card-head">
             <h2>Ferie e blocchi</h2>
           </div>
           <p class="muted small">Nei periodi bloccati non si può prenotare. Le call già prese in quel periodo restano: le trovi segnalate qui sotto.</p>
@@ -151,6 +174,12 @@ export class DisponibilitaComponent {
     params: () => this.sellerId() ?? undefined,
     stream: ({ params }) => this.api.timeOff(params),
   });
+
+  readonly academiesResource = rxResource({
+    params: () => this.sellerId() ?? undefined,
+    stream: ({ params }) => this.api.sellerAcademies(params),
+  });
+  readonly savingAcademies = signal(false);
 
   readonly rows = signal<DayRow[]>(toRows([]));
   readonly dirty = signal(false);
@@ -256,6 +285,31 @@ export class DisponibilitaComponent {
         this.timeOffResource.reload();
       },
       error: () => this.toast.error('Impossibile eliminare il blocco'),
+    });
+  }
+
+  academyName(title: string): string {
+    return title.split(/\s[–-]\s/)[0];
+  }
+
+  toggleAcademy(id: number, on: boolean): void {
+    const sellerId = this.sellerId();
+    if (!sellerId) return;
+    const ids = (this.academiesResource.value() ?? [])
+      .filter(a => (a.id === id ? on : a.selected))
+      .map(a => a.id);
+    this.savingAcademies.set(true);
+    this.api.saveSellerAcademies(sellerId, ids).subscribe({
+      next: list => {
+        this.savingAcademies.set(false);
+        this.academiesResource.set(list);
+        this.toast.success('Percorsi aggiornati');
+      },
+      error: () => {
+        this.savingAcademies.set(false);
+        this.toast.error('Percorsi non salvati');
+        this.academiesResource.reload();
+      },
     });
   }
 }

@@ -182,6 +182,14 @@ export class PublicBookingApiService {
   }
 }
 
+export interface SellerAcademy {
+  id: number;
+  slug: string;
+  title: string;
+  active: boolean;
+  selected: boolean;
+}
+
 // Area interna: agenda, disponibilità, link e impostazioni
 @Injectable({ providedIn: 'root' })
 export class BookingApiService {
@@ -190,6 +198,15 @@ export class BookingApiService {
 
   availability(sellerId: number): Observable<AvailabilityWindow[]> {
     return this.http.get<AvailabilityWindow[]>(`${this.base}/availability/${sellerId}`);
+  }
+
+  /** Academy in cui la venditrice è a rotazione */
+  sellerAcademies(sellerId: number): Observable<SellerAcademy[]> {
+    return this.http.get<SellerAcademy[]>(`${this.base}/academies/${sellerId}`);
+  }
+
+  saveSellerAcademies(sellerId: number, settingsIds: number[]): Observable<SellerAcademy[]> {
+    return this.http.post<SellerAcademy[]>(`${this.base}/academies/${sellerId}`, { settingsIds });
   }
 
   saveAvailability(sellerId: number, windows: AvailabilityWindow[]): Observable<AvailabilityWindow[]> {
