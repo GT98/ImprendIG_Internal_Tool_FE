@@ -10,12 +10,13 @@ import { PublicProspectApiService } from '../../shift/shift-api.service';
 type Step = 'loading' | 'pick' | 'form' | 'done' | 'error';
 
 // Pagina pubblica di prenotazione, una per academy: /prenota/:academy?ref=<setter>
+import { brandVars } from './brand';
 @Component({
   selector: 'app-prenota',
   imports: [SlotPickerComponent],
   styleUrl: './prenota.component.css',
   template: `
-    <div class="wrap" [style.--brand]="brand()">
+    <div class="wrap" [style]="brand()">
       <main class="card">
         <header class="head">
           @if (settings()?.brand?.logoUrl) {
@@ -199,7 +200,7 @@ export class PrenotaComponent {
   );
   readonly blocked = computed(() => this.visibleQuestions().some(q => this.isBlocking(q)));
 
-  readonly brand = computed(() => this.settings()?.brand?.color ?? '#4f46e5');
+  readonly brand = computed(() => brandVars(this.settings()?.brand));
   readonly emailOk = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(this.email().trim()));
   readonly phoneOk = computed(() => this.phone().replace(/\D/g, '').length >= 8);
 

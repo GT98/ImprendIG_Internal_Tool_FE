@@ -33,6 +33,8 @@ function slugify(s: string): string {
 }
 
 // Admin: pagine di prenotazione delle academy e link tracciati delle setter
+
+type BrandColor = 'color' | 'onColor' | 'accent' | 'soft' | 'background';
 @Component({
   selector: 'app-prenotazioni-config',
   imports: [IconComponent],
@@ -95,7 +97,9 @@ function slugify(s: string): string {
               <label class="field"><span>Preavviso (ore)</span><input type="number" min="0" [value]="s.minNoticeHours" (input)="patch(si, { minNoticeHours: +val($event) })" /></label>
               <label class="field"><span>Prenotabile fino a (giorni)</span><input type="number" min="1" [value]="s.horizonDays" (input)="patch(si, { horizonDays: +val($event) })" /></label>
               <label class="field"><span>Modificabile fino a (ore prima)</span><input type="number" min="0" [value]="s.changeLimitHours" (input)="patch(si, { changeLimitHours: +val($event) })" /></label>
-              <label class="field"><span>Colore</span><input type="color" [value]="s.brand.color ?? '#4f46e5'" (input)="patchBrand(si, 'color', val($event))" /></label>
+              @for (c of brandColors; track c.key) {
+                <label class="field"><span>{{ c.label }}</span><input type="color" [value]="s.brand[c.key] ?? c.fallback" (input)="patchBrand(si, c.key, val($event))" /></label>
+              }
               <label class="field span2"><span>Logo (URL immagine)</span><input type="url" [value]="s.brand.logoUrl ?? ''" (input)="patchBrand(si, 'logoUrl', val($event))" /></label>
             </div>
             <label class="field"><span>Sottotitolo</span><input type="text" [value]="s.brand.subtitle ?? ''" (input)="patchBrand(si, 'subtitle', val($event))" /></label>
@@ -307,7 +311,16 @@ export class PrenotazioniConfigComponent {
     this.update(si, s => ({ ...s, ...p }));
   }
 
-  patchBrand(si: number, key: 'color' | 'logoUrl' | 'subtitle', value: string): void {
+  // palette del percorso: pagina di prenotazione ed email
+  readonly brandColors: { key: BrandColor; label: string; fallback: string }[] = [
+    { key: 'color', label: 'Colore principale', fallback: '#4f46e5' },
+    { key: 'onColor', label: 'Testo sul principale', fallback: '#ffffff' },
+    { key: 'accent', label: 'Testi e link', fallback: '#4f46e5' },
+    { key: 'soft', label: 'Colore secondario', fallback: '#c7d2fe' },
+    { key: 'background', label: 'Sfondo pagina', fallback: '#f7f7fa' },
+  ];
+
+  patchBrand(si: number, key: BrandColor | 'logoUrl' | 'subtitle', value: string): void {
     this.update(si, s => ({ ...s, brand: { ...s.brand, [key]: value || undefined } }));
   }
 

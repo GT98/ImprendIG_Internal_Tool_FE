@@ -8,12 +8,13 @@ import { SlotPickerComponent } from './slot-picker.component';
 type Mode = 'loading' | 'view' | 'move' | 'confirm-cancel' | 'error';
 
 // Link nelle email: la persona sposta o annulla la propria call
+import { brandVars } from './brand';
 @Component({
   selector: 'app-prenota-gestisci',
   imports: [SlotPickerComponent],
   styleUrl: './prenota.component.css',
   template: `
-    <div class="wrap" [style.--brand]="brand()">
+    <div class="wrap" [style]="brand()">
       <main class="card">
         <header class="head">
           @if (view()?.settings?.brand?.logoUrl) {
@@ -104,7 +105,7 @@ type Mode = 'loading' | 'view' | 'move' | 'confirm-cancel' | 'error';
     .actions { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 18px; }
     .btn-outline {
       padding: 12px 22px; border-radius: 12px; border: 1.5px solid var(--brand); background: #fff;
-      color: var(--brand); font-weight: 800; font-size: 15px; cursor: pointer;
+      color: var(--brand-ink); font-weight: 800; font-size: 15px; cursor: pointer;
     }
     .as-link { display: inline-block; text-decoration: none; padding: 13px 22px; }
     .danger { color: #b91c1c; }
@@ -122,7 +123,7 @@ export class GestisciComponent {
   readonly busy = signal(false);
   readonly notice = signal('');
 
-  readonly brand = computed(() => this.view()?.settings?.brand?.color ?? '#4f46e5');
+  readonly brand = computed(() => brandVars(this.view()?.settings?.brand));
   readonly label = romeLabel;
 
   constructor() {

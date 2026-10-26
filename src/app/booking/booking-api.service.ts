@@ -22,7 +22,16 @@ export interface BookingQuestion {
 }
 
 export interface BookingBrand {
+  /** principale: pulsanti, bordi */
   color?: string;
+  /** testo sopra il principale */
+  onColor?: string;
+  /** testi e link colorati */
+  accent?: string;
+  /** secondario: evidenziazioni */
+  soft?: string;
+  /** sfondo pagina ed email */
+  background?: string;
   logoUrl?: string;
   subtitle?: string;
 }
