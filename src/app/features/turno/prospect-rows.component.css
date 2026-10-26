@@ -1,0 +1,32 @@
+.pr-list { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.pr-list li + li { border-top: 1px solid var(--border); }
+.pr-row {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 10px 14px; border: none; background: none; font: inherit; color: var(--ink);
+  text-align: left; cursor: pointer;
+}
+.pr-row:hover, .open .pr-row { background: var(--surface-2); }
+.pr-who { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; font-size: 12.5px; color: var(--ink-3); }
+.pr-who strong { font-size: 13.5px; color: var(--ink); }
+.pr-owner { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
+.pr-card { padding: 0 12px 12px; background: var(--surface-2); }
+
+.badge { flex-shrink: 0; }
+.badge .badge-dot { background: currentColor; }
+.badge[data-tone='blue']   { background: #dbeafe; color: #1e40af; }
+.badge[data-tone='amber']  { background: #fef3c7; color: #92400e; }
+.badge[data-tone='gray']   { background: #f3f4f6; color: #4b5563; }
+.badge[data-tone='red']    { background: #fee2e2; color: #b91c1c; }
+.badge[data-tone='violet'] { background: #ede9fe; color: #6d28d9; }
+.badge[data-tone='green']  { background: #d1fae5; color: #065f46; }
+:host-context([data-theme='dark']) .badge[data-tone='blue']   { background: rgba(96,165,250,.15); color: #93c5fd; }
+:host-context([data-theme='dark']) .badge[data-tone='amber']  { background: rgba(251,191,36,.15); color: #fcd34d; }
+:host-context([data-theme='dark']) .badge[data-tone='gray']   { background: rgba(156,163,175,.15); color: #d1d5db; }
+:host-context([data-theme='dark']) .badge[data-tone='red']    { background: rgba(248,113,113,.15); color: #fca5a5; }
+:host-context([data-theme='dark']) .badge[data-tone='violet'] { background: rgba(167,139,250,.15); color: #c4b5fd; }
+:host-context([data-theme='dark']) .badge[data-tone='green']  { background: rgba(74,222,128,.15); color: #86efac; }
+
+@media (max-width: 600px) {
+  .pr-row { flex-wrap: wrap; }
+  .pr-who { flex-basis: 100%; }
+}

@@ -13,7 +13,8 @@ export type ProspectStatus =
   | 'discovery_rifiutata'
   | 'discovery_fatta'
   | 'discovery_no'
-  | 'call_prenotata';
+  | 'call_prenotata'
+  | 'non_contattato';
 
 // Stati della fase chat/discovery (gli stessi della tabella Notion)
 export const PROSPECT_STATUS: Record<ProspectStatus, { label: string; tone: string }> = {
@@ -25,6 +26,7 @@ export const PROSPECT_STATUS: Record<ProspectStatus, { label: string; tone: stri
   discovery_fatta:     { label: 'Discovery fatta',      tone: 'violet' },
   discovery_no:        { label: 'Esito discovery: NO',  tone: 'red' },
   call_prenotata:      { label: 'Call prenotata',       tone: 'green' },
+  non_contattato:      { label: 'Non contattato',       tone: 'gray' },
 };
 
 export interface ShiftView {
@@ -81,9 +83,18 @@ export interface ShiftBoard {
   current: ShiftView | null;
   next: ShiftView;
   focus: 'current' | 'next';
-  queue: Prospect[];
-  backlog: Prospect[];
-  followUp: Prospect[];
+  /** Setter di cui sono i lead (null = tutte, solo admin) */
+  owner: number | null;
+  /** Prossimo turno della setter (anche quello in corso) */
+  myNext: ShiftView | null;
+  /** Lead del turno precedente rimasti senza esito */
+  previousOpen: number;
+  /** Turno in corso (o prossimo), mai contattati */
+  toCall: Prospect[];
+  /** Contattati, in attesa di esito */
+  open: Prospect[];
+  /** Turni passati mai contattati: da chiudere, non da richiamare */
+  toClose: Prospect[];
   /** Già assegnati ai turni successivi (es. arrivati di notte per il 2° turno) */
   upcoming: Prospect[];
   links: SetterLinks[];
@@ -104,8 +115,15 @@ export interface ShiftDefault {
 export class ShiftApiService {
   private readonly http = inject(HttpClient);
 
-  board(): Observable<ShiftBoard> {
-    return this.http.get<ShiftBoard>(`${API_URL}/shifts/board`);
+  board(setterId?: number): Observable<ShiftBoard> {
+    const params: Record<string, number> = setterId ? { setterId } : {};
+    return this.http.get<ShiftBoard>(`${API_URL}/shifts/board`, { params });
+  }
+
+  /** Turni passati mai contattati → "non contattato" */
+  closeExpired(setterId?: number): Observable<{ closed: number }> {
+    const params: Record<string, number> = setterId ? { setterId } : {};
+    return this.http.post<{ closed: number }>(`${API_URL}/shifts/prospects/close-expired`, {}, { params });
   }
 
   search(q: ProspectFilters): Observable<Prospect[]> {
