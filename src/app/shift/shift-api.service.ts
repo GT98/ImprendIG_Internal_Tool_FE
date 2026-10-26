@@ -65,7 +65,10 @@ export interface Prospect {
 export interface SetterLinks {
   academy: string;
   slug: string;
+  /** venditrice a rotazione, setter lei */
   organic: string;
+  /** solo i suoi orari: setter e venditrice lei */
+  ads: string;
 }
 
 export interface ProspectFilters {
@@ -139,10 +142,6 @@ export class ShiftApiService {
   /** Primo contatto: solo la proprietaria del lead (403 per le altre setter) */
   contact(id: number, channel: 'call' | 'whatsapp'): Observable<{ url: string }> {
     return this.http.post<{ url: string }>(`${API_URL}/shifts/prospects/${id}/contact`, { channel });
-  }
-
-  bookingLink(id: number): Observable<{ url: string }> {
-    return this.http.post<{ url: string }>(`${API_URL}/shifts/prospects/${id}/booking-link`, {});
   }
 
   shifts(from: string, to: string): Observable<ShiftAssignment[]> {

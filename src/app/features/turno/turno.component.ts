@@ -32,7 +32,7 @@ import { SetterApiService } from '../../setter/setter-api.service';
         <app-icon name="info" [size]="16" />
         <p>
           <strong>Anteprima di prova.</strong> I lead si lavorano ancora su Notion: qui provate il flusso e segnalate cosa non torna.
-          Il "Link prenotazione" prenota davvero sul portale, quindi per ora mandatelo solo a contatti di prova.
+          I link di prenotazione prenotano davvero sul portale, quindi per ora mandateli solo a contatti di prova.
         </p>
       </div>
 
@@ -77,22 +77,22 @@ import { SetterApiService } from '../../setter/setter-api.service';
 
         <!-- Link personali -->
         @if (b.links.length) {
-          <details class="card links">
-            <summary>
-              <app-icon name="copy" [size]="15" />
-              <span>Il tuo link per l'organico (DM Instagram)</span>
-              <small>la call la fa una venditrice libera, la setter risulti tu</small>
-            </summary>
-            <p class="links-hint">Per i lead ADS usa "Link prenotazione" sulla scheda del lead: mostra solo i tuoi orari e la call la fai tu.</p>
+          <section class="card links" aria-labelledby="links-title">
+            <h2 id="links-title"><app-icon name="copy" [size]="15" /> I tuoi link di prenotazione</h2>
+            <div class="links-kinds">
+              <p><strong>ADS</strong> · per i tuoi lead ADS: mostra solo i tuoi orari, la call di vendita la fai tu.</p>
+              <p><strong>Organico</strong> · per i DM Instagram: la call la fa una venditrice libera, la setter risulti tu.</p>
+            </div>
             <div class="links-grid">
               @for (l of b.links; track l.slug) {
                 <div class="link-row">
                   <span class="link-academy">{{ academyName(l.academy) }}</span>
-                  <button type="button" class="btn-ghost sm" (click)="copy(l.organic, 'Link copiato: mandalo in DM')"><app-icon name="copy" [size]="13" /> Copia link</button>
+                  <button type="button" class="btn-ghost sm" (click)="copy(l.ads, 'Link ADS copiato: la call sarà con te')"><app-icon name="copy" [size]="13" /> ADS</button>
+                  <button type="button" class="btn-ghost sm" (click)="copy(l.organic, 'Link organico copiato: mandalo in DM')"><app-icon name="copy" [size]="13" /> Organico</button>
                 </div>
               }
             </div>
-          </details>
+          </section>
         }
 
         <!-- Viste -->

@@ -79,9 +79,6 @@ type Channel = 'call' | 'whatsapp';
           <button type="button" class="btn-ghost sm" (click)="contact('whatsapp')" [disabled]="!p.phone || busy()">
             <app-icon name="send" [size]="14" /> WhatsApp
           </button>
-          <button type="button" class="btn-ghost sm" (click)="copyBookingLink()" [disabled]="busy()">
-            <app-icon name="copy" [size]="14" /> Link prenotazione
-          </button>
           <span class="spacer"></span>
           <select class="select-inline" [attr.aria-label]="'Stato di ' + p.name" (change)="setStatus($any($event.target).value)" [disabled]="busy()">
             @for (s of statuses; track s.key) {
@@ -188,20 +185,6 @@ export class ProspectCardComponent {
         tab?.close();
         this.fail(err, 'Contatto non riuscito');
       },
-    });
-  }
-
-  copyBookingLink(): void {
-    this.busy.set(true);
-    this.api.bookingLink(this.prospect().id).subscribe({
-      next: ({ url }) => {
-        this.busy.set(false);
-        navigator.clipboard.writeText(url).then(
-          () => this.toast.success('Link di prenotazione copiato: mandalo in chat'),
-          () => this.toast.warning(url),
-        );
-      },
-      error: err => this.fail(err, 'Link non disponibile'),
     });
   }
 
