@@ -64,20 +64,50 @@ const NEUTRAL_DARK: StatusStyle = { bg: 'rgba(156,163,175,.15)', color: '#9ca3af
 
       <!-- Call senza setter: chi ha seguito il lead lo prende -->
       @if (mySetterId() !== null && unassigned().length) {
-        <section class="ua" aria-labelledby="ua-title">
-          <div class="ua-head">
-            <h2 id="ua-title">Call senza setter <span class="chip-count">{{ unassigned().length }}</span></h2>
-            <p>Call prenotate negli ultimi 30 giorni che nessuna setter ha ancora preso. Se il lead l'hai seguito tu, prendilo: la call conta come tua.</p>
+        <section class="card ua" aria-labelledby="ua-title">
+          <div class="card-head ua-head">
+            <div>
+              <h2 id="ua-title" class="card-title ua-title">
+                Call senza setter <span class="muted-pill">{{ unassigned().length }}</span>
+              </h2>
+              <p class="card-sub">Call prenotate negli ultimi 30 giorni che nessuna setter ha ancora preso. Se il lead l'hai seguito tu, prendilo: la call conta come tua.</p>
+            </div>
           </div>
           <ul class="ua-list">
             @for (l of shownUnassigned(); track l.id) {
               <li class="ua-row">
                 <div class="ua-who">
-                  <strong>{{ fullName(l) }}</strong>
-                  <span>{{ l.client?.name ?? 'Academy n.d.' }} · call {{ formatDateTime(l.callStartDate) }}{{ l.seller ? ' con ' + sellerName(l.seller) : '' }}</span>
-                  @if (l.email || l.phone) { <span class="ua-contact">{{ l.email ?? '' }}{{ l.email && l.phone ? ' · ' : '' }}{{ l.phone ?? '' }}</span> }
+                  <span class="lc-name">{{ fullName(l) }}</span>
+                  <div class="lc-meta">
+                    <span class="lc-meta-item">
+                      <app-icon name="calendar" [size]="12" />
+                      {{ formatDateTime(l.callStartDate) }}
+                    </span>
+                    @if (l.seller) {
+                      <span class="lc-meta-item">
+                        <app-icon name="users" [size]="12" />
+                        {{ sellerName(l.seller) }}
+                      </span>
+                    }
+                    <span class="plan-tag">{{ l.client?.name ?? 'Academy n.d.' }}</span>
+                  </div>
+                  @if (l.email || l.phone) {
+                    <span class="ua-contact">{{ l.email ?? '' }}{{ l.email && l.phone ? ' · ' : '' }}{{ l.phone ?? '' }}</span>
+                  }
                 </div>
-                <button type="button" class="btn-ghost ua-btn" (click)="claim(l, true)" [disabled]="busyId() === l.id">L'ho seguita io</button>
+                <div class="ua-actions">
+                  @if (confirmClaimId() === l.id) {
+                    <span class="ua-confirm">Confermi che l'hai seguita tu?</span>
+                    <button type="button" class="btn-primary ua-btn" (click)="claim(l, true)" [disabled]="busyId() === l.id">
+                      <app-icon name="check" [size]="14" /> Sì, è mia
+                    </button>
+                    <button type="button" class="btn-ghost-xs" (click)="confirmClaimId.set(null)">Annulla</button>
+                  } @else {
+                    <button type="button" class="btn-ghost ua-btn" (click)="confirmClaimId.set(l.id)">
+                      <app-icon name="phone" [size]="14" /> L'ho seguita io
+                    </button>
+                  }
+                </div>
               </li>
             }
           </ul>
@@ -257,6 +287,7 @@ export class LeadsListComponent {
   readonly shownUnassigned = computed(() => (this.showAll() ? this.unassigned() : this.unassigned().slice(0, 5)));
   readonly busyId = signal<number | null>(null);
   readonly confirmReleaseId = signal<number | null>(null);
+  readonly confirmClaimId = signal<number | null>(null);
 
   readonly statusOverrides = signal<Record<number, LeadStatusOption | null>>({});
 
@@ -341,12 +372,14 @@ export class LeadsListComponent {
       next: () => {
         this.busyId.set(null);
         this.confirmReleaseId.set(null);
+        this.confirmClaimId.set(null);
         this.toast.success(mine ? `${this.fullName(lead)} ora è tra i tuoi lead` : 'Lead lasciato: torna tra le call senza setter');
         this.leadsResource.reload();
         this.unassignedResource.reload();
       },
       error: (err: HttpErrorResponse) => {
         this.busyId.set(null);
+        this.confirmClaimId.set(null);
         const msg = err.error?.message;
         this.toast.error(typeof msg === 'string' ? msg : 'Operazione non riuscita');
         this.unassignedResource.reload();
