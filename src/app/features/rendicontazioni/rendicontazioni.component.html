@@ -1,21 +1,19 @@
 <div class="page">
 
   <!-- ── Header ──────────────────────────────────────────────────────── -->
-  <div class="page-header">
-    <div class="header-left">
-      <app-icon name="receipt" [size]="20" />
-      <h1>{{ isAdmin() ? 'Rendicontazioni' : 'Il mio timesheet' }}</h1>
-    </div>
-    <div class="month-nav">
-      <button class="nav-btn" (click)="prevMonth()" aria-label="Mese precedente">
-        <app-icon name="chevronL" [size]="18" />
-      </button>
-      <span class="month-label">{{ monthLabel() }}</span>
-      <button class="nav-btn" (click)="nextMonth()" aria-label="Mese successivo">
-        <app-icon name="chevron" [size]="18" />
-      </button>
+  <div class="page-head">
+    <div>
+      <h1>
+        {{ isAdmin() ? 'Rendicontazioni' : 'Il mio timesheet' }}
+        @if (isAdmin()) { <span class="muted-pill">team</span> }
+      </h1>
+      <p class="page-sub">
+        {{ isAdmin() ? 'Provvigioni, commesse e netto da pagare' : 'Le tue provvigioni e commesse' }} · {{ monthLabel() }}
+      </p>
     </div>
   </div>
+
+  <app-month-nav [(selected)]="month" />
 
   <!-- ═══════════════════════════════════════════════════════════════
        VISTA ADMIN
@@ -47,7 +45,14 @@
           } @else if (summaryError()) {
             <div class="error-banner"><app-icon name="alertTriangle" [size]="16" /> Errore nel caricamento dati</div>
           } @else {
-            <div class="table-wrap">
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <div class="card-title">Riepilogo dipendenti — {{ monthLabel() }}</div>
+                  <div class="card-sub">{{ summaryItems().length }} dipendenti</div>
+                </div>
+              </div>
+              <div class="table-wrap">
               <table class="summary-table">
                 <thead>
                   <tr>
@@ -105,6 +110,7 @@
                   }
                 </tbody>
               </table>
+            </div>
             </div>
           }
         }
@@ -175,162 +181,186 @@
 
         <!-- ── TAB: PAYOUT PARTNER ───────────────────────────── -->
         @if (activeTab() === 'payout') {
-          <div class="payout-section">
-            <div class="payout-header">
-              <div>
-                <h2 class="payout-title">Payout Carlotta — {{ monthLabel() }}</h2>
-                <p class="payout-sub">UGC Level Up singolo e bundle: 50/50 sulla sola quota UGC</p>
-              </div>
+          @if (payoutLoading()) {
+            <div class="loading-state"><span class="spinner"></span> Calcolo in corso…</div>
+          } @else if (payoutError()) {
+            <div class="error-banner"><app-icon name="alertTriangle" [size]="16" /> Errore nel calcolo del payout.</div>
+          } @else if (payoutData(); as p) {
+            <div class="stat-grid">
+              <app-stat-card icon="euro" label="Incasso totale" [value]="'€ ' + formatAmount(p.grossRevenue)" sub="UGC Level Up singolo e bundle" />
+              <app-stat-card icon="chart" label="Quota UGC Level Up" [value]="'€ ' + formatAmount(p.partnerAcademyGross)" sub="lordo, senza le altre academy" />
+              <app-stat-card icon="send" [label]="p.partnerToPay < 0 ? 'Da restituire da Carlotta' : 'Da versare a Carlotta'" [value]="'€ ' + formatAmount(p.partnerToPay)" [accent]="true" />
+              <app-stat-card icon="wallet" label="Quota Imprendig" [value]="'€ ' + formatAmount(p.imprendigShare)" />
             </div>
 
-            @if (payoutLoading()) {
-              <div class="loading-state"><span class="spinner"></span> Calcolo in corso…</div>
-            } @else if (payoutError()) {
-              <div class="error-banner"><app-icon name="alertTriangle" [size]="16" /> Errore nel calcolo del payout.</div>
-            } @else if (payoutData(); as p) {
-              <div class="payout-kpis">
-                <div class="payout-kpi">
-                  <span class="payout-kpi-label">Incasso totale</span>
-                  <strong class="payout-kpi-value">€ {{ formatAmount(p.grossRevenue) }}</strong>
+            <div class="payout-grid">
+              <div class="card">
+                <div class="card-head">
+                  <div>
+                    <div class="card-title">Base di calcolo</div>
+                    <div class="card-sub">50/50 sulla sola quota UGC</div>
+                  </div>
                 </div>
-                <div class="payout-kpi partner">
-                  <span class="payout-kpi-label">Da versare a Carlotta</span>
-                  <strong class="payout-kpi-value">€ {{ formatAmount(p.partnerToPay) }}</strong>
-                </div>
-                <div class="payout-kpi">
-                  <span class="payout-kpi-label">Quota Imprendig</span>
-                  <strong class="payout-kpi-value">€ {{ formatAmount(p.imprendigShare) }}</strong>
+                <div class="payout-breakdown">
+                  <div class="payout-row">
+                    <span class="payout-row-label">Incasso UGC Level Up e bundle</span>
+                    <span class="payout-row-value">€ {{ formatAmount(p.grossRevenue) }}</span>
+                  </div>
+                  <div class="payout-row deduct">
+                    <span class="payout-row-label">Altre academy dei bundle (Imprendig)</span>
+                    <span class="payout-row-value neg">− € {{ formatAmount(p.otherAcademiesGross) }}</span>
+                  </div>
+                  <div class="payout-row result">
+                    <span class="payout-row-label">Quota UGC Level Up (lordo)</span>
+                    <strong class="payout-row-value">€ {{ formatAmount(p.partnerAcademyGross) }}</strong>
+                  </div>
+                  <div class="payout-divider"></div>
+                  <div class="payout-row deduct">
+                    <span class="payout-row-label">Provvigioni venditrici e setter sulla quota UGC</span>
+                    <span class="payout-row-value">€ {{ formatAmount(p.sellerCommissions) }}</span>
+                  </div>
+                  @if (p.extras > 0) {
+                    <div class="payout-row deduct">
+                      <span class="payout-row-label">Extra spese</span>
+                      <span class="payout-row-value">€ {{ formatAmount(p.extras) }}</span>
+                    </div>
+                  }
                 </div>
               </div>
 
-              <div class="payout-breakdown">
-                <div class="payout-row">
-                  <span class="payout-row-label">Incasso UGC Level Up e bundle</span>
-                  <span class="payout-row-value">€ {{ formatAmount(p.grossRevenue) }}</span>
+              <div class="card party-card partner">
+                <div class="card-head">
+                  <div>
+                    <div class="card-title">Carlotta</div>
+                    <div class="card-sub">{{ p.partnerPercentage }}% della quota UGC</div>
+                  </div>
                 </div>
-                <div class="payout-row deduct">
-                  <span class="payout-row-label">— Altre academy dei bundle (Imprendig)</span>
-                  <span class="payout-row-value neg">− € {{ formatAmount(p.otherAcademiesGross) }}</span>
-                </div>
-                <div class="payout-row net">
-                  <span class="payout-row-label">Quota UGC Level Up (lordo)</span>
-                  <span class="payout-row-value">€ {{ formatAmount(p.partnerAcademyGross) }}</span>
-                </div>
-                <div class="payout-row deduct">
-                  <span class="payout-row-label">Provvigioni venditrici e setter sulla quota UGC</span>
-                  <span class="payout-row-value">€ {{ formatAmount(p.sellerCommissions) }}</span>
-                </div>
-                @if (p.extras > 0) {
+                <div class="payout-breakdown">
+                  <div class="payout-row">
+                    <span class="payout-row-label">{{ p.partnerPercentage }}% della quota UGC</span>
+                    <span class="payout-row-value">€ {{ formatAmount(p.partnerUgcShare) }}</span>
+                  </div>
                   <div class="payout-row deduct">
-                    <span class="payout-row-label">Extra spese</span>
-                    <span class="payout-row-value">€ {{ formatAmount(p.extras) }}</span>
+                    <span class="payout-row-label">{{ p.partnerPercentage }}% delle provvigioni</span>
+                    <span class="payout-row-value neg">− € {{ formatAmount(p.partnerCommissionShare) }}</span>
                   </div>
-                }
-
-                <div class="payout-divider"></div>
-                <div class="payout-party">Carlotta</div>
-                <div class="payout-row">
-                  <span class="payout-row-label">{{ p.partnerPercentage }}% della quota UGC</span>
-                  <span class="payout-row-value">€ {{ formatAmount(p.partnerUgcShare) }}</span>
-                </div>
-                <div class="payout-row deduct">
-                  <span class="payout-row-label">— {{ p.partnerPercentage }}% delle provvigioni</span>
-                  <span class="payout-row-value neg">− € {{ formatAmount(p.partnerCommissionShare) }}</span>
-                </div>
-                @if (p.extras > 0) {
+                  @if (p.extras > 0) {
+                    <div class="payout-row deduct">
+                      <span class="payout-row-label">{{ p.partnerPercentage }}% delle extra spese</span>
+                      <span class="payout-row-value neg">− € {{ formatAmount(p.partnerExtrasShare) }}</span>
+                    </div>
+                  }
                   <div class="payout-row deduct">
-                    <span class="payout-row-label">— {{ p.partnerPercentage }}% delle extra spese</span>
-                    <span class="payout-row-value neg">− € {{ formatAmount(p.partnerExtrasShare) }}</span>
+                    <span class="payout-row-label">Anna 5% del lordo UGC</span>
+                    <span class="payout-row-value neg">− € {{ formatAmount(p.annaFee) }}</span>
                   </div>
-                }
-                <div class="payout-row deduct">
-                  <span class="payout-row-label">— Anna 5% del lordo UGC</span>
-                  <span class="payout-row-value neg">− € {{ formatAmount(p.annaFee) }}</span>
-                </div>
-                <div class="payout-row result partner">
-                  <span class="payout-row-label">Quota Carlotta</span>
-                  <strong class="payout-row-value partner-amount">€ {{ formatAmount(p.partnerShare) }}</strong>
-                </div>
-                @if (p.partnerDirectReceived > 0) {
-                  <div class="payout-row deduct">
-                    <span class="payout-row-label">— Bonifici già incassati da Carlotta</span>
-                    <span class="payout-row-value neg">− € {{ formatAmount(p.partnerDirectReceived) }}</span>
+                  <div class="payout-divider"></div>
+                  <div class="payout-row result">
+                    <span class="payout-row-label">Quota Carlotta</span>
+                    <strong class="payout-row-value partner-amount">€ {{ formatAmount(p.partnerShare) }}</strong>
                   </div>
-                  <div class="payout-row result partner">
-                    <span class="payout-row-label">{{ p.partnerToPay < 0 ? 'Da restituire da Carlotta' : 'Da versare a Carlotta' }}</span>
-                    <strong class="payout-row-value partner-amount">€ {{ formatAmount(p.partnerToPay) }}</strong>
-                  </div>
-                }
-
-                <div class="payout-divider"></div>
-                <div class="payout-party">Imprendig</div>
-                <div class="payout-row">
-                  <span class="payout-row-label">{{ 100 - p.partnerPercentage }}% della quota UGC</span>
-                  <span class="payout-row-value">€ {{ formatAmount(p.imprendigUgcShare) }}</span>
-                </div>
-                <div class="payout-row deduct">
-                  <span class="payout-row-label">— {{ 100 - p.partnerPercentage }}% delle provvigioni</span>
-                  <span class="payout-row-value neg">− € {{ formatAmount(p.imprendigCommissionShare) }}</span>
-                </div>
-                @if (p.extras > 0) {
-                  <div class="payout-row deduct">
-                    <span class="payout-row-label">— {{ 100 - p.partnerPercentage }}% delle extra spese</span>
-                    <span class="payout-row-value neg">− € {{ formatAmount(p.imprendigExtrasShare) }}</span>
-                  </div>
-                }
-                <div class="payout-row">
-                  <span class="payout-row-label">+ Altre academy dei bundle</span>
-                  <span class="payout-row-value">€ {{ formatAmount(p.otherAcademiesGross) }}</span>
-                </div>
-                <div class="payout-row deduct">
-                  <span class="payout-row-label">— Provvigioni sulle altre academy</span>
-                  <span class="payout-row-value neg">− € {{ formatAmount(p.otherCommissions) }}</span>
-                </div>
-                <div class="payout-row result imprendig">
-                  <span class="payout-row-label">Quota Imprendig</span>
-                  <strong class="payout-row-value">€ {{ formatAmount(p.imprendigShare) }}</strong>
+                  @if (p.partnerDirectReceived > 0) {
+                    <div class="payout-row deduct">
+                      <span class="payout-row-label">Bonifici già incassati da Carlotta</span>
+                      <span class="payout-row-value neg">− € {{ formatAmount(p.partnerDirectReceived) }}</span>
+                    </div>
+                    <div class="payout-row result">
+                      <span class="payout-row-label">{{ p.partnerToPay < 0 ? 'Da restituire da Carlotta' : 'Da versare a Carlotta' }}</span>
+                      <strong class="payout-row-value partner-amount">€ {{ formatAmount(p.partnerToPay) }}</strong>
+                    </div>
+                  }
                 </div>
               </div>
-            } @else {
+
+              <div class="card party-card">
+                <div class="card-head">
+                  <div>
+                    <div class="card-title">Imprendig</div>
+                    <div class="card-sub">{{ 100 - p.partnerPercentage }}% della quota UGC + altre academy</div>
+                  </div>
+                </div>
+                <div class="payout-breakdown">
+                  <div class="payout-row">
+                    <span class="payout-row-label">{{ 100 - p.partnerPercentage }}% della quota UGC</span>
+                    <span class="payout-row-value">€ {{ formatAmount(p.imprendigUgcShare) }}</span>
+                  </div>
+                  <div class="payout-row deduct">
+                    <span class="payout-row-label">{{ 100 - p.partnerPercentage }}% delle provvigioni</span>
+                    <span class="payout-row-value neg">− € {{ formatAmount(p.imprendigCommissionShare) }}</span>
+                  </div>
+                  @if (p.extras > 0) {
+                    <div class="payout-row deduct">
+                      <span class="payout-row-label">{{ 100 - p.partnerPercentage }}% delle extra spese</span>
+                      <span class="payout-row-value neg">− € {{ formatAmount(p.imprendigExtrasShare) }}</span>
+                    </div>
+                  }
+                  <div class="payout-row">
+                    <span class="payout-row-label">Altre academy dei bundle</span>
+                    <span class="payout-row-value pos">+ € {{ formatAmount(p.otherAcademiesGross) }}</span>
+                  </div>
+                  <div class="payout-row deduct">
+                    <span class="payout-row-label">Provvigioni sulle altre academy</span>
+                    <span class="payout-row-value neg">− € {{ formatAmount(p.otherCommissions) }}</span>
+                  </div>
+                  <div class="payout-divider"></div>
+                  <div class="payout-row result">
+                    <span class="payout-row-label">Quota Imprendig</span>
+                    <strong class="payout-row-value">€ {{ formatAmount(p.imprendigShare) }}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          } @else {
+            <div class="card">
               <div class="empty-page">
                 <app-icon name="euro" [size]="32" />
                 <p>Nessun dato per questo mese.</p>
               </div>
+            </div>
+          }
+
+          <section class="card payout-extras" aria-labelledby="extras-title">
+            <div class="card-head">
+              <div>
+                <h2 id="extras-title" class="card-title">Spese extra — {{ monthLabel() }}</h2>
+                <div class="card-sub">Divise {{ payoutData()?.partnerPercentage ?? 50 }}/{{ 100 - (payoutData()?.partnerPercentage ?? 50) }} tra Carlotta e Imprendig</div>
+              </div>
+            </div>
+            @if (payoutData()?.extraItems?.length) {
+              <ul class="extras-list">
+                @for (e of payoutData()!.extraItems; track e.id) {
+                  <li class="extras-item">
+                    <span class="extras-item-title">{{ e.title }}</span>
+                    <span class="extras-item-amount">€ {{ formatAmount(e.amount) }}</span>
+                    <button class="icon-btn danger" (click)="removePayoutExtra(e.id)"
+                      [disabled]="extraRemovingId() === e.id" [attr.aria-label]="'Rimuovi ' + e.title" title="Rimuovi">
+                      <app-icon name="trash" [size]="14" />
+                    </button>
+                  </li>
+                }
+              </ul>
             }
+            <form class="extras-form" (submit)="$event.preventDefault(); addPayoutExtra()">
+              <label class="sr-only" for="extra-title">Titolo spesa</label>
+              <input id="extra-title" class="extras-input title" type="text" placeholder="Es. Ads Meta, grafica…"
+                [value]="extraTitle()" (input)="extraTitle.set($any($event.target).value)" />
+              <label class="sr-only" for="extra-amount">Importo</label>
+              <input id="extra-amount" class="extras-input" type="number" min="0" step="0.01" placeholder="€ 0.00"
+                [value]="extraAmount()" (input)="extraAmount.set($any($event.target).value)" />
+              <button class="btn-primary" type="submit" [disabled]="extraSaving()">
+                @if (extraSaving()) { <span class="spinner-sm"></span> } @else { <app-icon name="plus" [size]="14" /> Aggiungi }
+              </button>
+            </form>
+          </section>
 
-            <section class="payout-extras" aria-labelledby="extras-title">
-              <h3 id="extras-title" class="payout-history-title">Spese extra — {{ monthLabel() }}</h3>
-              <p class="payout-sub">Divise {{ payoutData()?.partnerPercentage ?? 50 }}/{{ 100 - (payoutData()?.partnerPercentage ?? 50) }} tra Carlotta e Imprendig.</p>
-              @if (payoutData()?.extraItems?.length) {
-                <ul class="extras-list">
-                  @for (e of payoutData()!.extraItems; track e.id) {
-                    <li class="extras-item">
-                      <span class="extras-item-title">{{ e.title }}</span>
-                      <span class="extras-item-amount">€ {{ formatAmount(e.amount) }}</span>
-                      <button class="icon-btn danger" (click)="removePayoutExtra(e.id)"
-                        [disabled]="extraRemovingId() === e.id" [attr.aria-label]="'Rimuovi ' + e.title" title="Rimuovi">
-                        <app-icon name="trash" [size]="14" />
-                      </button>
-                    </li>
-                  }
-                </ul>
-              }
-              <form class="extras-form" (submit)="$event.preventDefault(); addPayoutExtra()">
-                <label class="sr-only" for="extra-title">Titolo spesa</label>
-                <input id="extra-title" class="extras-input title" type="text" placeholder="Es. Ads Meta, grafica…"
-                  [value]="extraTitle()" (input)="extraTitle.set($any($event.target).value)" />
-                <label class="sr-only" for="extra-amount">Importo</label>
-                <input id="extra-amount" class="extras-input" type="number" min="0" step="0.01" placeholder="€ 0.00"
-                  [value]="extraAmount()" (input)="extraAmount.set($any($event.target).value)" />
-                <button class="btn-primary" type="submit" [disabled]="extraSaving()">
-                  @if (extraSaving()) { <span class="spinner-sm"></span> } @else { <app-icon name="plus" [size]="14" /> Aggiungi }
-                </button>
-              </form>
-            </section>
-
-            @if (payoutHistory().length) {
-              <h3 class="payout-history-title">Storico mensile</h3>
-              <p class="payout-sub">Clicca un mese per aprirne il dettaglio.</p>
+          @if (payoutHistory().length) {
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <div class="card-title">Storico mensile</div>
+                  <div class="card-sub">Clicca un mese per aprirne il dettaglio</div>
+                </div>
+              </div>
               <div class="payout-history-wrap">
                 <table class="data-table payout-history">
                   <thead>
@@ -359,8 +389,8 @@
                   </tbody>
                 </table>
               </div>
-            }
-          </div>
+            </div>
+          }
         }
 
       } @else {

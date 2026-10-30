@@ -1,73 +1,7 @@
 /* ── Layout ─────────────────────────────────────────────────── */
+/* Header e larghezza: usa .page / .page-head globali come le altre pagine */
 
-.page {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 28px 16px;
-  border-bottom: 1px solid var(--border, #e5e7eb);
-  background: var(--surface, #fff);
-  flex-shrink: 0;
-  gap: 16px;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--accent, #4f46e5);
-}
-
-.page-header h1 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--ink);
-  margin: 0;
-}
-
-.page-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 28px 28px 80px;
-}
-
-/* ── Month nav ───────────────────────────────────────────────── */
-
-.month-nav {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.nav-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid var(--border, #e5e7eb);
-  background: var(--surface);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ink-2);
-  transition: background .15s;
-}
-
-.nav-btn:hover { background: var(--surface, #f3f4f6); }
-
-.month-label {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--ink);
-  min-width: 140px;
-  text-align: center;
-}
+.page-body { padding: 0; }
 
 /* ── States ──────────────────────────────────────────────────── */
 
@@ -104,13 +38,7 @@
 
 /* ── Summary table ───────────────────────────────────────────── */
 
-.table-wrap {
-  background: var(--surface);
-  border-radius: 14px;
-  border: 1px solid var(--border, #e5e7eb);
-  overflow-x: auto;
-  box-shadow: 0 1px 4px rgba(0,0,0,.06);
-}
+.table-wrap { overflow-x: auto; }
 
 .summary-table {
   width: 100%;
@@ -118,18 +46,15 @@
   font-size: 13px;
 }
 
-.summary-table thead tr {
-  background: var(--surface-2);
-  border-bottom: 1px solid var(--border, #e5e7eb);
-}
+.summary-table thead tr { border-bottom: 1px solid var(--border-2); }
 
 .summary-table th {
-  padding: 10px 16px;
-  font-size: 11px;
-  font-weight: 600;
+  padding: 0 12px 11px;
+  font-size: 11.5px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .04em;
-  color: var(--ink-2);
+  color: var(--ink-3);
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
@@ -145,8 +70,10 @@
 .summary-table tbody .emp-row:last-child { border-bottom: none; }
 .summary-table tbody .emp-row:hover { background: var(--surface-2); }
 
+.summary-table th:first-child, .summary-table td:first-child { padding-left: 6px; }
+
 .summary-table td {
-  padding: 11px 16px;
+  padding: 12px 12px;
   color: var(--ink);
   vertical-align: middle;
   white-space: nowrap;
@@ -470,10 +397,9 @@
 .tabs {
   display: flex;
   gap: 4px;
-  padding: 0 28px;
   border-bottom: 1px solid var(--border, #e5e7eb);
-  background: var(--surface, #fff);
-  flex-shrink: 0;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .tab-btn {
@@ -736,9 +662,18 @@
 
 /* ── Payout Partner tab ───────────────────────────────────────── */
 
-.payout-section {
-  padding: 24px 28px;
-  max-width: 640px;
+.payout-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: start;
+}
+.payout-grid > .card { margin-bottom: 0; }
+.party-card.partner { border-color: var(--accent-soft-2, var(--accent)); }
+
+@media (max-width: 1100px) {
+  .payout-grid { grid-template-columns: 1fr; }
 }
 
 .payout-header {
@@ -789,10 +724,6 @@
 .extras-input:focus { border-color: var(--accent, #4f46e5); }
 
 .payout-breakdown {
-  background: var(--surface, #fff);
-  border: 1px solid var(--border, #e5e7eb);
-  border-radius: 10px;
-  padding: 20px 24px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -801,11 +732,12 @@
 .payout-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  font-size: 14px;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13.5px;
 }
 
-.payout-row.deduct { opacity: 0.8; }
+.payout-row.deduct .payout-row-label { color: var(--ink-2); }
 
 .payout-row.net .payout-row-value,
 .payout-row.net-split .payout-row-value {
@@ -813,7 +745,8 @@
 }
 
 .payout-row-label { color: var(--ink); }
-.payout-row-value { font-variant-numeric: tabular-nums; }
+.payout-row-value { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.payout-row-value.pos { color: #15803d; }
 .payout-row-value.neg { color: #dc2626; }
 
 .payout-divider {
@@ -869,7 +802,7 @@
 .payout-history tbody tr { cursor: pointer; }
 .payout-history tbody tr.current { background: var(--accent-soft); }
 
-.payout-extras { margin-top: 28px; }
+.payout-extras .extras-list { margin-top: 0; }
 .extras-list {
   list-style: none;
   margin: 12px 0 0;

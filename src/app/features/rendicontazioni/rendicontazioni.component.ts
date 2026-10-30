@@ -3,6 +3,8 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { catchError, combineLatest, EMPTY, filter, forkJoin, switchMap } from 'rxjs';
 import { IconComponent } from '../../shared/icon.component';
+import { MonthNavComponent } from '../commissions/month-nav.component';
+import { StatCardComponent } from '../../shared/stat-card.component';
 import { ToastService } from '../../shared/toast.service';
 import { AuthService } from '../../auth/auth.service';
 import {
@@ -38,7 +40,7 @@ function shiftMonth(iso: string, delta: number): string {
 
 @Component({
   selector: 'app-rendicontazioni',
-  imports: [IconComponent, FormsModule],
+  imports: [IconComponent, FormsModule, MonthNavComponent, StatCardComponent],
   templateUrl: './rendicontazioni.component.html',
   styleUrl: './rendicontazioni.component.css',
 })
