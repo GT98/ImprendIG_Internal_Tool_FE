@@ -1,18 +1,24 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { AvailabilityWindow, BookingApiService, TimeOffDto } from '../../booking/booking-api.service';
+import { AvailabilityWindow, BookingApiService, SellerOverview, TimeOffDto } from '../../booking/booking-api.service';
 import { SellerApiService } from '../../seller/seller-api.service';
 import { AuthService } from '../../auth/auth.service';
 import { ToastService } from '../../shared/toast.service';
 import { IconComponent } from '../../shared/icon.component';
-import { romeDate, romeLabel, romeToIso } from '../../booking/rome-time';
+import { addDays, dayParts, mondayOf, romeDate, romeLabel, romeToIso } from '../../booking/rome-time';
 
 const WEEKDAYS = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
+const WEEKDAYS_SHORT = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
 interface DayRow {
   weekday: number;
   label: string;
   ranges: { startTime: string; endTime: string }[];
+}
+
+function toMin(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + (m || 0);
 }
 
 function toRows(windows: AvailabilityWindow[]): DayRow[] {
@@ -37,18 +43,117 @@ function toRows(windows: AvailabilityWindow[]): DayRow[] {
           <h1>Disponibilità</h1>
           <p class="page-sub">Gli orari in cui si possono prenotare call. Valgono per tutte le academy: una call presa su una pagina blocca l'orario anche sulle altre.</p>
         </div>
-        @if (isAdmin()) {
-          <select class="select" aria-label="Venditrice" (change)="pickSeller(+$any($event.target).value)">
+        @if (isAdmin() && sellerId()) {
+          <div class="head-actions">
+            <button type="button" class="btn-ghost sm" (click)="pickSeller(0)">← Tutte le venditrici</button>
+            <select class="select" aria-label="Venditrice" (change)="pickSeller(+$any($event.target).value)">
             <option value="">Scegli la venditrice…</option>
             @for (s of sellers(); track s.id) {
               <option [value]="s.id" [selected]="+s.id === sellerId()">{{ s.name }} {{ s.lastName ?? '' }}</option>
             }
-          </select>
+            </select>
+          </div>
         }
       </div>
 
-      @if (!sellerId()) {
-        <p class="muted">{{ isAdmin() ? 'Seleziona una venditrice per vedere e modificare i suoi orari.' : 'Il tuo account non è collegato a una venditrice.' }}</p>
+      @if (!sellerId() && isAdmin()) {
+        <section class="card">
+          <div class="card-head">
+            <h2>Orari di tutte le venditrici</h2>
+          </div>
+          <p class="muted small">Clicca una venditrice per modificare orari, percorsi e ferie.</p>
+          @if (overviewResource.isLoading() && !overviewResource.value()) {
+            <p class="muted">Caricamento…</p>
+          } @else if (overviewResource.error()) {
+            <p class="warn">Impossibile caricare le disponibilità.</p>
+          } @else {
+            <div class="table-wrap">
+              <table class="ov">
+                <thead>
+                  <tr>
+                    <th scope="col">Venditrice</th>
+                    @for (d of weekdaysShort; track $index; let wi = $index) {
+                      <th scope="col" [class.today]="weekDates()[wi] === today">
+                        {{ d }} <span class="hdate">{{ dateLabel(weekDates()[wi]) }}</span>
+                        <span class="scale" aria-hidden="true"><span>{{ hourRange()[0] }}</span><span>{{ hourRange()[1] }}</span></span>
+                      </th>
+                    }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (s of activeSellers(); track s.id) {
+                    <tr tabindex="0" [class.on-leave]="currentOff(s)" (click)="pickSeller(s.id)" (keydown.enter)="pickSeller(s.id)">
+                      <th scope="row">
+                        <span class="ov-name">{{ s.name }}</span>
+                        @if (currentOff(s); as off) {
+                          <span class="leave-badge">
+                            <app-icon name="calendar" [size]="13" />
+                            In ferie fino al {{ label(off.endsAt) }}
+                          </span>
+                          @if (off.note) { <span class="leave-note">{{ off.note }}</span> }
+                        }
+                        <span class="ov-tags">
+                          @for (a of s.academies; track a.id) { <span class="tag">{{ academyShort(a.title) }}</span> }
+                          @if (nextOff(s); as next) {
+                            <span class="tag off-tag" [title]="next.note ?? ''">Blocco dal {{ label(next.startsAt) }}</span>
+                          }
+                          @if (!s.windows.length) { <span class="tag warn-tag">Senza orari</span> }
+                        </span>
+                      </th>
+                      @for (d of weekdaysShort; track $index; let wi = $index) {
+                        <td>
+                          @let ws = windowsOf(s, wi + 1);
+                          @if (leaveDays().get(s.id)?.[wi]) {
+                            <div class="leave-cell">Ferie</div>
+                          } @else if (ws.length) {
+                            <div class="bar" aria-hidden="true">
+                              @for (w of ws; track $index) {
+                                <span class="seg" [style.left.%]="segLeft(w.startTime)" [style.width.%]="segWidth(w.startTime, w.endTime)"></span>
+                              }
+                            </div>
+                            <span class="times">
+                              @for (w of ws; track $index) { <span>{{ hm(w.startTime) }}–{{ hm(w.endTime) }}</span> }
+                            </span>
+                          } @else {
+                            <div class="bar none" aria-hidden="true"></div>
+                            <span class="sr-only">Non disponibile</span>
+                          }
+                        </td>
+                      }
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="8" class="muted">Nessuna venditrice con orari o percorsi</td></tr>
+                  }
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th scope="row">Copertura</th>
+                    @for (day of coveragePerDay(); track $index) {
+                      <td>
+                        <div class="bar total" [class.none]="!day.count" aria-hidden="true">
+                          @for (u of day.union; track $index) {
+                            <span class="seg" [style.left.%]="segLeftMin(u[0])" [style.width.%]="segWidthMin(u[0], u[1])"></span>
+                          }
+                        </div>
+                        <span class="times" [class.zero]="!day.count">{{ day.count }} {{ day.count === 1 ? 'venditrice' : 'venditrici' }}</span>
+                      </td>
+                    }
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            @if (idleSellers().length) {
+              <div class="idle">
+                <span class="muted small-inline">Senza orari né percorsi ({{ idleSellers().length }}):</span>
+                @for (s of idleSellers(); track s.id) {
+                  <button type="button" class="idle-chip" (click)="pickSeller(s.id)">{{ s.name }}</button>
+                }
+              </div>
+            }
+          }
+        </section>
+      } @else if (!sellerId()) {
+        <p class="muted">Il tuo account non è collegato a una venditrice.</p>
       } @else {
         <section class="card">
           <div class="card-head">
@@ -165,6 +270,70 @@ export class DisponibilitaComponent {
     stream: () => this.sellerApi.getAll(),
   });
   readonly sellers = computed(() => this.sellersResource.value() ?? []);
+
+  // Vista d'insieme: si ricarica ogni volta che si torna alla tabella
+  readonly overviewResource = rxResource({
+    params: () => (this.isAdmin() && !this.sellerId() ? true : undefined),
+    stream: () => this.api.overview(),
+  });
+  readonly overview = computed(() => this.overviewResource.value() ?? []);
+  // In tabella chi ha orari o percorsi; gli altri in una riga compatta sotto
+  readonly activeSellers = computed(() => this.overview().filter(s => s.windows.length || s.academies.length));
+  readonly idleSellers = computed(() => this.overview().filter(s => !s.windows.length && !s.academies.length));
+
+  /** Date della settimana corrente (lun → dom), ora di Roma */
+  readonly today = romeDate(new Date());
+  readonly weekDates = computed(() => {
+    const monday = mondayOf(this.today);
+    return WEEKDAYS.map((_, i) => addDays(monday, i));
+  });
+
+  /** Per venditrice: quali giorni di questa settimana cadono in un blocco/ferie */
+  readonly leaveDays = computed(() => {
+    const map = new Map<number, boolean[]>();
+    for (const s of this.overview()) {
+      if (!s.timeOffs.length) continue;
+      map.set(
+        s.id,
+        this.weekDates().map(d => {
+          const dayStart = new Date(romeToIso(d, '00:00')).getTime();
+          const dayEnd = new Date(romeToIso(addDays(d, 1), '00:00')).getTime();
+          return s.timeOffs.some(
+            t => new Date(t.startsAt).getTime() < dayEnd && new Date(t.endsAt).getTime() > dayStart,
+          );
+        }),
+      );
+    }
+    return map;
+  });
+
+  /** Ore mostrate sulle barre: dalla prima apertura all'ultima chiusura (default 9–19) */
+  readonly hourRange = computed<[number, number]>(() => {
+    const ws = this.overview().flatMap(s => s.windows);
+    if (!ws.length) return [9, 19];
+    const from = Math.floor(Math.min(...ws.map(w => toMin(w.startTime))) / 60);
+    const to = Math.ceil(Math.max(...ws.map(w => toMin(w.endTime))) / 60);
+    return [from, Math.max(to, from + 1)];
+  });
+
+  /** Per ogni giorno: quante venditrici e l'unione delle loro fasce (in minuti) */
+  readonly coveragePerDay = computed(() =>
+    WEEKDAYS.map((_, i) => {
+      // chi quel giorno è in ferie non copre
+      const present = this.overview().filter(s => !this.leaveDays().get(s.id)?.[i]);
+      const ws = present.flatMap(s => s.windows.filter(w => w.weekday === i + 1));
+      const count = present.filter(s => s.windows.some(w => w.weekday === i + 1)).length;
+      const sorted = ws.map(w => [toMin(w.startTime), toMin(w.endTime)] as [number, number]).sort((a, b) => a[0] - b[0]);
+      const union: [number, number][] = [];
+      for (const r of sorted) {
+        const last = union.at(-1);
+        if (last && r[0] <= last[1]) last[1] = Math.max(last[1], r[1]);
+        else union.push([...r]);
+      }
+      return { count, union };
+    }),
+  );
+  readonly weekdaysShort = WEEKDAYS_SHORT;
 
   readonly availabilityResource = rxResource({
     params: () => this.sellerId() ?? undefined,
@@ -286,6 +455,52 @@ export class DisponibilitaComponent {
       },
       error: () => this.toast.error('Impossibile eliminare il blocco'),
     });
+  }
+
+  currentOff(s: SellerOverview) {
+    return s.timeOffs.find(t => t.current) ?? null;
+  }
+
+  /** Prossimo blocco non ancora iniziato */
+  nextOff(s: SellerOverview) {
+    const now = Date.now();
+    return s.timeOffs.find(t => new Date(t.startsAt).getTime() > now) ?? null;
+  }
+
+  windowsOf(s: SellerOverview, weekday: number): AvailabilityWindow[] {
+    return s.windows.filter(w => w.weekday === weekday);
+  }
+
+  segLeftMin(min: number): number {
+    const [from, to] = this.hourRange();
+    return ((min - from * 60) / ((to - from) * 60)) * 100;
+  }
+
+  segWidthMin(start: number, end: number): number {
+    const [from, to] = this.hourRange();
+    return ((end - start) / ((to - from) * 60)) * 100;
+  }
+
+  segLeft(start: string): number {
+    return this.segLeftMin(toMin(start));
+  }
+
+  segWidth(start: string, end: string): number {
+    return this.segWidthMin(toMin(start), toMin(end));
+  }
+
+  dateLabel(date: string): string {
+    const p = dayParts(date);
+    return `${p.day}/${date.slice(5, 7)}`;
+  }
+
+  hm(time: string): string {
+    return time.slice(0, 5);
+  }
+
+  /** "ImprendIG Social Academy – …" → "Social" */
+  academyShort(title: string): string {
+    return this.academyName(title).replace(/^ImprendIG\s+/i, '').replace(/\s+Academy$/i, '');
   }
 
   academyName(title: string): string {

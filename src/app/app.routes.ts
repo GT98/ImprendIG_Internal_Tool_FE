@@ -185,8 +185,8 @@ export const routes: Routes = [
       },
       {
         path: 'disponibilita',
-        // anteprima: admin e setter (venditrici anche loro). TODO lancio prenotazioni: notClientGuard per tutte le venditrici
-        canActivate: [setterGuard],
+        // venditrici e setter inseriscono i propri orari; l'admin quelli di tutte
+        canActivate: [notClientGuard],
         loadComponent: () =>
           import('./features/agenda/disponibilita.component').then(m => m.DisponibilitaComponent),
         title: 'Disponibilità',

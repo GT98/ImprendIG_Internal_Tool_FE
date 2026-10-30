@@ -106,6 +106,16 @@ export interface AvailabilityWindow {
   endTime: string;
 }
 
+/** Riga della vista d'insieme admin: una per venditrice */
+export interface SellerOverview {
+  id: number;
+  name: string;
+  windows: AvailabilityWindow[];
+  academies: { id: number; title: string }[];
+  /** Blocchi/ferie da lunedì di questa settimana in poi; current = in corso adesso */
+  timeOffs: { startsAt: string; endsAt: string; note: string | null; current: boolean }[];
+}
+
 export interface TimeOffDto {
   id: number;
   startsAt: string;
@@ -216,6 +226,11 @@ export class BookingApiService {
 
   availability(sellerId: number): Observable<AvailabilityWindow[]> {
     return this.http.get<AvailabilityWindow[]>(`${this.base}/availability/${sellerId}`);
+  }
+
+  /** Tutte le venditrici con orari, percorsi e prossimo blocco (solo admin) */
+  overview(): Observable<SellerOverview[]> {
+    return this.http.get<SellerOverview[]>(`${this.base}/overview`);
   }
 
   /** Copertura dei percorsi: chi è senza orari, orari prenotabili nei prossimi 7 giorni */

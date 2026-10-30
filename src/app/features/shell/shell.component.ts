@@ -33,8 +33,7 @@ const NAV_GROUPS: NavGroup[] = [
       // anteprima per le setter. TODO lancio turni: togliere il banner "anteprima" e SHIFT_NOTIFY=true sul backend
       { path: 'lead-ads', label: 'Lead ADS', icon: 'zap', setterOnly: true },
       { path: 'chiamate', label: 'Chiamate', icon: 'phone' },
-      // anteprima per le setter. TODO lancio prenotazioni: togliere setterOnly per farla usare a tutte le venditrici
-      { path: 'disponibilita', label: 'Disponibilità', icon: 'clock', setterOnly: true },
+      { path: 'disponibilita', label: 'Disponibilità', icon: 'clock' },
       { path: 'clienti', label: 'Vendite', icon: 'users' },
       { path: 'customers', label: 'Clienti', icon: 'users' },
       { path: 'leads', label: 'Lead', icon: 'target', setterOnly: true },
