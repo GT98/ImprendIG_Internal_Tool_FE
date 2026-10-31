@@ -144,6 +144,12 @@ const NEUTRAL_DARK: StatusStyle = { bg: 'rgba(156,163,175,.15)', color: '#9ca3af
 
       <!-- Search -->
       <div class="toolbar">
+        @if (mySetterId() !== null && !isAdmin()) {
+          <div class="scope-tabs" role="tablist" aria-label="Quali lead mostrare">
+            <button type="button" role="tab" [class.active]="scope() === 'mine'" [attr.aria-selected]="scope() === 'mine'" (click)="scope.set('mine')">I miei</button>
+            <button type="button" role="tab" [class.active]="scope() === 'all'" [attr.aria-selected]="scope() === 'all'" (click)="scope.set('all')">Tutti</button>
+          </div>
+        }
         <div class="search-box">
           <app-icon name="search" [size]="16" />
           <input
@@ -191,31 +197,44 @@ const NEUTRAL_DARK: StatusStyle = { bg: 'rgba(156,163,175,.15)', color: '#9ca3af
               </div>
 
               <!-- Seller + setter info -->
-              @if (lead.seller || lead.setter) {
-                <div class="lc-meta">
-                  @if (lead.seller) {
-                    <span class="lc-meta-item">
-                      <app-icon name="users" [size]="12" />
-                      {{ sellerName(lead.seller) }}
-                    </span>
-                  }
-                  @if (lead.setter) {
-                    <span class="lc-meta-item lc-setter">
-                      <app-icon name="phone" [size]="12" />
-                      {{ isMySetter(lead) ? 'Setter: tu' : sellerName(lead.setter) }}
-                    </span>
-                    @if (isMySetter(lead)) {
-                      @if (confirmReleaseId() === lead.id) {
-                        <span class="lc-release">
-                          Non l'hai seguita tu?
-                          <button type="button" class="btn-ghost-xs" (click)="claim(lead, false)" [disabled]="busyId() === lead.id">Sì, lasciala</button>
-                          <button type="button" class="btn-ghost-xs" (click)="confirmReleaseId.set(null)">No</button>
-                        </span>
-                      } @else {
-                        <button type="button" class="btn-ghost-xs" (click)="confirmReleaseId.set(lead.id)">Non l'ho seguita io</button>
+              <div class="lc-meta">
+                @if (lead.seller) {
+                  <span class="lc-meta-item">
+                    <app-icon name="users" [size]="12" />
+                    {{ sellerName(lead.seller) }}
+                  </span>
+                }
+                @if (canEditSetter()) {
+                  <label class="lc-meta-item lc-setter">
+                    <app-icon name="phone" [size]="12" />
+                    <span class="sr-only">Setter di {{ fullName(lead) }}</span>
+                    <select
+                      class="lc-setter-select"
+                      [disabled]="busyId() === lead.id"
+                      (change)="askSetter(lead, $any($event.target))"
+                    >
+                      <option value="" [selected]="!lead.setter">Nessuna setter</option>
+                      @for (st of setters(); track st.id) {
+                        <option [value]="st.id" [selected]="lead.setter?.id != null && +lead.setter!.id === +st.id">
+                          {{ +st.id === mySetterId() ? 'Tu' : sellerName(st) }}
+                        </option>
                       }
-                    }
-                  }
+                    </select>
+                  </label>
+                } @else if (lead.setter) {
+                  <span class="lc-meta-item lc-setter">
+                    <app-icon name="phone" [size]="12" />
+                    {{ sellerName(lead.setter) }}
+                  </span>
+                }
+              </div>
+              @if (pendingSetter()?.leadId === lead.id) {
+                <div class="lc-confirm" role="alert">
+                  <span>Setter: <strong>{{ pendingSetter()!.label }}</strong>? Se è già vendita, le provvigioni setter da ottobre passano a lei.</span>
+                  <span class="lc-confirm-actions">
+                    <button type="button" class="btn-ghost-xs primary" (click)="confirmSetter(lead)" [disabled]="busyId() === lead.id">Conferma</button>
+                    <button type="button" class="btn-ghost-xs" (click)="cancelSetter()">Annulla</button>
+                  </span>
                 </div>
               }
 
@@ -274,9 +293,23 @@ export class LeadsListComponent {
     stream: () => this.leadsService.getStatusOptions(),
   });
 
+  readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'admin');
+  /** Le setter possono vedere tutti i lead per correggere la setter di ognuno */
+  readonly scope = signal<'mine' | 'all'>('mine');
+  readonly canEditSetter = computed(() => this.isAdmin() || this.mySetterId() !== null);
+
   readonly leadsResource = rxResource({
-    stream: () => this.leadsService.getAll(),
+    params: () => (this.scope() === 'all' && !this.isAdmin() ? 'all' : 'default'),
+    stream: ({ params }) =>
+      params === 'all' ? this.leadsService.getAllForSetters() : this.leadsService.getAll(),
   });
+
+  readonly settersResource = rxResource({
+    params: () => (this.canEditSetter() ? true : undefined),
+    stream: () => this.leadsService.getSetters(),
+  });
+  readonly setters = computed(() => this.settersResource.value() ?? []);
+  readonly pendingSetter = signal<{ leadId: number; setterId: number | null; label: string; select: HTMLSelectElement } | null>(null);
 
   readonly unassignedResource = rxResource({
     params: () => this.mySetterId() ?? undefined,
@@ -363,6 +396,47 @@ export class LeadsListComponent {
 
   isMySetter(lead: Lead): boolean {
     return lead.setter != null && Number(lead.setter.id) === this.mySetterId();
+  }
+
+  /** Scelta dal menu: chiede conferma prima di cambiare (tocca le provvigioni) */
+  askSetter(lead: Lead, select: HTMLSelectElement): void {
+    const setterId = select.value ? Number(select.value) : null;
+    const st = this.setters().find(x => Number(x.id) === setterId);
+    this.pendingSetter.set({
+      leadId: lead.id,
+      setterId,
+      label: setterId === null ? 'nessuna' : setterId === this.mySetterId() ? 'tu' : this.sellerName(st),
+      select,
+    });
+  }
+
+  cancelSetter(): void {
+    // rimette il menu sulla setter attuale
+    const p = this.pendingSetter();
+    const lead = this.leadsResource.value()?.find(l => l.id === p?.leadId);
+    if (p) p.select.value = lead?.setter ? String(lead.setter.id) : '';
+    this.pendingSetter.set(null);
+  }
+
+  confirmSetter(lead: Lead): void {
+    const p = this.pendingSetter();
+    if (!p) return;
+    this.busyId.set(lead.id);
+    this.leadsService.changeSetter(lead.id, p.setterId).subscribe({
+      next: () => {
+        this.busyId.set(null);
+        this.pendingSetter.set(null);
+        this.toast.success(`Setter di ${this.fullName(lead)} aggiornata`);
+        this.leadsResource.reload();
+        this.unassignedResource.reload();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.busyId.set(null);
+        this.cancelSetter();
+        const msg = err.error?.message;
+        this.toast.error(typeof msg === 'string' ? msg : 'Setter non aggiornata');
+      },
+    });
   }
 
   /** Prendo il lead (mine) o lo lascio: la call passa nelle "senza setter" */
