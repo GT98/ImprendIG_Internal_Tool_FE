@@ -512,4 +512,9 @@ export class RendicontazioniComponent {
     approved: 'Approvato',
     revision: 'Revisione richiesta',
   };
+
+  /** Tipologia della provvigione: setting o vendita */
+  commissionType(c: { role?: 'seller' | 'setter' }): string {
+    return c.role === 'setter' ? 'Setting' : 'Vendita';
+  }
 }

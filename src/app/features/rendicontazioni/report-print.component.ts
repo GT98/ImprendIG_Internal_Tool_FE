@@ -57,13 +57,14 @@ function formatMonth(iso: string): string {
           <!-- Sezione 1: Provvigioni -->
           @if (r.commissions.length > 0) {
             <div class="bp-section">
-              <div class="section-title">Provvigioni su vendite</div>
+              <div class="section-title">Provvigioni</div>
               <table class="bp-table">
                 <thead>
                   <tr>
                     <th>Cliente</th>
                     <th>Piano</th>
                     <th>Rata</th>
+                    <th>Tipo</th>
                     <th class="text-right">Importo</th>
                   </tr>
                 </thead>
@@ -76,13 +77,14 @@ function formatMonth(iso: string): string {
                         @if (c.installmentType === 'deposit') { Acconto }
                         @else if (c.installmentNumber) { {{ c.installmentNumber }}/{{ c.totalInstallments ?? '?' }} }
                       </td>
+                      <td>{{ c.role === 'setter' ? 'Setting' : 'Vendita' }}</td>
                       <td class="text-right">€ {{ fmt(c.amount) }}</td>
                     </tr>
                   }
                 </tbody>
                 <tfoot>
                   <tr class="subtotal-row">
-                    <td colspan="3">Subtotale provvigioni</td>
+                    <td colspan="4">Subtotale provvigioni</td>
                     <td class="text-right">€ {{ fmt(r.subtotalCommissions) }}</td>
                   </tr>
                 </tfoot>
@@ -572,16 +574,17 @@ export class ReportPrintComponent implements OnInit {
       // ── Provvigioni ─────────────────────────────────────────
       if (r.commissions.length > 0) {
         drawTable(
-          'PROVVIGIONI SU VENDITE',
-          ['CLIENTE', 'PIANO', 'RATA', 'IMPORTO'],
+          'PROVVIGIONI',
+          ['CLIENTE', 'PIANO', 'RATA', 'TIPO', 'IMPORTO'],
           r.commissions.map(c => [
             c.customerName,
             c.planName,
             c.installmentType === 'deposit' ? 'Acconto' : (c.installmentNumber ? `${c.installmentNumber}/${c.totalInstallments ?? '?'}` : '—'),
+            c.role === 'setter' ? 'Setting' : 'Vendita',
             `€ ${this.fmt(c.amount)}`,
           ]),
-          [58, 58, 20, W - 136],
-          ['left', 'left', 'left', 'right'],
+          [52, 52, 18, 22, W - 144],
+          ['left', 'left', 'left', 'left', 'right'],
           'Subtotale provvigioni',
           `€ ${this.fmt(r.subtotalCommissions)}`,
         );

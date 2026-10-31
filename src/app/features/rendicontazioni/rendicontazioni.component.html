@@ -436,14 +436,14 @@
             <!-- Provvigioni -->
             <section class="detail-section">
               <div class="section-title">
-                <app-icon name="euro" [size]="15" /> Provvigioni vendite
+                <app-icon name="euro" [size]="15" /> Provvigioni
                 <span class="badge">{{ r.commissions.length }}</span>
               </div>
               @if (r.commissions.length === 0) {
                 <div class="empty-rows">Nessuna provvigione per questo mese</div>
               } @else {
                 <table class="data-table">
-                  <thead><tr><th>Cliente</th><th>Piano</th><th>Rata</th><th class="text-right">Importo</th></tr></thead>
+                  <thead><tr><th>Cliente</th><th>Piano</th><th>Rata</th><th>Tipo</th><th class="text-right">Importo</th></tr></thead>
                   <tbody>
                     @for (c of r.commissions; track c.id) {
                       <tr>
@@ -453,12 +453,13 @@
                           @if (c.installmentType === 'deposit') { Acconto }
                           @else if (c.installmentNumber) { {{ c.installmentNumber }}/{{ c.totalInstallments ?? '?' }} }
                         </td>
+                        <td><span class="role-badge" [class]="c.role">{{ commissionType(c) }}</span></td>
                         <td class="text-right amount">€ {{ formatAmount(c.amount) }}</td>
                       </tr>
                     }
                   </tbody>
                   <tfoot>
-                    <tr><td colspan="3" class="subtotal-label">Subtotale provvigioni</td><td class="text-right subtotal">€ {{ formatAmount(r.subtotalCommissions) }}</td></tr>
+                    <tr><td colspan="4" class="subtotal-label">Subtotale provvigioni</td><td class="text-right subtotal">€ {{ formatAmount(r.subtotalCommissions) }}</td></tr>
                   </tfoot>
                 </table>
               }
@@ -664,7 +665,7 @@
                     <th>Cliente</th>
                     <th>Piano</th>
                     <th>Rata</th>
-                    @if (r.employee.type === 'dual') { <th>Ruolo</th> }
+                    <th>Tipo</th>
                     <th class="text-right">Importo</th>
                   </tr>
                 </thead>
@@ -677,20 +678,14 @@
                         @if (c.installmentType === 'deposit') { Acconto }
                         @else if (c.installmentNumber) { {{ c.installmentNumber }}/{{ c.totalInstallments ?? '?' }} }
                       </td>
-                      @if (r.employee.type === 'dual') {
-                        <td>
-                          <span class="role-badge" [class]="c.role">
-                            {{ c.role === 'seller' ? 'Venditore' : 'Setter' }}
-                          </span>
-                        </td>
-                      }
+                      <td><span class="role-badge" [class]="c.role">{{ commissionType(c) }}</span></td>
                       <td class="text-right amount">€ {{ formatAmount(c.amount) }}</td>
                     </tr>
                   }
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td [attr.colspan]="r.employee.type === 'dual' ? 4 : 3" class="subtotal-label">Subtotale</td>
+                    <td colspan="4" class="subtotal-label">Subtotale</td>
                     <td class="text-right subtotal">€ {{ formatAmount(r.subtotalCommissions) }}</td>
                   </tr>
                 </tfoot>
