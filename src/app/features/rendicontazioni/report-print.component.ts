@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
+import { formatEuro } from '../../utils';
 import { ActivatedRoute } from '@angular/router';
 import { jsPDF } from 'jspdf';
 import { ReportingApiService, MonthlyReportDto } from '../../reporting/reporting-api.service';
@@ -668,7 +669,7 @@ export class ReportPrintComponent implements OnInit {
   }
 
   fmt(n: number | null | undefined): string {
-    return Number(n ?? 0).toFixed(2);
+    return formatEuro(n);
   }
 
   today(): string {

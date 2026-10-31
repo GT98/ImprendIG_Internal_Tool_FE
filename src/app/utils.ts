@@ -107,3 +107,11 @@ export function rangeParams(range?: DateRange): Record<string, string> {
   if (range?.to) params['to'] = range.to;
   return params;
 }
+
+/** 12.227,97 — punto sulle migliaia (anche a 4 cifre), virgola sui decimali */
+export function formatEuro(n: number | null | undefined): string {
+  const v = Number(n ?? 0);
+  const [int, dec] = Math.abs(v).toFixed(2).split('.');
+  const sign = v < 0 && Number(v.toFixed(2)) !== 0 ? '-' : '';
+  return `${sign}${int.replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${dec}`;
+}

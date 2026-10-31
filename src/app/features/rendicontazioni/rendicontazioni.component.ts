@@ -3,6 +3,7 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { catchError, combineLatest, EMPTY, filter, forkJoin, switchMap } from 'rxjs';
 import { IconComponent } from '../../shared/icon.component';
+import { formatEuro } from '../../utils';
 import { MonthNavComponent } from '../commissions/month-nav.component';
 import { StatCardComponent } from '../../shared/stat-card.component';
 import { ToastService } from '../../shared/toast.service';
@@ -477,7 +478,8 @@ export class RendicontazioniComponent {
   }
 
   // ── Helpers ───────────────────────────────────────────────────
-  formatAmount(n: number | null | undefined): string { return Number(n ?? 0).toFixed(2); }
+  /** 12.227,97: punto sulle migliaia (anche a 4 cifre), virgola sui decimali */
+  formatAmount(n: number | null | undefined): string { return formatEuro(n); }
   formatMonthLabel(m: string): string { return formatMonth(m); }
   // TODO: reintrodurre saldo/credito/debito una volta definiti i dettagli funzionali
   // balanceClass(b: number): string { return b < 0 ? 'neg' : b > 0 ? 'pos' : 'zero'; }
