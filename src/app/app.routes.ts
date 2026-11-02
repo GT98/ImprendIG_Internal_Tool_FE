@@ -1,3 +1,4 @@
+import { salesGuard } from './auth/sales.guard';
 import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
 import { authGuard } from './auth/auth.guard';
@@ -93,7 +94,8 @@ export const routes: Routes = [
       },
       {
         path: 'clienti',
-        canActivate: [notClientGuard],
+        // venditrici/admin; tra i client solo quelli in SALES_PAGE_CLIENT_IDS
+        canActivate: [salesGuard],
         loadComponent: () =>
           import('./features/clients/clients.component').then(m => m.ClientsComponent),
         title: 'Vendite',

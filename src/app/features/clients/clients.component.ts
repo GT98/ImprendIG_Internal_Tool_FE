@@ -486,8 +486,12 @@ export class ClientDrawerComponent {
             @if (isAdmin()) { <span class="muted-pill">team</span> }
           </h1>
           <p class="page-sub">
-            {{ isAdmin() ? 'Tutte le vendite gestite dal team' : 'Le tue vendite' }}
-            · pagamenti sincronizzati da <span class="stripe-tag">Stripe</span>
+            @if (isClient()) {
+              Le vendite del tuo percorso · nei bundle conta solo la quota del tuo percorso
+            } @else {
+              {{ isAdmin() ? 'Tutte le vendite gestite dal team' : 'Le tue vendite' }}
+              · pagamenti sincronizzati da <span class="stripe-tag">Stripe</span>
+            }
           </p>
         </div>
         <div style="display:flex;gap:8px">
@@ -569,9 +573,9 @@ export class ClientDrawerComponent {
                     class="tr tr-click"
                     role="button"
                     tabindex="0"
-                    (click)="openSale.set(row.sale)"
-                    (keydown.enter)="openSale.set(row.sale)"
-                    (keydown.space)="$event.preventDefault(); openSale.set(row.sale)"
+                    (click)="openRow(row.sale, row.client.id)"
+                    (keydown.enter)="openRow(row.sale, row.client.id)"
+                    (keydown.space)="$event.preventDefault(); openRow(row.sale, row.client.id)"
                   >
                     <span class="td-client">
                       <button
@@ -617,6 +621,11 @@ export class ClientDrawerComponent {
                     </span>
                     <span>
                       <span class="plan-tag">{{ row.client.plan }}</span>
+                      @if ((row.sale.bundleSize ?? 1) > 1) {
+                        <span class="pay-method-badge" data-method="bundle" title="Importi ridotti alla quota del tuo percorso">
+                          bundle · quota 1/{{ row.sale.bundleSize }}
+                        </span>
+                      }
                       @if (row.sale.paymentMethod !== 'stripe') {
                         <span class="pay-method-badge" [attr.data-method]="row.sale.paymentMethod">
                           {{ row.sale.paymentMethod === 'bonifico' ? 'Bonifico' : 'Stripe ITA' }}
@@ -708,6 +717,8 @@ export class ClientsComponent {
   private readonly saleApiService = inject(SaleApiService);
 
   readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'admin');
+  /** Client (es. UGC): sola lettura, importi già ridotti alla sua quota dal backend */
+  readonly isClient = computed(() => this.auth.currentUser()?.role === 'client');
   readonly canEditSetter = computed(() => {
     const user = this.auth.currentUser();
     return user?.role === 'admin' || user?.role === 'venditore' || user?.setterId != null;
@@ -717,6 +728,12 @@ export class ClientsComponent {
     return role === 'admin' || role === 'venditore';
   });
   readonly salesResource = rxResource({ stream: () => this.saleApiService.getAll() });
+
+  /** Il client non apre il dettaglio (azioni interne): espande solo le rate */
+  openRow(sale: SaleDto, rowId: string): void {
+    if (this.isClient()) this.toggleRow(rowId);
+    else this.openSale.set(sale);
+  }
 
   readonly selectedMonth = signal(isoCurrentMonth());
   readonly clientF = signal<string>('all');

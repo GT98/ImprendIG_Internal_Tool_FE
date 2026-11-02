@@ -39,6 +39,8 @@ export interface SaleDto {
   } | null;
   installments: InstallmentDto[];
   affiancamenti?: AffiancamentoDto[];
+  /** Solo per i client: academy nel bundle (importi già ridotti alla loro quota) */
+  bundleSize?: number;
 }
 
 export interface CreateNeutralSaleDto {

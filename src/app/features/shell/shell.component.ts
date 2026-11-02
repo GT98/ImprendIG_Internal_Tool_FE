@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
+import { SALES_PAGE_CLIENT_IDS } from '../../auth/sales.guard';
 import {
   NavigationEnd,
   Router,
@@ -15,7 +16,7 @@ import { IconComponent } from '../../shared/icon.component';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { ToastContainerComponent } from '../../shared/toast.component';
 
-interface NavItem  { path: string; label: string; icon: string; adminOnly?: boolean; clientOnly?: boolean; setterOnly?: boolean; hideFromClient?: boolean; exactMatch?: boolean }
+interface NavItem  { path: string; label: string; icon: string; adminOnly?: boolean; clientOnly?: boolean; setterOnly?: boolean; hideFromClient?: boolean; exactMatch?: boolean; clientIds?: number[] }
 interface NavGroup { id: string; label: string; items: NavItem[]; adminOnly?: boolean; clientOnly?: boolean; hideFromClient?: boolean }
 
 const NAV_GROUPS: NavGroup[] = [
@@ -25,6 +26,7 @@ const NAV_GROUPS: NavGroup[] = [
       { path: 'area-cliente', label: 'Dashboard', icon: 'home', clientOnly: true, exactMatch: true },
       { path: 'area-cliente/leads', label: 'Lead', icon: 'phone', clientOnly: true },
       { path: 'area-cliente/clienti', label: 'Clienti', icon: 'users', clientOnly: true },
+      { path: 'clienti', label: 'Vendite', icon: 'card', clientOnly: true, clientIds: SALES_PAGE_CLIENT_IDS },
     ],
   },
   {
@@ -105,7 +107,8 @@ export class ShellComponent {
         items: g.items.filter(i =>
           (!i.adminOnly || isAdmin) &&
           (!i.clientOnly || isClient) &&
-          (!i.setterOnly || isSetter),
+          (!i.setterOnly || isSetter) &&
+          (!i.clientIds || (user?.clientId != null && i.clientIds.includes(Number(user.clientId)))),
         ),
       }))
       .filter(g =>

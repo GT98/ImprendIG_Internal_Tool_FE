@@ -38,12 +38,12 @@ export function getMonday(d: Date): Date {
 }
 
 export function eur(n: number): string {
-  return '€ ' + Math.round(n).toLocaleString('it-IT');
+  return '€\u00a0' + formatEuro(Math.round(n)).slice(0, -3);
 }
 
-/** Like `eur` but keeps cents (e.g. € 32,50) — for commissions, where rounding hides real amounts. */
+/** Like `eur` but keeps cents (e.g. € 1.232,50) — for commissions, where rounding hides real amounts. */
 export function eurCents(n: number): string {
-  return '€ ' + n.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return '€\u00a0' + formatEuro(n);
 }
 
 export function fmtDate(iso: string | null | undefined): string {
