@@ -23,6 +23,9 @@ export interface CatalogVariant {
   id: number;
   name: string;
   pricePlans: CatalogPricePlan[];
+  /** Corsi del Campus sbloccati dalla variante (ugc, travel, social); vuoto = non collegata */
+  campusCourses?: string[] | null;
+  campusTier?: 'base' | 'advanced' | null;
 }
 
 export interface CatalogService {
@@ -118,7 +121,7 @@ export class CatalogApiService {
     return this.http.post<CatalogVariant>(`${API}/service-variants`, dto);
   }
 
-  updateVariant(id: number, dto: { name: string }): Observable<CatalogVariant> {
+  updateVariant(id: number, dto: { name?: string; campusCourses?: string[] | null; campusTier?: 'base' | 'advanced' | null }): Observable<CatalogVariant> {
     return this.http.patch<CatalogVariant>(`${API}/service-variants/${id}`, dto);
   }
 
