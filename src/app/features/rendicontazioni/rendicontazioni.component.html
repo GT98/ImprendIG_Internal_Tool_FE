@@ -200,7 +200,16 @@
                     <div class="card-title">Base di calcolo</div>
                     <div class="card-sub">50/50 sulla sola quota UGC</div>
                   </div>
+                  <button class="btn-outline btn-sm" (click)="syncStripeFees()" [disabled]="syncingFees()" title="Legge da Stripe le commissioni dei pagamenti del mese">
+                    @if (syncingFees()) { <span class="spinner-sm"></span> } @else { <app-icon name="refresh" [size]="13" /> }
+                    Commissioni Stripe
+                  </button>
                 </div>
+                @if (p.missingStripeFees > 0) {
+                  <div class="fees-warning" role="alert">
+                    {{ p.missingStripeFees }} {{ p.missingStripeFees === 1 ? 'pagamento' : 'pagamenti' }} con carta senza commissione Stripe: aggiorna per un netto esatto.
+                  </div>
+                }
                 <div class="payout-breakdown">
                   <div class="payout-row">
                     <span class="payout-row-label">Incasso UGC Level Up e bundle</span>
@@ -216,15 +225,24 @@
                   </div>
                   <div class="payout-divider"></div>
                   <div class="payout-row deduct">
+                    <span class="payout-row-label">Commissioni Stripe sulla quota UGC</span>
+                    <span class="payout-row-value neg">− € {{ formatAmount(p.stripeFees) }}</span>
+                  </div>
+                  <div class="payout-row deduct">
                     <span class="payout-row-label">Provvigioni venditrici e setter sulla quota UGC</span>
-                    <span class="payout-row-value">€ {{ formatAmount(p.sellerCommissions) }}</span>
+                    <span class="payout-row-value neg">− € {{ formatAmount(p.sellerCommissions) }}</span>
                   </div>
                   @if (p.extras > 0) {
                     <div class="payout-row deduct">
                       <span class="payout-row-label">Extra spese</span>
-                      <span class="payout-row-value">€ {{ formatAmount(p.extras) }}</span>
+                      <span class="payout-row-value neg">− € {{ formatAmount(p.extras) }}</span>
                     </div>
                   }
+                  <div class="payout-divider"></div>
+                  <div class="payout-row result">
+                    <span class="payout-row-label">Netto da dividere</span>
+                    <strong class="payout-row-value">€ {{ formatAmount(p.net) }}</strong>
+                  </div>
                 </div>
               </div>
 
@@ -241,6 +259,10 @@
                     <span class="payout-row-value">€ {{ formatAmount(p.partnerUgcShare) }}</span>
                   </div>
                   <div class="payout-row deduct">
+                    <span class="payout-row-label">{{ p.partnerPercentage }}% delle commissioni Stripe</span>
+                    <span class="payout-row-value neg">− € {{ formatAmount(p.partnerStripeShare) }}</span>
+                  </div>
+                  <div class="payout-row deduct">
                     <span class="payout-row-label">{{ p.partnerPercentage }}% delle provvigioni</span>
                     <span class="payout-row-value neg">− € {{ formatAmount(p.partnerCommissionShare) }}</span>
                   </div>
@@ -251,7 +273,7 @@
                     </div>
                   }
                   <div class="payout-row deduct">
-                    <span class="payout-row-label">Anna 5% del lordo UGC</span>
+                    <span class="payout-row-label">Anna 5% del netto UGC</span>
                     <span class="payout-row-value neg">− € {{ formatAmount(p.annaFee) }}</span>
                   </div>
                   <div class="payout-divider"></div>
@@ -285,6 +307,10 @@
                     <span class="payout-row-value">€ {{ formatAmount(p.imprendigUgcShare) }}</span>
                   </div>
                   <div class="payout-row deduct">
+                    <span class="payout-row-label">{{ 100 - p.partnerPercentage }}% delle commissioni Stripe</span>
+                    <span class="payout-row-value neg">− € {{ formatAmount(p.imprendigStripeShare) }}</span>
+                  </div>
+                  <div class="payout-row deduct">
                     <span class="payout-row-label">{{ 100 - p.partnerPercentage }}% delle provvigioni</span>
                     <span class="payout-row-value neg">− € {{ formatAmount(p.imprendigCommissionShare) }}</span>
                   </div>
@@ -301,6 +327,10 @@
                   <div class="payout-row deduct">
                     <span class="payout-row-label">Provvigioni sulle altre academy</span>
                     <span class="payout-row-value neg">− € {{ formatAmount(p.otherCommissions) }}</span>
+                  </div>
+                  <div class="payout-row deduct">
+                    <span class="payout-row-label">Commissioni Stripe sulle altre academy</span>
+                    <span class="payout-row-value neg">− € {{ formatAmount(p.otherStripeFees) }}</span>
                   </div>
                   <div class="payout-divider"></div>
                   <div class="payout-row result">

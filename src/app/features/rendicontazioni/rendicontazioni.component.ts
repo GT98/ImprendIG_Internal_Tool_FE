@@ -219,6 +219,22 @@ export class RendicontazioniComponent {
     });
   }
 
+  readonly syncingFees = signal(false);
+
+  syncStripeFees() {
+    this.syncingFees.set(true);
+    this.api.syncPartnerStripeFees(this.month()).subscribe({
+      next: r => {
+        this.syncingFees.set(false);
+        const left = r.unmatched.length;
+        if (left) this.toast.error(`${r.matched} commissioni lette, ${left} pagamenti non trovati su Stripe`);
+        else this.toast.success(`${r.matched} commissioni Stripe aggiornate`);
+        this.loadPayout();
+      },
+      error: () => { this.syncingFees.set(false); this.toast.error('Impossibile leggere le commissioni da Stripe'); },
+    });
+  }
+
   addPayoutExtra() {
     const title = this.extraTitle().trim();
     const amount = parseFloat(this.extraAmount().replace(',', '.'));

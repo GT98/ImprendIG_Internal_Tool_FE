@@ -88,14 +88,21 @@ export interface PartnerPayoutDto {
   partnerAcademyGross: number;
   sellerCommissions: number;
   otherCommissions: number;
+  /** Commissioni Stripe sulla quota UGC / sulle altre academy dei bundle */
+  stripeFees: number;
+  otherStripeFees: number;
+  /** Pagamenti con carta senza commissione Stripe ancora letta */
+  missingStripeFees: number;
   extras: number;
   extraItems: PartnerPayoutExtraItem[];
   net: number;
   annaFee: number;
   partnerUgcShare: number;
+  partnerStripeShare: number;
   partnerCommissionShare: number;
   partnerExtrasShare: number;
   imprendigUgcShare: number;
+  imprendigStripeShare: number;
   imprendigCommissionShare: number;
   imprendigExtrasShare: number;
   partnerGrossShare: number;
@@ -149,6 +156,13 @@ export class ReportingApiService {
 
   addPartnerPayoutExtra(clientId: number, month: string, title: string, amount: number): Observable<unknown> {
     return this.http.post(`${API_URL}/client-revenue/partner-payout/extras`, { clientId, month, title, amount });
+  }
+
+  /** Legge da Stripe le commissioni mancanti delle rate pagate nel mese */
+  syncPartnerStripeFees(month: string): Observable<{ matched: number; unmatched: unknown[] }> {
+    return this.http.post<{ matched: number; unmatched: unknown[] }>(
+      `${API_URL}/client-revenue/partner-payout/stripe-fees`, null, { params: { month } },
+    );
   }
 
   deletePartnerPayoutExtra(id: number): Observable<unknown> {
