@@ -16,6 +16,7 @@ type PageState = 'loading' | 'form' | 'completed' | 'error';
     .logo { font-size: 1.1rem; font-weight: 700; color: #111827; margin-bottom: 1.5rem; }
     h1 { font-size: 1.25rem; font-weight: 700; color: #111827; margin: 0 0 .25rem; }
     .subtitle { font-size: 13px; color: #6b7280; margin: 0 0 1.75rem; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
     .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 1rem; }
     label { font-size: 13px; font-weight: 600; color: #374151; }
@@ -48,6 +49,23 @@ type PageState = 'loading' | 'form' | 'completed' | 'error';
     .success-body { font-size: 14px; color: #6b7280; line-height: 1.6; }
 
     .loading-msg { font-size: 14px; color: #6b7280; padding: 2rem 0; text-align: center; }
+
+    .order { margin: 1.5rem 0 .5rem; padding-top: 1.25rem; border-top: 1px solid #e5e7eb; }
+    .order h2 { font-size: 15px; font-weight: 700; color: #111827; margin: 0 0 .35rem; }
+    .order p { font-size: 13px; color: #6b7280; margin: 0 0 .9rem; line-height: 1.5; }
+    .order ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .order li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 10px; background: #fff; }
+    .order li:first-child { border-color: #c7d2fe; background: #eef2ff; }
+    .pos { font-size: 11px; font-weight: 700; color: #4f46e5; text-transform: uppercase; letter-spacing: .04em; min-width: 82px; }
+    .name { flex: 1; font-size: 14px; font-weight: 600; color: #111827; }
+    .moves { display: flex; gap: 6px; }
+    .moves button {
+      width: 40px; height: 40px; border: 1.5px solid #d1d5db; border-radius: 8px; background: #fff;
+      font-size: 16px; color: #374151; cursor: pointer;
+    }
+    .moves button:hover:not(:disabled) { border-color: #4f46e5; color: #4f46e5; }
+    .moves button:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; }
+    .moves button:disabled { opacity: .35; cursor: not-allowed; }
   `],
   template: `
     <div class="card">
@@ -64,13 +82,13 @@ type PageState = 'loading' | 'form' | 'completed' | 'error';
         @case ('completed') {
           <div class="success-icon" aria-hidden="true">✅</div>
           <p class="success-title">Hai già compilato il form!</p>
-          <p class="success-body">Grazie, i tuoi dati sono stati registrati correttamente. Il tuo venditore ti invierà a breve il link per accedere al canale.</p>
+          <p class="success-body">Grazie, i tuoi dati sono stati registrati correttamente. A breve trovi i contenuti sbloccati nel Campus.</p>
         }
         @case ('form') {
-          <h1>Form di onboarding</h1>
+          <h1>Completa la tua iscrizione</h1>
           <p class="subtitle">
             @if (productName()) { Benvenuta nel percorso <strong>{{ productName() }}</strong>. }
-            Compila tutti i campi per ricevere l'accesso al canale Telegram.
+            Compila tutti i campi: appena invii il modulo ti sblocchiamo i contenuti nel Campus.
           </p>
 
           <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
@@ -133,14 +151,38 @@ type PageState = 'loading' | 'form' | 'completed' | 'error';
               </div>
             </div>
 
+            @if (academies().length > 1) {
+              <section class="order" aria-labelledby="order-title">
+                <h2 id="order-title">In che ordine vuoi seguire i percorsi?</h2>
+                <p>Il 1° percorso si sblocca per intero subito, gli altri man mano con le rate. Usa le frecce per cambiare l'ordine.</p>
+                <ol>
+                  @for (a of academies(); track a.clientId; let i = $index; let last = $last) {
+                    <li>
+                      <span class="pos">{{ i + 1 }}° percorso</span>
+                      <span class="name">{{ a.label }}</span>
+                      <span class="moves">
+                        <button type="button" (click)="move(i, -1)" [disabled]="i === 0"
+                          [attr.aria-label]="'Sposta ' + a.label + ' prima'">↑</button>
+                        <button type="button" (click)="move(i, 1)" [disabled]="last"
+                          [attr.aria-label]="'Sposta ' + a.label + ' dopo'">↓</button>
+                      </span>
+                    </li>
+                  }
+                </ol>
+                <p class="sr-only" aria-live="polite">{{ orderAnnouncement() }}</p>
+              </section>
+            }
+
             <div class="checkbox-row">
               <input id="terms" type="checkbox" formControlName="termsAccepted" />
               <label for="terms">
                 Accetto i
-                <a href="https://www.iubenda.com/termini-e-condizioni/38086701" target="_blank" rel="noopener">
+                @if (termsUrl()) {
+                  <a [href]="termsUrl()" target="_blank" rel="noopener">Termini e Condizioni</a>
+                } @else {
                   Termini e Condizioni
-                </a>
-                di Carlotta Spinelli *
+                }
+                *
               </label>
             </div>
             @if (invalid('termsAccepted')) {
@@ -152,7 +194,7 @@ type PageState = 'loading' | 'form' | 'completed' | 'error';
             }
 
             <button type="submit" class="submit-btn" [disabled]="submitting()">
-              {{ submitting() ? 'Invio in corso…' : 'Invia e accedi al canale' }}
+              {{ submitting() ? 'Invio in corso…' : 'Invia e accedi al Campus' }}
             </button>
           </form>
         }
@@ -169,6 +211,10 @@ export class OnboardingFormComponent implements OnInit {
   readonly productName = signal<string | null>(null);
   readonly submitting = signal(false);
   readonly submitError = signal<string | null>(null);
+  /** Bundle: academy nell'ordine scelto dalla cliente (parte da quello del servizio) */
+  readonly academies = signal<{ clientId: number; label: string }[]>([]);
+  readonly orderAnnouncement = signal('');
+  readonly termsUrl = signal<string | null>(null);
 
   private token = '';
 
@@ -191,6 +237,8 @@ export class OnboardingFormComponent implements OnInit {
           this.pageState.set('completed');
           return;
         }
+        this.academies.set(data.academies ?? []);
+        this.termsUrl.set(data.termsUrl || null);
         if (data.prefillName) {
           this.form.patchValue({ fullName: data.prefillName });
         }
@@ -198,6 +246,15 @@ export class OnboardingFormComponent implements OnInit {
       },
       error: () => this.pageState.set('error'),
     });
+  }
+
+  move(index: number, delta: -1 | 1): void {
+    const list = [...this.academies()];
+    const to = index + delta;
+    if (to < 0 || to >= list.length) return;
+    [list[index], list[to]] = [list[to], list[index]];
+    this.academies.set(list);
+    this.orderAnnouncement.set(`${list[to].label} ora è il ${to + 1}° percorso`);
   }
 
   invalid(field: string): boolean {
@@ -224,15 +281,17 @@ export class OnboardingFormComponent implements OnInit {
         province:       (v.province ?? '').toUpperCase(),
         cap:            v.cap ?? '',
         termsAccepted:  v.termsAccepted ?? false,
+        ...(this.academies().length > 1 ? { academyOrder: this.academies().map(a => a.clientId) } : {}),
       })
       .subscribe({
         next: () => {
           this.submitting.set(false);
           this.pageState.set('completed');
         },
-        error: () => {
+        error: (err: { error?: { message?: unknown } }) => {
           this.submitting.set(false);
-          this.submitError.set('Si è verificato un errore. Riprova o contatta il tuo venditore.');
+          const msg = err?.error?.message;
+          this.submitError.set(typeof msg === 'string' ? msg : 'Si è verificato un errore. Riprova o contatta il tuo venditore.');
         },
       });
   }

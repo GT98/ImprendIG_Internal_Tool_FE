@@ -295,3 +295,9 @@
 
 /* Affiancamenti per percorso: etichetta sopra, elenco sotto */
 .kv.affiancamento-row { flex-direction: column; align-items: stretch; gap: 8px; }
+
+.form-state { font-weight: 700; }
+.form-state[data-st='pending'] { color: #b45309; }
+.form-state[data-st='completed'] { color: #15803d; }
+.form-none { font-size: 13px; color: var(--ink-3); margin: 0 0 10px; }
+.form-resend { margin-top: 10px; }

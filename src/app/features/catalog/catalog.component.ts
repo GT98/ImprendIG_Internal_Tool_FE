@@ -216,6 +216,32 @@ function emptyEditState(): EditState {
                       }
                     </div>
 
+                    <!-- Collegamento al Campus: le vendite di questa variante sbloccano i moduli dei corsi scelti -->
+                    @if (isAdmin() || (variant.campusCourses ?? []).length) {
+                      <div class="variant-campus" style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0 8px;font-size:12px;">
+                        <span class="cat-muted cat-muted-sm" style="margin:0;">🎓 Campus:</span>
+                        @for (z of campusZones; track z.key) {
+                          @let on = (variant.campusCourses ?? []).includes(z.key);
+                          <button type="button" class="btn-sm-compact" [disabled]="!isAdmin() || savingCampus() === variant.id"
+                                  [style.background]="on ? 'rgba(34,197,94,0.15)' : 'transparent'"
+                                  [style.border]="'1px solid ' + (on ? 'rgba(34,197,94,0.5)' : 'rgba(148,163,184,0.35)')"
+                                  [style.color]="on ? '#16a34a' : 'inherit'"
+                                  style="border-radius:999px;padding:2px 10px;cursor:pointer;"
+                                  (click)="toggleCampusCourse(variant, z.key)">{{ on ? '✓ ' : '' }}{{ z.label }}</button>
+                        }
+                        @if ((variant.campusCourses ?? []).length) {
+                          <select [disabled]="!isAdmin() || savingCampus() === variant.id" [value]="variant.campusTier ?? 'base'"
+                                  (change)="setCampusTier(variant, $any($event.target).value)"
+                                  style="border-radius:8px;padding:2px 6px;font-size:12px;" aria-label="Piano del Campus">
+                            <option value="base">Base</option>
+                            <option value="advanced">Advanced</option>
+                          </select>
+                        } @else {
+                          <span class="cat-muted cat-muted-sm" style="margin:0;">non collegata</span>
+                        }
+                      </div>
+                    }
+
                     @if ((variant.pricePlans ?? []).length === 0) {
                       <p class="cat-muted cat-muted-sm">Nessun piano</p>
                     }
@@ -815,6 +841,32 @@ export class CatalogComponent {
         this.creatingVariant.set(false);
         this.toast.error('Errore nella creazione della variante');
       },
+    });
+  }
+
+  // ── Collegamento al Campus ───────────────────────────────────────────────
+  readonly campusZones = [
+    { key: 'ugc', label: 'UGC' },
+    { key: 'travel', label: 'Travel' },
+    { key: 'social', label: 'Social' },
+  ];
+  readonly savingCampus = signal<number | null>(null);
+
+  toggleCampusCourse(variant: CatalogVariant, zone: string): void {
+    const current = variant.campusCourses ?? [];
+    const next = current.includes(zone) ? current.filter((z) => z !== zone) : [...current, zone];
+    this.saveCampus(variant, { campusCourses: next.length ? next : null, campusTier: next.length ? (variant.campusTier ?? 'base') : null });
+  }
+
+  setCampusTier(variant: CatalogVariant, tier: 'base' | 'advanced'): void {
+    this.saveCampus(variant, { campusTier: tier });
+  }
+
+  private saveCampus(variant: CatalogVariant, dto: { campusCourses?: string[] | null; campusTier?: 'base' | 'advanced' | null }): void {
+    this.savingCampus.set(variant.id);
+    this.catalogApi.updateVariant(Number(variant.id), dto).subscribe({
+      next: () => { this.savingCampus.set(null); this.catalogResource.reload(); },
+      error: () => this.savingCampus.set(null),
     });
   }
 

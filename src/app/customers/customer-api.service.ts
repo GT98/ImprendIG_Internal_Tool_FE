@@ -49,6 +49,22 @@ export interface OnboardingFormStatusDto {
   customerName: string | null;
   productName: string | null;
   prefillName: string | null;
+  /** Academy del servizio nell'ordine predefinito; >1 = bundle, la cliente sceglie l'ordine */
+  academies: { clientId: number; label: string }[];
+  needsOrder: boolean;
+  /** Termini e condizioni (unici per tutti i percorsi, da config del backend) */
+  termsUrl: string;
+}
+
+/** Stato del form di iscrizione di una vendita (admin) */
+export interface SaleOnboardingStatusDto {
+  id: number;
+  status: 'pending' | 'completed';
+  emailSentAt: string | null;
+  submittedAt: string | null;
+  reminderCount: number;
+  lastReminderAt: string | null;
+  academyOrder: number[] | null;
 }
 
 export interface OnboardingSubmissionDto {
@@ -74,6 +90,8 @@ export interface SubmitOnboardingFormDto {
   province: string;
   cap: string;
   termsAccepted: boolean;
+  /** Bundle: client id delle academy nell'ordine scelto */
+  academyOrder?: number[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -99,6 +117,16 @@ export class OnboardingFormApiService {
 
   submit(token: string, dto: SubmitOnboardingFormDto): Observable<void> {
     return this.http.post<void>(`${API}/onboarding-form/${token}/submit`, dto);
+  }
+
+  /** Admin: stato del form della vendita (null = nessun form) */
+  getForSale(saleId: number): Observable<SaleOnboardingStatusDto | null> {
+    return this.http.get<SaleOnboardingStatusDto | null>(`${API}/onboarding-form/sale/${saleId}`);
+  }
+
+  /** Admin: rimanda l'email del form (lo crea se manca) */
+  resendForSale(saleId: number): Observable<SaleOnboardingStatusDto> {
+    return this.http.post<SaleOnboardingStatusDto>(`${API}/onboarding-form/sale/${saleId}/resend`, null);
   }
 
   getSubmissions(): Observable<OnboardingSubmissionDto[]> {
