@@ -1,4 +1,14 @@
-import { Component, computed, input, linkedSignal, output } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  afterRenderEffect,
+  computed,
+  input,
+  linkedSignal,
+  output,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { dayParts, romeDate, romeLabel, romeTime } from '../../booking/rome-time';
 
 interface Day {
@@ -19,28 +29,60 @@ interface Day {
       </div>
     } @else {
       <section class="picker">
-        <div class="days" role="listbox" aria-label="Scegli il giorno">
-          @for (d of days(); track d.date) {
-            <button
-              type="button"
-              class="day"
-              role="option"
-              [class.active]="d.date === selectedDate()"
-              [attr.aria-selected]="d.date === selectedDate()"
-              (click)="selectedDate.set(d.date)"
-            >
-              <span class="day-wd">{{ d.parts.weekday }}</span>
-              <span class="day-num">{{ d.parts.day }}</span>
-              <span class="day-month">{{ d.parts.month }}</span>
-            </button>
-          }
+        <div class="days-nav">
+          <button
+            type="button"
+            class="days-arrow"
+            aria-label="Giorni precedenti"
+            [disabled]="atStart()"
+            (click)="scrollDays(-1)"
+          >
+            <span aria-hidden="true">‹</span>
+          </button>
+          <div
+            class="days"
+            #daysEl
+            role="listbox"
+            aria-label="Scegli il giorno"
+            (scroll)="updateArrows()"
+          >
+            @for (d of days(); track d.date) {
+              <button
+                type="button"
+                class="day"
+                role="option"
+                [class.active]="d.date === selectedDate()"
+                [attr.aria-selected]="d.date === selectedDate()"
+                (click)="selectedDate.set(d.date)"
+              >
+                <span class="day-wd">{{ d.parts.weekday }}</span>
+                <span class="day-num">{{ d.parts.day }}</span>
+                <span class="day-month">{{ d.parts.month }}</span>
+              </button>
+            }
+          </div>
+          <button
+            type="button"
+            class="days-arrow"
+            aria-label="Giorni successivi"
+            [disabled]="atEnd()"
+            (click)="scrollDays(1)"
+          >
+            <span aria-hidden="true">›</span>
+          </button>
         </div>
 
         <div class="times">
           <h2 class="times-title">{{ selectedDayLabel() }}</h2>
           <div class="time-grid">
             @for (slot of selectedDay()?.slots ?? []; track slot) {
-              <button type="button" class="time" [class.current]="slot === current()" [disabled]="slot === current()" (click)="picked.emit(slot)">
+              <button
+                type="button"
+                class="time"
+                [class.current]="slot === current()"
+                [disabled]="slot === current()"
+                (click)="picked.emit(slot)"
+              >
                 {{ time(slot) }}
               </button>
             }
@@ -69,13 +111,41 @@ export class SlotPickerComponent {
   readonly selectedDate = linkedSignal<Day[], string | null>({
     source: this.days,
     computation: (days, prev) =>
-      prev?.value && days.some(d => d.date === prev.value) ? prev.value : (days[0]?.date ?? null),
+      prev?.value && days.some((d) => d.date === prev.value) ? prev.value : (days[0]?.date ?? null),
   });
-  readonly selectedDay = computed(() => this.days().find(d => d.date === this.selectedDate()) ?? null);
+  readonly selectedDay = computed(
+    () => this.days().find((d) => d.date === this.selectedDate()) ?? null,
+  );
   readonly selectedDayLabel = computed(() => {
     const d = this.selectedDay();
     return d ? romeLabel(d.slots[0]).split(',')[0] : '';
   });
 
   readonly time = romeTime;
+
+  private readonly daysEl = viewChild<ElementRef<HTMLElement>>('daysEl');
+  readonly atStart = signal(true);
+  readonly atEnd = signal(true);
+
+  constructor() {
+    // frecce aggiornate quando cambiano i giorni o la larghezza disponibile
+    afterRenderEffect(() => {
+      this.days();
+      this.updateArrows();
+    });
+  }
+
+  updateArrows(): void {
+    const el = this.daysEl()?.nativeElement;
+    if (!el) return;
+    this.atStart.set(el.scrollLeft <= 1);
+    this.atEnd.set(el.scrollLeft + el.clientWidth >= el.scrollWidth - 1);
+  }
+
+  /** Scorre di quasi una "pagina" di giorni */
+  scrollDays(dir: 1 | -1): void {
+    const el = this.daysEl()?.nativeElement;
+    if (!el) return;
+    el.scrollBy({ left: dir * Math.max(el.clientWidth - 80, 74), behavior: 'smooth' });
+  }
 }

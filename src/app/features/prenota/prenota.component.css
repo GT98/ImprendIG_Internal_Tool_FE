@@ -30,7 +30,19 @@ h1 { font-size: 1.3rem; font-weight: 800; margin: 0; letter-spacing: -.01em; }
 .notice { background: #fff7e6; border: 1px solid #f5d99a; color: #7a5300; border-radius: 10px; padding: 10px 14px; font-size: 14px; margin: 0 0 16px; }
 
 .picker { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
-.days { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x proximity; }
+.days-nav { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.days {
+  display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x proximity; flex: 1; min-width: 0;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.days::-webkit-scrollbar { display: none; }
+.days-arrow {
+  flex: 0 0 auto; width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid #e6e4ec;
+  background: #fff; color: var(--brand-ink); font-size: 22px; line-height: 1; cursor: pointer;
+  display: grid; place-items: center; padding: 0 0 3px; transition: border-color .12s, opacity .12s;
+}
+.days-arrow:hover:not(:disabled), .days-arrow:focus-visible { border-color: var(--brand); outline: none; }
+.days-arrow:disabled { opacity: .35; cursor: default; }
 .day {
   flex: 0 0 auto; width: 66px; padding: 10px 0; border-radius: 12px; border: 1.5px solid #e6e4ec;
   background: #fff; display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: pointer;
