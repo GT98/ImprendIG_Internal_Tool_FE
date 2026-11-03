@@ -177,10 +177,12 @@ type PageState = 'loading' | 'form' | 'completed' | 'error';
               <input id="terms" type="checkbox" formControlName="termsAccepted" />
               <label for="terms">
                 Accetto i
-                <a href="https://www.iubenda.com/termini-e-condizioni/38086701" target="_blank" rel="noopener">
+                @if (termsUrl()) {
+                  <a [href]="termsUrl()" target="_blank" rel="noopener">Termini e Condizioni</a>
+                } @else {
                   Termini e Condizioni
-                </a>
-                di Carlotta Spinelli *
+                }
+                *
               </label>
             </div>
             @if (invalid('termsAccepted')) {
@@ -212,6 +214,7 @@ export class OnboardingFormComponent implements OnInit {
   /** Bundle: academy nell'ordine scelto dalla cliente (parte da quello del servizio) */
   readonly academies = signal<{ clientId: number; label: string }[]>([]);
   readonly orderAnnouncement = signal('');
+  readonly termsUrl = signal<string | null>(null);
 
   private token = '';
 
@@ -235,6 +238,7 @@ export class OnboardingFormComponent implements OnInit {
           return;
         }
         this.academies.set(data.academies ?? []);
+        this.termsUrl.set(data.termsUrl || null);
         if (data.prefillName) {
           this.form.patchValue({ fullName: data.prefillName });
         }

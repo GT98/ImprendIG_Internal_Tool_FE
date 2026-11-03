@@ -52,6 +52,8 @@ export interface OnboardingFormStatusDto {
   /** Academy del servizio nell'ordine predefinito; >1 = bundle, la cliente sceglie l'ordine */
   academies: { clientId: number; label: string }[];
   needsOrder: boolean;
+  /** Termini e condizioni (unici per tutti i percorsi, da config del backend) */
+  termsUrl: string;
 }
 
 /** Stato del form di iscrizione di una vendita (admin) */
