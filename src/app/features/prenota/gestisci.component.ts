@@ -48,7 +48,7 @@ import { brandVars } from './brand';
                 @if (v.status === 'cancelled') {
                   <h2>Questa call è stata annullata</h2>
                   <p class="done-when">{{ label(v.startsAt) }}</p>
-                  <a class="submit as-link" [href]="'/prenota/' + v.settings.slug">Prenota un nuovo orario</a>
+                  <a class="submit as-link" [href]="'/' + v.settings.slug">Prenota un nuovo orario</a>
                 } @else {
                   <h2>Ciao {{ v.name }}, la tua call è</h2>
                   <p class="done-when">{{ label(v.startsAt) }}</p>

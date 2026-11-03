@@ -9,8 +9,8 @@ import { PublicProspectApiService } from '../../shift/shift-api.service';
 
 type Step = 'loading' | 'pick' | 'form' | 'done' | 'error';
 
-// Pagina pubblica di prenotazione, una per academy: /prenota/:academy?ref=<setter>
-import { brandVars } from './brand';
+// Pagina pubblica di prenotazione, una per academy: /:academy?ref=<setter> (o /prenota/:academy)
+import { brandVars, cachedBrand, rememberBrand } from './brand';
 @Component({
   selector: 'app-prenota',
   imports: [SlotPickerComponent],
@@ -200,7 +200,8 @@ export class PrenotaComponent {
   );
   readonly blocked = computed(() => this.visibleQuestions().some(q => this.isBlocking(q)));
 
-  readonly brand = computed(() => brandVars(this.settings()?.brand));
+  private readonly cached = cachedBrand(this.slug);
+  readonly brand = computed(() => brandVars(this.settings()?.brand ?? this.cached));
   readonly emailOk = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(this.email().trim()));
   readonly phoneOk = computed(() => this.phone().replace(/\D/g, '').length >= 8);
 
@@ -211,6 +212,7 @@ export class PrenotaComponent {
     this.api.settings(this.slug).subscribe({
       next: s => {
         this.settings.set(s);
+        rememberBrand(this.slug, s.brand);
         this.loadSlots();
       },
       error: () => {

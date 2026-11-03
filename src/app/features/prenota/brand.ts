@@ -27,6 +27,7 @@ function tint(h: string, pct: number, base = '#ffffff'): string {
  * scuri si schiariscono per bordi ed evidenziazioni.
  */
 export function brandVars(b: BookingBrand | undefined | null): Record<string, string> {
+  if (!b) return NEUTRAL;
   const color = hex(b?.color, '#4f46e5');
   const soft = hex(b?.soft, color);
   const bg = hex(b?.background, '#f7f7fa');
@@ -40,4 +41,35 @@ export function brandVars(b: BookingBrand | undefined | null): Record<string, st
     '--page-top': tint(soft, lightness(soft) > 0.85 ? 1 : 0.35, bg),
     '--page-bg': bg,
   };
+}
+
+/** Palette grigia mentre i colori del percorso non sono ancora arrivati */
+const NEUTRAL: Record<string, string> = {
+  '--brand': '#d9d7df',
+  '--on-brand': '#1d1b22',
+  '--brand-ink': '#55515f',
+  '--brand-line': '#e6e4ec',
+  '--brand-soft': '#f3f2f6',
+  '--page-top': '#f7f7fa',
+  '--page-bg': '#f7f7fa',
+};
+
+const KEY = 'booking-brand:';
+
+/** Colori dell'ultima visita al percorso: alla seconda apertura sono subito quelli giusti */
+export function cachedBrand(slug: string): BookingBrand | null {
+  try {
+    const raw = localStorage.getItem(KEY + slug);
+    return raw ? (JSON.parse(raw) as BookingBrand) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function rememberBrand(slug: string, brand: BookingBrand | undefined): void {
+  try {
+    if (brand) localStorage.setItem(KEY + slug, JSON.stringify(brand));
+  } catch {
+    // storage non disponibile (navigazione privata): nessun problema
+  }
 }

@@ -283,7 +283,7 @@ export class PrenotazioniConfigComponent {
   pageUrl(slug: string): string {
     const r = this.publicUrlResource;
     const base = (r.hasValue() && r.value().url) || window.location.origin;
-    return `${base}/prenota/${slug}`;
+    return `${base}/${slug}`;
   }
 
   channelLabel(c: BookingChannel): string {

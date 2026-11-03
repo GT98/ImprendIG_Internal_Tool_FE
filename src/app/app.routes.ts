@@ -22,6 +22,12 @@ export const routes: Routes = [
     title: 'La tua call',
   },
   {
+    path: 'gestisci/:token',
+    loadComponent: () =>
+      import('./features/prenota/gestisci.component').then(m => m.GestisciComponent),
+    title: 'La tua call',
+  },
+  {
     path: 'prenota/:academy',
     loadComponent: () =>
       import('./features/prenota/prenota.component').then(m => m.PrenotaComponent),
@@ -214,5 +220,13 @@ export const routes: Routes = [
         title: 'Il mio profilo',
       },
     ],
+  },
+  // Link corti per i clienti (bookings.imprendig.com/travel): in fondo, così le
+  // pagine del portale hanno sempre la precedenza
+  {
+    path: ':academy',
+    loadComponent: () =>
+      import('./features/prenota/prenota.component').then(m => m.PrenotaComponent),
+    title: 'Prenota una call',
   },
 ];

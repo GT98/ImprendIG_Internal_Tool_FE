@@ -1,11 +1,11 @@
 :host { display: block; }
 .wrap {
   /* palette del percorso: valori da brandVars() */
-  --brand: #4f46e5;
-  --on-brand: #fff;
-  --brand-ink: var(--brand);
-  --brand-line: color-mix(in srgb, var(--brand) 55%, #fff);
-  --brand-soft: color-mix(in srgb, var(--brand) 10%, #fff);
+  --brand: #d9d7df;
+  --on-brand: #1d1b22;
+  --brand-ink: #55515f;
+  --brand-line: #e6e4ec;
+  --brand-soft: #f3f2f6;
   --page-bg: #f7f7fa;
   --page-top: var(--brand-soft);
   min-height: 100dvh;
