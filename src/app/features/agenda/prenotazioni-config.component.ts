@@ -252,6 +252,7 @@ export class PrenotazioniConfigComponent {
 
   readonly settingsResource = rxResource({ stream: () => this.api.settings() });
   readonly linksResource = rxResource({ stream: () => this.api.links() });
+  readonly publicUrlResource = rxResource({ stream: () => this.api.publicUrl() });
   readonly sellersResource = rxResource({ stream: () => this.sellerApi.getAll() });
   readonly settersResource = rxResource({ stream: () => this.setterApi.getAll() });
 
@@ -280,7 +281,8 @@ export class PrenotazioniConfigComponent {
   }
 
   pageUrl(slug: string): string {
-    return `${window.location.origin}/prenota/${slug}`;
+    const base = this.publicUrlResource.value()?.url || window.location.origin;
+    return `${base}/prenota/${slug}`;
   }
 
   channelLabel(c: BookingChannel): string {

@@ -233,6 +233,11 @@ export class BookingApiService {
     return this.http.get<SellerOverview[]>(`${this.base}/overview`);
   }
 
+  /** Dominio dei link per i clienti (PUBLIC_URL del BE) */
+  publicUrl(): Observable<{ url: string }> {
+    return this.http.get<{ url: string }>(`${this.base}/public-url`);
+  }
+
   /** Copertura dei percorsi: chi è senza orari, orari prenotabili nei prossimi 7 giorni */
   coverage(): Observable<AcademyCoverage[]> {
     return this.http.get<AcademyCoverage[]>(`${this.base}/coverage`);
