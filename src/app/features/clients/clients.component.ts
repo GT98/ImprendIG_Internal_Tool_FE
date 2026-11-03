@@ -1,4 +1,5 @@
 import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { OnboardingFormApiService } from '../../customers/customer-api.service';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../auth/auth.service';
 import { SaleApiService, SaleDto, InstallmentDto } from '../../sales/sale-api.service';
@@ -268,6 +269,36 @@ function instStatusLabel(status: string): string {
           }
         </div>
 
+        <!-- Form di iscrizione (T&C + ordine percorsi): finché è da compilare il Campus non sblocca -->
+        @if (isAdmin() && !onboardingResource.isLoading()) {
+          <div class="drawer-section">
+            <div class="ds-title">Form di iscrizione</div>
+            @if (onboardingResource.value(); as f) {
+              <div class="kv">
+                <span>Stato</span>
+                <span class="form-state" [attr.data-st]="f.status">{{ f.status === 'completed' ? 'Compilato' : 'Da compilare' }}</span>
+              </div>
+              <div class="kv"><span>Email inviata</span><span>{{ fmtDate(f.emailSentAt) }}</span></div>
+              @if (f.status === 'completed') {
+                <div class="kv"><span>Compilato il</span><span>{{ fmtDate(f.submittedAt) }}</span></div>
+              } @else {
+                <div class="kv">
+                  <span>Promemoria</span>
+                  <span>{{ f.reminderCount }}@if (f.lastReminderAt) { · ultimo {{ fmtDate(f.lastReminderAt) }} }</span>
+                </div>
+              }
+            } @else {
+              <p class="form-none">Nessun form per questa vendita (vendita precedente o non collegata al Campus).</p>
+            }
+            @if (onboardingResource.value()?.status !== 'completed') {
+              <button type="button" class="btn-ghost form-resend" (click)="resendOnboarding()" [disabled]="resendingForm()">
+                <app-icon name="send" [size]="14" />
+                {{ resendingForm() ? 'Invio…' : onboardingResource.value() ? 'Rimanda email form' : 'Manda email form' }}
+              </button>
+            }
+          </div>
+        }
+
         @if (installments().length > 0) {
           <div class="drawer-section">
             <button class="inst-head" (click)="instExpanded.set(!instExpanded())" [attr.aria-expanded]="instExpanded()">
@@ -353,6 +384,7 @@ export class ClientDrawerComponent {
   private readonly leadsService = inject(LeadsService);
   private readonly toast = inject(ToastService);
   private readonly auth = inject(AuthService);
+  private readonly onboardingApi = inject(OnboardingFormApiService);
 
   /** Date di affiancamento: l'admin sempre, la venditrice sulle proprie vendite */
   readonly canEditAffiancamento = computed(() => {
@@ -363,6 +395,28 @@ export class ClientDrawerComponent {
 
   readonly togglingId = signal<number | null>(null);
   readonly recalculating = signal(false);
+
+  readonly onboardingResource = rxResource({
+    params: () => (this.isAdmin() ? this.saleId() : undefined),
+    stream: ({ params }) => this.onboardingApi.getForSale(params),
+  });
+  readonly resendingForm = signal(false);
+
+  resendOnboarding(): void {
+    this.resendingForm.set(true);
+    this.onboardingApi.resendForSale(this.saleId()).subscribe({
+      next: f => {
+        this.resendingForm.set(false);
+        this.onboardingResource.set(f);
+        this.toast.success('Email del form inviata');
+      },
+      error: (err: { error?: { message?: unknown } }) => {
+        this.resendingForm.set(false);
+        const msg = err?.error?.message;
+        this.toast.error(typeof msg === 'string' ? msg : 'Email del form non inviata');
+      },
+    });
+  }
 
   readonly sellersResource = rxResource({ stream: () => this.leadsService.getSellers() });
   readonly settersResource = rxResource({ stream: () => this.leadsService.getSetters() });
