@@ -281,7 +281,8 @@ export class PrenotazioniConfigComponent {
   }
 
   pageUrl(slug: string): string {
-    const base = this.publicUrlResource.value()?.url || window.location.origin;
+    const r = this.publicUrlResource;
+    const base = (r.hasValue() && r.value().url) || window.location.origin;
     return `${base}/prenota/${slug}`;
   }
 
