@@ -1,3 +1,4 @@
+import { BookingBrand } from '../booking/booking-api.service';
 import { inject, Injectable } from '@angular/core';
 import { AffiancamentoDto } from '../shared/affiancamento';
 import { HttpClient } from '@angular/common/http';
@@ -54,6 +55,11 @@ export interface OnboardingFormStatusDto {
   needsOrder: boolean;
   /** Termini e condizioni (unici per tutti i percorsi, da config del backend) */
   termsUrl: string;
+  privacyUrl?: string;
+  prefillPhone?: string | null;
+  prefillEmail?: string | null;
+  /** Colori del percorso (solo academy singola); null = grafica ImprendIG */
+  brand?: BookingBrand | null;
 }
 
 /** Stato del form di iscrizione di una vendita (admin) */
@@ -65,6 +71,8 @@ export interface SaleOnboardingStatusDto {
   reminderCount: number;
   lastReminderAt: string | null;
   academyOrder: number[] | null;
+  whatsapp?: string | null;
+  billingEmail?: string | null;
 }
 
 export interface OnboardingSubmissionDto {
@@ -90,6 +98,8 @@ export interface SubmitOnboardingFormDto {
   province: string;
   cap: string;
   termsAccepted: boolean;
+  whatsapp: string;
+  billingEmail: string;
   /** Bundle: client id delle academy nell'ordine scelto */
   academyOrder?: number[];
 }

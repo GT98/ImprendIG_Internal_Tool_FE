@@ -281,6 +281,12 @@ function instStatusLabel(status: string): string {
               <div class="kv"><span>Email inviata</span><span>{{ fmtDate(f.emailSentAt) }}</span></div>
               @if (f.status === 'completed') {
                 <div class="kv"><span>Compilato il</span><span>{{ fmtDate(f.submittedAt) }}</span></div>
+                @if (f.whatsapp) {
+                  <div class="kv"><span>WhatsApp</span><span>{{ f.whatsapp }}</span></div>
+                }
+                @if (f.billingEmail) {
+                  <div class="kv"><span>Email fattura</span><span>{{ f.billingEmail }}</span></div>
+                }
               } @else {
                 <div class="kv">
                   <span>Promemoria</span>
@@ -288,7 +294,7 @@ function instStatusLabel(status: string): string {
                 </div>
               }
             } @else {
-              <p class="form-none">Nessun form per questa vendita (vendita precedente o non collegata al Campus).</p>
+              <p class="form-none">Nessun form per questa vendita (vendita precedente o servizio senza academy).</p>
             }
             @if (onboardingResource.value()?.status !== 'completed') {
               <button type="button" class="btn-ghost form-resend" (click)="resendOnboarding()" [disabled]="resendingForm()">

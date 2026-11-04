@@ -1,30 +1,41 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl } from '@angular/forms';
 import { OnboardingFormApiService } from '../../customers/customer-api.service';
+import { BookingBrand } from '../../booking/booking-api.service';
+import { brandVars } from '../prenota/brand';
+
+// Bundle o percorso senza pagina di prenotazione: grafica ImprendIG
+const IMPRENDIG: BookingBrand = { color: '#4f46e5', onColor: '#ffffff', accent: '#4338ca', soft: '#eef2ff', background: '#f7f7fa' };
 
 type PageState = 'loading' | 'form' | 'completed' | 'error';
 
 @Component({
   selector: 'app-onboarding-form',
   imports: [ReactiveFormsModule],
+  host: { '[style]': 'palette()' },
   styles: [`
-    :host { display: flex; min-height: 100dvh; background: #f9fafb; align-items: flex-start; justify-content: center; padding: 2rem 1rem; }
+    :host {
+      display: flex; min-height: 100dvh; align-items: flex-start; justify-content: center; padding: 2rem 1rem;
+      background: linear-gradient(180deg, var(--page-top, #f7f7fa) 0, var(--page-bg, #f7f7fa) 320px);
+    }
 
     .card { background: #fff; border-radius: 16px; border: 1px solid #e5e7eb; padding: 2rem; width: 100%; max-width: 520px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
 
-    .logo { font-size: 1.1rem; font-weight: 700; color: #111827; margin-bottom: 1.5rem; }
+    .logo { font-size: 1.1rem; font-weight: 800; color: var(--brand-ink); margin-bottom: 1.5rem; letter-spacing: -.01em; }
+    .logo img { height: 44px; width: auto; border-radius: 10px; display: block; }
+    .intro { font-size: 14px; color: #374151; margin: 0 0 1.25rem; line-height: 1.5; }
     h1 { font-size: 1.25rem; font-weight: 700; color: #111827; margin: 0 0 .25rem; }
     .subtitle { font-size: 13px; color: #6b7280; margin: 0 0 1.75rem; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
     .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 1rem; }
     label { font-size: 13px; font-weight: 600; color: #374151; }
-    input[type="text"] {
+    input[type="text"], input[type="tel"], input[type="email"] {
       padding: 9px 12px; border: 1.5px solid #d1d5db; border-radius: 8px;
       font-size: 14px; color: #111827; outline: none; transition: border-color .15s; background: #fff;
     }
-    input:focus { border-color: #4f46e5; }
+    input:focus { border-color: var(--brand-ink); }
     input.invalid { border-color: #dc2626; }
     .hint { font-size: 11px; color: #9ca3af; }
     .err { font-size: 12px; color: #dc2626; }
@@ -32,16 +43,16 @@ type PageState = 'loading' | 'form' | 'completed' | 'error';
     .row3 { display: grid; grid-template-columns: 1fr 80px 90px; gap: 12px; }
 
     .checkbox-row { display: flex; align-items: flex-start; gap: 10px; margin: 1.25rem 0; }
-    .checkbox-row input[type="checkbox"] { margin-top: 2px; width: 16px; height: 16px; accent-color: #4f46e5; flex-shrink: 0; cursor: pointer; }
+    .checkbox-row input[type="checkbox"] { margin-top: 2px; width: 16px; height: 16px; accent-color: var(--brand-ink); flex-shrink: 0; cursor: pointer; }
     .checkbox-row label { font-size: 13px; color: #374151; cursor: pointer; }
-    .checkbox-row a { color: #4f46e5; text-decoration: underline; }
+    .checkbox-row a { color: var(--brand-ink); text-decoration: underline; font-weight: 600; }
 
     .submit-btn {
-      width: 100%; padding: 12px; background: #4f46e5; color: #fff; border: none;
+      width: 100%; padding: 12px; background: var(--brand); color: var(--on-brand); border: none;
       border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;
       transition: background .15s;
     }
-    .submit-btn:hover:not(:disabled) { background: #4338ca; }
+    .submit-btn:hover:not(:disabled) { filter: brightness(.92); }
     .submit-btn:disabled { opacity: .6; cursor: not-allowed; }
 
     .success-icon { font-size: 3rem; text-align: center; margin-bottom: 1rem; }
@@ -55,21 +66,23 @@ type PageState = 'loading' | 'form' | 'completed' | 'error';
     .order p { font-size: 13px; color: #6b7280; margin: 0 0 .9rem; line-height: 1.5; }
     .order ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
     .order li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 10px; background: #fff; }
-    .order li:first-child { border-color: #c7d2fe; background: #eef2ff; }
-    .pos { font-size: 11px; font-weight: 700; color: #4f46e5; text-transform: uppercase; letter-spacing: .04em; min-width: 82px; }
+    .order li:first-child { border-color: var(--brand-line); background: var(--brand-soft); }
+    .pos { font-size: 11px; font-weight: 700; color: var(--brand-ink); text-transform: uppercase; letter-spacing: .04em; min-width: 82px; }
     .name { flex: 1; font-size: 14px; font-weight: 600; color: #111827; }
     .moves { display: flex; gap: 6px; }
     .moves button {
       width: 40px; height: 40px; border: 1.5px solid #d1d5db; border-radius: 8px; background: #fff;
       font-size: 16px; color: #374151; cursor: pointer;
     }
-    .moves button:hover:not(:disabled) { border-color: #4f46e5; color: #4f46e5; }
-    .moves button:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; }
+    .moves button:hover:not(:disabled) { border-color: var(--brand-ink); color: var(--brand-ink); }
+    .moves button:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 2px; }
     .moves button:disabled { opacity: .35; cursor: not-allowed; }
   `],
   template: `
     <div class="card">
-      <div class="logo">ImprendIG</div>
+      <div class="logo">
+        @if (brand()?.logoUrl) { <img [src]="brand()!.logoUrl" alt="ImprendIG" /> } @else { ImprendIG }
+      </div>
 
       @switch (pageState()) {
         @case ('loading') {
@@ -82,14 +95,15 @@ type PageState = 'loading' | 'form' | 'completed' | 'error';
         @case ('completed') {
           <div class="success-icon" aria-hidden="true">✅</div>
           <p class="success-title">Hai già compilato il form!</p>
-          <p class="success-body">Grazie, i tuoi dati sono stati registrati correttamente. A breve trovi i contenuti sbloccati nel Campus.</p>
+          <p class="success-body">Grazie, i tuoi dati sono stati registrati correttamente. A breve ti diamo accesso ai contenuti del percorso.</p>
         }
         @case ('form') {
-          <h1>Completa la tua iscrizione</h1>
+          <h1>Ci siamo quasi!</h1>
           <p class="subtitle">
-            @if (productName()) { Benvenuta nel percorso <strong>{{ productName() }}</strong>. }
-            Compila tutti i campi: appena invii il modulo ti sblocchiamo i contenuti nel Campus.
+            @if (productName()) { Benvenuta in <strong>{{ productName() }}</strong>. }
+            Compila questo modulo per accedere {{ academies().length > 1 ? 'ai percorsi' : 'al percorso' }} 👇🏻
           </p>
+          <p class="intro">Questi dati ci servono per l'emissione della fattura elettronica e per il tuo ingresso nel percorso. Controllali bene prima di inviare.</p>
 
           <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
 
@@ -99,6 +113,15 @@ type PageState = 'loading' | 'form' | 'completed' | 'error';
                 [class.invalid]="invalid('fullName')" autocomplete="name" />
               @if (invalid('fullName')) {
                 <span class="err" role="alert">Campo obbligatorio</span>
+              }
+            </div>
+
+            <div class="field">
+              <label for="whatsapp">Numero WhatsApp *</label>
+              <input id="whatsapp" type="tel" formControlName="whatsapp"
+                [class.invalid]="invalid('whatsapp')" autocomplete="tel" inputmode="tel" />
+              @if (invalid('whatsapp')) {
+                <span class="err" role="alert">Inserisci un numero valido</span>
               }
             </div>
 
@@ -151,6 +174,15 @@ type PageState = 'loading' | 'form' | 'completed' | 'error';
               </div>
             </div>
 
+            <div class="field">
+              <label for="billingEmail">Email a cui riceverai la fattura *</label>
+              <input id="billingEmail" type="email" formControlName="billingEmail"
+                [class.invalid]="invalid('billingEmail')" autocomplete="email" />
+              @if (invalid('billingEmail')) {
+                <span class="err" role="alert">Inserisci un'email valida</span>
+              }
+            </div>
+
             @if (academies().length > 1) {
               <section class="order" aria-labelledby="order-title">
                 <h2 id="order-title">In che ordine vuoi seguire i percorsi?</h2>
@@ -176,11 +208,15 @@ type PageState = 'loading' | 'form' | 'completed' | 'error';
             <div class="checkbox-row">
               <input id="terms" type="checkbox" formControlName="termsAccepted" />
               <label for="terms">
-                Accetto i
+                Dichiaro di aver letto e accettato i
                 @if (termsUrl()) {
-                  <a [href]="termsUrl()" target="_blank" rel="noopener">Termini e Condizioni</a>
+                  <a [href]="termsUrl()" target="_blank" rel="noopener">Termini e Condizioni di Servizio</a>
                 } @else {
-                  Termini e Condizioni
+                  Termini e Condizioni di Servizio
+                }
+                di ImprendIG
+                @if (privacyUrl()) {
+                  e di aver preso visione dell'<a [href]="privacyUrl()" target="_blank" rel="noopener">Informativa sulla Privacy</a>
                 }
                 *
               </label>
@@ -194,7 +230,7 @@ type PageState = 'loading' | 'form' | 'completed' | 'error';
             }
 
             <button type="submit" class="submit-btn" [disabled]="submitting()">
-              {{ submitting() ? 'Invio in corso…' : 'Invia e accedi al Campus' }}
+              {{ submitting() ? 'Invio in corso…' : 'Invia e accedi al percorso' }}
             </button>
           </form>
         }
@@ -215,6 +251,13 @@ export class OnboardingFormComponent implements OnInit {
   readonly academies = signal<{ clientId: number; label: string }[]>([]);
   readonly orderAnnouncement = signal('');
   readonly termsUrl = signal<string | null>(null);
+  readonly privacyUrl = signal<string | null>(null);
+  /** undefined = in caricamento (palette neutra), null = grafica ImprendIG */
+  readonly brand = signal<BookingBrand | null | undefined>(undefined);
+  readonly palette = computed(() => {
+    const b = this.brand();
+    return brandVars(b === undefined ? null : (b ?? IMPRENDIG));
+  });
 
   private token = '';
 
@@ -225,6 +268,8 @@ export class OnboardingFormComponent implements OnInit {
     city:           ['', Validators.required],
     province:       ['', [Validators.required, Validators.pattern(/^[A-Za-z]{2}$/)]],
     cap:            ['', [Validators.required, Validators.pattern(/^\d{5}$/)]],
+    whatsapp:       ['', [Validators.required, Validators.pattern(/^\+?[\d\s().-]{8,20}$/)]],
+    billingEmail:   ['', [Validators.required, Validators.email]],
     termsAccepted:  [false, Validators.requiredTrue],
   });
 
@@ -233,15 +278,19 @@ export class OnboardingFormComponent implements OnInit {
     this.api.getForm(this.token).subscribe({
       next: (data) => {
         this.productName.set(data.productName);
+        this.brand.set(data.brand ?? null);
         if (data.status === 'completed') {
           this.pageState.set('completed');
           return;
         }
         this.academies.set(data.academies ?? []);
         this.termsUrl.set(data.termsUrl || null);
-        if (data.prefillName) {
-          this.form.patchValue({ fullName: data.prefillName });
-        }
+        this.privacyUrl.set(data.privacyUrl || null);
+        this.form.patchValue({
+          fullName: data.prefillName ?? '',
+          whatsapp: data.prefillPhone ?? '',
+          billingEmail: data.prefillEmail ?? '',
+        });
         this.pageState.set('form');
       },
       error: () => this.pageState.set('error'),
@@ -281,6 +330,8 @@ export class OnboardingFormComponent implements OnInit {
         province:       (v.province ?? '').toUpperCase(),
         cap:            v.cap ?? '',
         termsAccepted:  v.termsAccepted ?? false,
+        whatsapp:       (v.whatsapp ?? '').trim(),
+        billingEmail:   (v.billingEmail ?? '').trim(),
         ...(this.academies().length > 1 ? { academyOrder: this.academies().map(a => a.clientId) } : {}),
       })
       .subscribe({
