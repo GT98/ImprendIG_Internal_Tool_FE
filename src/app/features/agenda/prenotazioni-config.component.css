@@ -46,7 +46,7 @@ legend { font-size: 12px; font-weight: 700; color: var(--ink-2); padding: 0 4px;
 .warn { color: #b45309; font-size: 12.5px; font-weight: 600; }
 .link-form { flex-direction: row; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-bottom: 14px; }
 .grow { flex: 1 1 200px; }
-.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+.table-wrap { position: relative; overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
 .links { width: 100%; border-collapse: collapse; font-size: 13px; }
 .links th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-3); padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
 .links td { padding: 10px 12px; border-bottom: 1px solid var(--border-2, var(--border)); vertical-align: middle; }
