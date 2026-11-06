@@ -12,6 +12,8 @@ export interface SellerDto {
   email: string | null;
   percentage: number | null;
   telegramId: string | null;
+  /** destinatario delle notifiche WhatsApp dei flow */
+  whatsapp: string | null;
   createdAt: string;
   lastAccessAt: string | null;
 }

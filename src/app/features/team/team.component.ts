@@ -15,10 +15,11 @@ interface EditState {
   email: string;
   percentage: number;
   telegramId: string;
+  whatsapp: string;
 }
 
 function emptyEdit(): EditState {
-  return { name: '', lastName: '', email: '', percentage: 0, telegramId: '' };
+  return { name: '', lastName: '', email: '', percentage: 0, telegramId: '', whatsapp: '' };
 }
 
 function initials(name: string | null, lastName: string | null): string {
@@ -248,6 +249,14 @@ const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#3b82f6', '#8b5cf6'
                  placeholder="@username"
                  (input)="patch('telegramId', $any($event.target).value)" />
         </label>
+        @if (activeTab() === 'venditori') {
+          <label class="ef-field ef-full">
+            <span>WhatsApp per le notifiche</span>
+            <input type="tel" [value]="editState()!.whatsapp"
+                   placeholder="+39 333 123 4567" autocomplete="tel"
+                   (input)="patch('whatsapp', $any($event.target).value)" />
+          </label>
+        }
       </div>
       <div class="ef-actions">
         <button class="btn-ghost" (click)="cancelEdit()">Annulla</button>
@@ -401,7 +410,7 @@ export class TeamComponent {
     this.editState.set({
       name: s.name ?? '', lastName: s.lastName ?? '',
       email: s.email ?? '', percentage: s.percentage ?? 0,
-      telegramId: s.telegramId ?? '',
+      telegramId: s.telegramId ?? '', whatsapp: s.whatsapp ?? '',
     });
   }
 
@@ -410,7 +419,7 @@ export class TeamComponent {
     this.editState.set({
       name: s.name ?? '', lastName: s.lastName ?? '',
       email: s.email ?? '', percentage: s.percentage ?? 3,
-      telegramId: s.telegramId ?? '',
+      telegramId: s.telegramId ?? '', whatsapp: '',
     });
   }
 
@@ -431,6 +440,8 @@ export class TeamComponent {
       email: s.email || undefined,
       percentage: s.percentage || undefined,
       telegramId: s.telegramId || undefined,
+      // vuoto = toglie il numero (solo venditrici)
+      ...(this.activeTab() === 'venditori' ? { whatsapp: s.whatsapp.trim() || null } : {}),
     };
   }
 

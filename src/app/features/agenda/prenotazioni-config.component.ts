@@ -1,6 +1,7 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import {
+  AcademyWhatsAppConfig,
   BookingApiService,
   BookingChannel,
   BookingLinkDto,
@@ -103,6 +104,18 @@ type BrandColor = 'color' | 'onColor' | 'accent' | 'soft' | 'background';
               <label class="field span2"><span>Logo (URL immagine)</span><input type="url" [value]="s.brand.logoUrl ?? ''" (input)="patchBrand(si, 'logoUrl', val($event))" /></label>
             </div>
             <label class="field"><span>Sottotitolo</span><input type="text" [value]="s.brand.subtitle ?? ''" (input)="patchBrand(si, 'subtitle', val($event))" /></label>
+
+            <fieldset class="wa">
+              <legend>Messaggi WhatsApp delle venditrici</legend>
+              <p class="hint">Finiscono nei messaggi pronti che le venditrici mandano a lead e studentesse.</p>
+              <div class="grid2">
+                <label class="field"><span>Coach</span><input type="text" [value]="s.whatsapp.coach ?? ''" [placeholder]="defaultCoach(s)" (input)="patchWa(si, { coach: val($event) || undefined })" /></label>
+                <label class="field"><span>Thank you page (video dopo la prenotazione)</span><input type="url" [value]="s.whatsapp.thankYouUrl ?? ''" placeholder="https://…" (input)="patchWa(si, { thankYouUrl: val($event) || undefined })" /></label>
+                <label class="field"><span>Chat di gruppo · base</span><input type="url" [value]="s.whatsapp.groupLinks?.base ?? ''" placeholder="https://chat.whatsapp.com/…" (input)="patchGroup(si, 'base', val($event))" /></label>
+                <label class="field"><span>Chat di gruppo · avanzato</span><input type="url" [value]="s.whatsapp.groupLinks?.advanced ?? ''" placeholder="https://chat.whatsapp.com/…" (input)="patchGroup(si, 'advanced', val($event))" /></label>
+                <label class="field span2"><span>Immagine della ruota di autovalutazione (URL)</span><input type="url" [value]="s.whatsapp.wheelImageUrl ?? ''" placeholder="https://…" (input)="patchWa(si, { wheelImageUrl: val($event) || undefined })" /></label>
+              </div>
+            </fieldset>
 
             <fieldset class="sellers">
               <legend>Venditrici a rotazione</legend>
@@ -271,7 +284,7 @@ export class PrenotazioniConfigComponent {
     effect(() => {
       const value = this.settingsResource.value();
       if (value) {
-        this.drafts.set(value.map(s => ({ ...s, sellerIds: (s.sellerIds ?? []).map(Number), brand: { ...(s.brand ?? {}) }, questions: [...(s.questions ?? [])] })));
+        this.drafts.set(value.map(s => ({ ...s, sellerIds: (s.sellerIds ?? []).map(Number), brand: { ...(s.brand ?? {}) }, whatsapp: { ...(s.whatsapp ?? {}) }, questions: [...(s.questions ?? [])] })));
       }
     });
   }
@@ -327,6 +340,22 @@ export class PrenotazioniConfigComponent {
     this.update(si, s => ({ ...s, brand: { ...s.brand, [key]: value || undefined } }));
   }
 
+  // coach di default se il campo è vuoto (deve coincidere con il backend)
+  defaultCoach(s: BookingSettingsDto): string {
+    return Number(s.client.id) === 3 ? 'Carlotta Spinelli' : 'Martina De Luca';
+  }
+
+  patchWa(si: number, p: Partial<AcademyWhatsAppConfig>): void {
+    this.update(si, s => ({ ...s, whatsapp: { ...s.whatsapp, ...p } }));
+  }
+
+  patchGroup(si: number, tier: 'base' | 'advanced', value: string): void {
+    this.update(si, s => ({
+      ...s,
+      whatsapp: { ...s.whatsapp, groupLinks: { ...s.whatsapp.groupLinks, [tier]: value || undefined } },
+    }));
+  }
+
   toggleSeller(si: number, id: number): void {
     this.update(si, s => ({
       ...s,
@@ -360,6 +389,7 @@ export class PrenotazioniConfigComponent {
       sellerIds: s.sellerIds,
       questions,
       brand: s.brand,
+      whatsapp: s.whatsapp,
       active: s.active,
     }).subscribe({
       next: () => {

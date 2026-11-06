@@ -34,6 +34,12 @@ export const routes: Routes = [
     title: 'Prenota una call',
   },
   {
+    path: 'w/:token',
+    loadComponent: () =>
+      import('./features/seller-task/seller-task.component').then(m => m.SellerTaskComponent),
+    title: 'Messaggio pronto',
+  },
+  {
     path: 'form/:token',
     loadComponent: () =>
       import('./features/onboarding-form/onboarding-form.component').then(m => m.OnboardingFormComponent),

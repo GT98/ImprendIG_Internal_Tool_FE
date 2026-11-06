@@ -125,6 +125,14 @@ export interface TimeOffDto {
   conflicts?: BookingDto[];
 }
 
+/** Dati dell'academy nei messaggi WhatsApp delle venditrici (flow pre call e post call) */
+export interface AcademyWhatsAppConfig {
+  coach?: string;
+  groupLinks?: { base?: string; advanced?: string };
+  thankYouUrl?: string;
+  wheelImageUrl?: string;
+}
+
 export interface BookingSettingsDto {
   id: number;
   slug: string;
@@ -138,6 +146,7 @@ export interface BookingSettingsDto {
   sellerIds: number[];
   questions: BookingQuestion[];
   brand: BookingBrand;
+  whatsapp: AcademyWhatsAppConfig;
   active: boolean;
   client: { id: number; name: string | null };
 }
