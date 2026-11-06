@@ -6,6 +6,7 @@ import { AuthService } from '../../auth/auth.service';
 import { LeadsService, SellerBasicDto, CreateLeadDto } from '../../leads/lead.service';
 import { type Lead } from '../../leads/lead.model';
 import { type Call, type Seller } from '../../models';
+import { ChannelBadgeComponent } from '../../shared/channel-badge.component';
 import { IconComponent } from '../../shared/icon.component';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { StatCardComponent } from '../../shared/stat-card.component';
@@ -68,6 +69,7 @@ function leadToCall(lead: Lead): Call {
     sellerNotes: lead.sellerNotes ?? null,
     formCliente: lead.formCliente ?? null,
     clientId: lead.client?.id != null ? Number(lead.client.id) : null,
+    channel: lead.channel ?? null,
   };
 }
 
@@ -92,7 +94,7 @@ function sellerDisplayName(s: { name: string | null; lastName: string | null } |
 
 @Component({
   selector: 'app-list-view',
-  imports: [IconComponent, AvatarComponent, StatusBadgeComponent],
+  imports: [IconComponent, AvatarComponent, StatusBadgeComponent, ChannelBadgeComponent],
   template: `
     <div class="list-view">
       @for (group of groups(); track group.day) {
@@ -111,7 +113,7 @@ function sellerDisplayName(s: { name: string | null; lastName: string | null } |
                   <span class="ct-hour">{{ fmt(c.when) }}</span>
                 </div>
                 <div class="call-main">
-                  <div class="call-client">{{ c.client }}</div>
+                  <div class="call-client">{{ c.client }} <app-channel-badge [channel]="c.channel" /></div>
                   <div class="call-company">{{ c.company }}</div>
                 </div>
                 @if (isAdmin()) {
@@ -156,7 +158,7 @@ export class ListViewComponent {
 
 @Component({
   selector: 'app-kanban-view',
-  imports: [IconComponent, AvatarComponent],
+  imports: [IconComponent, AvatarComponent, ChannelBadgeComponent],
   template: `
     <div class="kanban">
       @for (col of cols; track col.key) {
@@ -185,7 +187,7 @@ export class ListViewComponent {
                     </button>
                   </div>
                 </div>
-                <div class="kc-client">{{ c.client }}</div>
+                <div class="kc-client">{{ c.client }} <app-channel-badge [channel]="c.channel" /></div>
                 <div class="kc-company">{{ c.company }}</div>
                 @if (isAdmin()) {
                   <div class="kc-foot">
@@ -234,7 +236,7 @@ export class KanbanViewComponent {
 
 @Component({
   selector: 'app-agenda-view',
-  imports: [AvatarComponent, StatusBadgeComponent],
+  imports: [AvatarComponent, StatusBadgeComponent, ChannelBadgeComponent],
   template: `
     <div class="agenda">
       @for (group of groups(); track group.day) {
@@ -251,6 +253,7 @@ export class KanbanViewComponent {
                 <div class="agenda-body">
                   <div class="agenda-row1">
                     <span class="agenda-client">{{ c.client }}</span>
+                    <app-channel-badge [channel]="c.channel" />
                     <app-status-badge [status]="c.statusCode ?? c.status" />
                   </div>
                   <div class="agenda-row2">
@@ -828,6 +831,12 @@ export class CallsComponent {
   readonly showNewCallModal = signal(false);
   readonly q = signal('');
   readonly statusF = signal('tutti');
+  readonly channelF = signal<'tutti' | 'ads' | 'organico'>('tutti');
+  readonly channelOptions = [
+    { value: 'tutti', label: 'Tutti i canali' },
+    { value: 'ads', label: 'ADS' },
+    { value: 'organico', label: 'Organico' },
+  ];
 
   readonly statusOptsResource = rxResource({
     stream: () => this.leadsService.getStatusOptions(),
@@ -852,6 +861,7 @@ export class CallsComponent {
   readonly filtered = computed(() => {
     const q = this.q().toLowerCase();
     const sf = this.statusF();
+    const cf = this.channelF();
     const CAT = new Set(['da-fare', 'fatta', 'no-show']);
     return this.callsForDate().filter(c => {
       if (sf !== 'tutti') {
@@ -861,6 +871,8 @@ export class CallsComponent {
           if (c.statusCode !== sf) return false;
         }
       }
+      if (cf === 'ads' && c.channel !== 'ads') return false;
+      if (cf === 'organico' && c.channel === 'ads') return false;
       if (q && !(c.client + c.company).toLowerCase().includes(q)) return false;
       return true;
     });

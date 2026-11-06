@@ -1,3 +1,4 @@
+import type { CallChannel } from '../models';
 import { inject, Injectable } from '@angular/core';
 import { AffiancamentoDto, UpdateAffiancamentoDto } from '../shared/affiancamento';
 import { HttpClient } from '@angular/common/http';
@@ -41,6 +42,8 @@ export interface SaleDto {
   affiancamenti?: AffiancamentoDto[];
   /** Solo per i client: academy nel bundle (importi già ridotti alla loro quota) */
   bundleSize?: number;
+  /** canale di vendita dal lead: ads / organic / direct; null = non si sa */
+  channel?: CallChannel | null;
 }
 
 export interface CreateNeutralSaleDto {

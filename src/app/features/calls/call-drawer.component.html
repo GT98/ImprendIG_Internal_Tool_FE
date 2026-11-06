@@ -27,8 +27,14 @@
         <span class="dg-val">{{ eur(call().value) }}</span>
       </div>
       <div>
-        <span class="dg-label">Tipo</span>
-        <span class="dg-val sm">{{ typeLabel() }}</span>
+        <span class="dg-label">Canale</span>
+        <span class="dg-val sm">
+          @if (call().channel) {
+            <app-channel-badge [channel]="call().channel" [all]="true" />
+          } @else {
+            Non indicato
+          }
+        </span>
       </div>
       <div>
         <span class="dg-label">Venditore</span>

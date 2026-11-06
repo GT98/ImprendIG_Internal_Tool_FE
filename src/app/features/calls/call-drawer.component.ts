@@ -12,6 +12,7 @@ import { AuthService } from '../../auth/auth.service';
 import { VoiceRecorderService } from './voice-recorder.service';
 import { CallRecordingApiService } from './call-recording-api.service';
 import { OnboardingAnswersModalComponent } from '../../shared/onboarding-answers-modal.component';
+import { ChannelBadgeComponent } from '../../shared/channel-badge.component';
 
 function sellerDisplayName(s: { name: string | null; lastName: string | null } | null): string {
   return [s?.name, s?.lastName].filter(Boolean).join(' ') || '—';
@@ -24,7 +25,7 @@ function parsePayload(raw: string | null): Record<string, string> {
 
 @Component({
   selector: 'app-call-drawer',
-  imports: [IconComponent, AvatarComponent, StatusBadgeComponent, TypeChipComponent, OnboardingAnswersModalComponent],
+  imports: [IconComponent, AvatarComponent, StatusBadgeComponent, TypeChipComponent, OnboardingAnswersModalComponent, ChannelBadgeComponent],
   templateUrl: './call-drawer.component.html',
   styleUrl: './call-drawer.component.css',
 })

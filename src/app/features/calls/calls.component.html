@@ -103,6 +103,11 @@
           [options]="statusOptions()"
           (changed)="statusF.set($event)"
         />
+        <app-segmented
+          [value]="channelF()"
+          [options]="channelOptions"
+          (changed)="channelF.set($any($event))"
+        />
       </div>
 
       @if (filtered().length === 0) {

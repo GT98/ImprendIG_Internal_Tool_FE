@@ -25,7 +25,11 @@ export interface Call {
   formCliente: string | null;
   // academy del lead, per riconoscere le domande del modulo di prenotazione
   clientId?: number | null;
+  // da dove arriva la chiamata: ads = link ADS o form Meta; null = non si sa (a mano, Wix)
+  channel?: CallChannel | null;
 }
+
+export type CallChannel = 'ads' | 'organic' | 'direct';
 
 export interface Deal {
   id: string;
@@ -62,6 +66,7 @@ export interface Client {
   customerId: number | null;
   startDate: string | null;
   affiancamenti?: AffiancamentoDto[];
+  channel?: CallChannel | null;
 }
 
 export type NavRoute = 'chiamate' | 'provvigioni' | 'clienti' | 'catalogo';

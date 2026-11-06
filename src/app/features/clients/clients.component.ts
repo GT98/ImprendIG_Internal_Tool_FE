@@ -6,6 +6,7 @@ import { SaleApiService, SaleDto, InstallmentDto } from '../../sales/sale-api.se
 import { LeadsService, SellerBasicDto } from '../../leads/lead.service';
 import { ToastService } from '../../shared/toast.service';
 import { Client, Seller } from '../../models';
+import { ChannelBadgeComponent } from '../../shared/channel-badge.component';
 import { IconComponent } from '../../shared/icon.component';
 import { AffiancamentiEditorComponent } from '../../shared/affiancamenti-editor.component';
 import { AvatarComponent } from '../../shared/avatar.component';
@@ -77,6 +78,7 @@ function saleToClient(sale: SaleDto, month: string): Client {
     customerId: sale.customer?.id ?? null,
     startDate: sale.customer?.startDate ?? null,
     affiancamenti: sale.affiancamenti ?? [],
+    channel: sale.channel ?? null,
   };
 }
 
@@ -117,7 +119,7 @@ function instStatusLabel(status: string): string {
 // ---- CLIENT DRAWER ----------------------------------------------
 @Component({
   selector: 'app-client-drawer',
-  imports: [IconComponent, AvatarComponent, StatusBadgeComponent, AffiancamentiEditorComponent],
+  imports: [IconComponent, AvatarComponent, StatusBadgeComponent, AffiancamentiEditorComponent, ChannelBadgeComponent],
   styleUrl: './clients.component.css',
   template: `
     <div class="drawer-overlay" (click)="closedChange.emit()" role="dialog" aria-modal="true">
@@ -257,6 +259,16 @@ function instStatusLabel(status: string): string {
               }
             </div>
           }
+          <div class="kv">
+            <span>Canale di vendita</span>
+            <span>
+              @if (client().channel) {
+                <app-channel-badge [channel]="client().channel" [all]="true" />
+              } @else {
+                Non indicato
+              }
+            </span>
+          </div>
           <div class="kv">
             <span>Ultimo pagamento</span>
             <span>{{ fmtDate(client().lastPay) }}</span>

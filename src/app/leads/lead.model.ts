@@ -47,4 +47,6 @@ export interface Lead {
   setter: LeadSetter | null;
   client: LeadClient | null;
   service: LeadServiceRef | null;
+  /** canale della chiamata: prenotazione (link ADS/organico) o form Meta; null = non si sa */
+  channel?: 'ads' | 'organic' | 'direct' | null;
 }
