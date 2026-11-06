@@ -5,6 +5,7 @@ import { LeadsService } from '../../leads/lead.service';
 import type { Lead, LeadStatusOption } from '../../leads/lead.model';
 import { ToastService } from '../../shared/toast.service';
 import { ThemeService } from '../../theme.service';
+import { ChannelBadgeComponent } from '../../shared/channel-badge.component';
 import { IconComponent } from '../../shared/icon.component';
 import { AuthService } from '../../auth/auth.service';
 
@@ -48,7 +49,7 @@ const NEUTRAL_DARK: StatusStyle = { bg: 'rgba(156,163,175,.15)', color: '#9ca3af
 
 @Component({
   selector: 'app-leads-list',
-  imports: [IconComponent],
+  imports: [IconComponent, ChannelBadgeComponent],
   styleUrl: './leads-list.component.css',
   template: `
     <div class="page">
@@ -150,6 +151,11 @@ const NEUTRAL_DARK: StatusStyle = { bg: 'rgba(156,163,175,.15)', color: '#9ca3af
             <button type="button" role="tab" [class.active]="scope() === 'all'" [attr.aria-selected]="scope() === 'all'" (click)="scope.set('all')">Tutti</button>
           </div>
         }
+        <div class="scope-tabs" role="tablist" aria-label="Canale dei lead">
+          @for (c of channelTabs; track c.value) {
+            <button type="button" role="tab" [class.active]="channelF() === c.value" [attr.aria-selected]="channelF() === c.value" (click)="channelF.set(c.value)">{{ c.label }}</button>
+          }
+        </div>
         <div class="search-box">
           <app-icon name="search" [size]="16" />
           <input
@@ -167,7 +173,7 @@ const NEUTRAL_DARK: StatusStyle = { bg: 'rgba(156,163,175,.15)', color: '#9ca3af
       } @else if (filtered().length === 0) {
         <div class="empty">
           <app-icon name="target" [size]="32" />
-          <span>{{ searchQuery() || selectedStatus() ? 'Nessun risultato' : 'Nessun lead trovato' }}</span>
+          <span>{{ searchQuery() || selectedStatus() || channelF() !== 'tutti' ? 'Nessun risultato' : 'Nessun lead trovato' }}</span>
         </div>
       } @else {
         <div class="leads-grid">
@@ -176,7 +182,7 @@ const NEUTRAL_DARK: StatusStyle = { bg: 'rgba(156,163,175,.15)', color: '#9ca3af
               <!-- Header: name + status select -->
               <div class="lc-head">
                 <div>
-                  <div class="lc-name">{{ fullName(lead) }}</div>
+                  <div class="lc-name">{{ fullName(lead) }} <app-channel-badge [channel]="lead.channel" /></div>
                   <div class="lc-contact">
                     @if (lead.email) { <span>{{ lead.email }}</span> }
                     @if (lead.phone) { <span>{{ lead.phone }}</span> }
@@ -288,6 +294,13 @@ export class LeadsListComponent {
 
   readonly searchQuery = signal('');
   readonly selectedStatus = signal<string | null>(null);
+  // organico = tutto ciò che non è ADS (anche i lead senza canale noto)
+  readonly channelF = signal<'tutti' | 'organico' | 'ads'>('tutti');
+  readonly channelTabs = [
+    { value: 'tutti', label: 'Tutti i lead' },
+    { value: 'organico', label: 'Organico' },
+    { value: 'ads', label: 'ADS' },
+  ] as const;
 
   readonly statusOptions = rxResource({
     stream: () => this.leadsService.getStatusOptions(),
@@ -339,7 +352,10 @@ export class LeadsListComponent {
     const all = this.displayedLeads();
     const q = this.searchQuery().toLowerCase().trim();
     const status = this.selectedStatus();
+    const channel = this.channelF();
     return all.filter(lead => {
+      if (channel === 'ads' && lead.channel !== 'ads') return false;
+      if (channel === 'organico' && lead.channel === 'ads') return false;
       const matchesStatus = !status || lead.statusOption?.code === status;
       const matchesQuery = !q ||
         (lead.name ?? '').toLowerCase().includes(q) ||
