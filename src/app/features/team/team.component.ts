@@ -409,7 +409,7 @@ export class TeamComponent {
     this.editId.set(s.id);
     this.editState.set({
       name: s.name ?? '', lastName: s.lastName ?? '',
-      email: s.email ?? '', percentage: s.percentage ?? 0,
+      email: s.email ?? '', percentage: Number(s.percentage ?? 0),
       telegramId: s.telegramId ?? '', whatsapp: s.whatsapp ?? '',
     });
   }
@@ -418,7 +418,7 @@ export class TeamComponent {
     this.editId.set(s.id);
     this.editState.set({
       name: s.name ?? '', lastName: s.lastName ?? '',
-      email: s.email ?? '', percentage: s.percentage ?? 3,
+      email: s.email ?? '', percentage: Number(s.percentage ?? 3),
       telegramId: s.telegramId ?? '', whatsapp: '',
     });
   }
@@ -438,7 +438,8 @@ export class TeamComponent {
       name: s.name || undefined,
       lastName: s.lastName || undefined,
       email: s.email || undefined,
-      percentage: s.percentage || undefined,
+      // dal DB (bigint/numeric) arriva come stringa: il backend vuole un numero
+      percentage: Number(s.percentage) || undefined,
       telegramId: s.telegramId || undefined,
       // vuoto = toglie il numero (solo venditrici)
       ...(this.activeTab() === 'venditori' ? { whatsapp: s.whatsapp.trim() || null } : {}),
