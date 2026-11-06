@@ -87,6 +87,7 @@ const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#3b82f6', '#8b5cf6'
               <span class="col-person">Venditore</span>
               <span class="col-pct">%</span>
               <span class="col-telegram">Telegram</span>
+              <span class="col-wa">WhatsApp</span>
               <span class="col-access">Ultimo accesso</span>
               <span class="col-account">Account</span>
               <span class="col-actions"></span>
@@ -116,6 +117,13 @@ const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#3b82f6', '#8b5cf6'
                   </div>
                   <div class="col-pct pct-cell">{{ s.percentage ?? '—' }}{{ s.percentage ? '%' : '' }}</div>
                   <div class="col-telegram meta-cell">{{ s.telegramId ?? '—' }}</div>
+                  <div class="col-wa meta-cell">
+                    @if (s.whatsapp) {
+                      {{ s.whatsapp }}
+                    } @else {
+                      <span class="wa-missing" title="Senza numero non riceve le notifiche WhatsApp">Manca</span>
+                    }
+                  </div>
                   <div class="col-access meta-cell" [class.access-never]="!s.lastAccessAt">
                     {{ formatAccess(s.lastAccessAt) }}
                   </div>
