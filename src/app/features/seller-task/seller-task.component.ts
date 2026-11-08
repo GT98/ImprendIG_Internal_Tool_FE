@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
@@ -25,6 +25,7 @@ interface SellerTaskView {
 /**
  * Pagina aperta dal pulsante della notifica WhatsApp alla venditrice (/w/:token):
  * cosa fare, i messaggi pronti (modificabili) e il link che apre la chat con la persona.
+ * Se c'è un solo messaggio e nessun consiglio (es. sblocco rata) apre subito la chat, una volta sola.
  */
 @Component({
   selector: 'app-seller-task',
@@ -39,6 +40,9 @@ interface SellerTaskView {
         </div>
       } @else if (task.hasValue()) {
         @let t = task.value();
+        @if (autoOpened()) {
+          <p class="opened" role="status">Ti ho aperto la chat con {{ firstName(t.contactName) }}. Se non si è aperta, usa il pulsante qui sotto.</p>
+        }
         <header class="head">
           <span class="eyebrow">Per {{ t.sellerName }}</span>
           <h1>{{ t.title }}</h1>
@@ -136,6 +140,7 @@ interface SellerTaskView {
     .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
     button:disabled { opacity: .6; cursor: default; }
     .foot { padding-top: 4px; }
+    .opened { margin: 0; background: var(--soft); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
     .muted { color: var(--ink-2); margin: 0; }
     .error { color: #b42318; margin: 0; }
     .empty { padding-top: 40px; display: flex; flex-direction: column; gap: 8px; }
@@ -156,6 +161,7 @@ export class SellerTaskComponent {
   private readonly edits = signal<Record<number, string>>({});
   readonly copied = signal<number | null>(null);
   readonly actionError = signal<string | null>(null);
+  readonly autoOpened = signal(false);
   private readonly doneNow = signal(false);
   private readonly videoNow = signal(false);
 
@@ -168,6 +174,25 @@ export class SellerTaskComponent {
   readonly videoSeen = computed(
     () => this.videoNow() || (this.task.hasValue() && Boolean(this.task.value().flags['videoSeen'])),
   );
+
+  constructor() {
+    effect(() => {
+      if (!this.task.hasValue()) return;
+      const t = this.task.value();
+      const direct = t.messages.length === 1 && !t.note && !t.wheelImageUrl && t.contactPhone;
+      if (!direct || t.status === 'done' || t.status === 'cancelled') return;
+      // tornando indietro alla pagina non deve riaprire la chat
+      const key = `wa-open-${this.token()}`;
+      try {
+        if (sessionStorage.getItem(key)) return;
+        sessionStorage.setItem(key, '1');
+      } catch {
+        // storage non disponibile: apre comunque
+      }
+      this.autoOpened.set(true);
+      window.location.href = this.waUrl(t.contactPhone!, t.messages[0].text);
+    });
+  }
 
   textOf(i: number, original: string): string {
     return this.edits()[i] ?? original;
