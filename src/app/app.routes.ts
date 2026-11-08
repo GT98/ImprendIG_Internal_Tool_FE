@@ -62,6 +62,13 @@ export const routes: Routes = [
         },
       },
       {
+        path: 'notifiche-whatsapp',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/notifiche-wa/notifiche-wa.component').then(m => m.NotificheWaComponent),
+        title: 'Notifiche WhatsApp',
+      },
+      {
         path: 'area-cliente',
         canActivate: [clientGuard],
         loadComponent: () =>
