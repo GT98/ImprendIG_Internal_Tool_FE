@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { PublicBookingApiService, PublicBookingSettings } from '../../booking/booking-api.service';
 import { addDays, romeDate, romeLabel } from '../../booking/rome-time';
@@ -170,6 +170,7 @@ import { brandVars, cachedBrand, rememberBrand } from './brand';
 export class PrenotaComponent {
   private readonly api = inject(PublicBookingApiService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly prospectApi = inject(PublicProspectApiService);
 
   private readonly slug = this.route.snapshot.paramMap.get('academy') ?? '';
@@ -299,8 +300,13 @@ export class PrenotaComponent {
       prospect: this.attribution.prospect,
       website: this.website() || undefined,
     }).subscribe({
-      next: () => {
+      next: res => {
         this.sending.set(false);
+        // pagina di ringraziamento col video: raggiungibile solo col codice della prenotazione
+        if (res.manageToken) {
+          void this.router.navigate(['/grazie', res.manageToken]);
+          return;
+        }
         this.step.set('done');
       },
       error: (err: HttpErrorResponse) => {

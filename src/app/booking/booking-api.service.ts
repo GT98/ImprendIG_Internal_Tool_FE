@@ -34,6 +34,16 @@ export interface BookingBrand {
   background?: string;
   logoUrl?: string;
   subtitle?: string;
+  /** pagina di ringraziamento dopo la prenotazione */
+  thankYou?: BookingThankYou;
+}
+
+export interface BookingThankYou {
+  /** ID del video su Bunny Stream */
+  videoId?: string;
+  title?: string;
+  text?: string;
+  highlight?: string;
 }
 
 export interface PublicBookingSettings {
@@ -196,6 +206,10 @@ export class PublicBookingApiService {
 
   manage(token: string): Observable<PublicBookingView> {
     return this.http.get<PublicBookingView>(`${this.base}/manage/${token}`);
+  }
+
+  thankYou(token: string): Observable<PublicBookingView & { videoUrl: string | null }> {
+    return this.http.get<PublicBookingView & { videoUrl: string | null }>(`${this.base}/manage/${token}/grazie`);
   }
 
   manageSlots(token: string, from: string, to: string): Observable<string[]> {

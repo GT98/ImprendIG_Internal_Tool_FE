@@ -28,6 +28,12 @@ export const routes: Routes = [
     title: 'La tua call',
   },
   {
+    path: 'grazie/:token',
+    loadComponent: () =>
+      import('./features/prenota/grazie.component').then(m => m.GrazieComponent),
+    title: 'Ci siamo!',
+  },
+  {
     path: 'prenota/:academy',
     loadComponent: () =>
       import('./features/prenota/prenota.component').then(m => m.PrenotaComponent),

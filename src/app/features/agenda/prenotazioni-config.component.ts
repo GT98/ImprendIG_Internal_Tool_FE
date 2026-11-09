@@ -106,6 +106,17 @@ type BrandColor = 'color' | 'onColor' | 'accent' | 'soft' | 'background';
             <label class="field"><span>Sottotitolo</span><input type="text" [value]="s.brand.subtitle ?? ''" (input)="patchBrand(si, 'subtitle', val($event))" /></label>
 
             <fieldset class="wa">
+              <legend>Pagina di ringraziamento</legend>
+              <p class="hint">Si apre dopo la prenotazione (da ads e da organico) e solo per chi ha prenotato. Il video parte da solo con l'audio.</p>
+              <div class="grid2">
+                <label class="field span2"><span>ID video Bunny</span><input type="text" [value]="s.brand.thankYou?.videoId ?? ''" placeholder="es. 637d7214-7e60-4dab-98a3-cc2ecae33bd1" (input)="patchThankYou(si, { videoId: val($event).trim() || undefined })" /></label>
+                <label class="field span2"><span>Titolo</span><input type="text" [value]="s.brand.thankYou?.title ?? ''" placeholder="Ci siamo! Il tuo percorso inizia adesso" (input)="patchThankYou(si, { title: val($event) || undefined })" /></label>
+                <label class="field span2"><span>Testo sopra il video</span><textarea rows="2" [value]="s.brand.thankYou?.text ?? ''" placeholder="Hai appena fatto la cosa più difficile…" (input)="patchThankYou(si, { text: val($event) || undefined })"></textarea></label>
+                <label class="field span2"><span>Riga in evidenza sotto il video</span><input type="text" [value]="s.brand.thankYou?.highlight ?? ''" placeholder="Tra un minuto avrai una sorpresa! 🎉" (input)="patchThankYou(si, { highlight: val($event) || undefined })" /></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="wa">
               <legend>Messaggi WhatsApp delle venditrici</legend>
               <p class="hint">Finiscono nei messaggi pronti che le venditrici mandano a lead e studentesse.</p>
               <div class="grid2">
@@ -338,6 +349,10 @@ export class PrenotazioniConfigComponent {
 
   patchBrand(si: number, key: BrandColor | 'logoUrl' | 'subtitle', value: string): void {
     this.update(si, s => ({ ...s, brand: { ...s.brand, [key]: value || undefined } }));
+  }
+
+  patchThankYou(si: number, p: Partial<NonNullable<BookingSettingsDto['brand']['thankYou']>>): void {
+    this.update(si, s => ({ ...s, brand: { ...s.brand, thankYou: { ...s.brand.thankYou, ...p } } }));
   }
 
   // coach di default se il campo è vuoto (deve coincidere con il backend)
