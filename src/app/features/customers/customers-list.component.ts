@@ -95,15 +95,19 @@ interface CustomerRow {
                   <span class="td-sub">{{ row.customer.phone || '—' }}</span>
                   <!-- Niente da espandere se non c'è indirizzo e il piano non prevede l'affiancamento -->
                   @if (hasAddress(row.customer) || row.customer.sale?.affiancamenti?.length) {
-                    <button class="addr-toggle" (click)="toggleExpand(row.customer.id)" [attr.aria-expanded]="expandedId() === row.customer.id">
-                      @if (hasAddress(row.customer)) {
+                    <!-- Indirizzo (dal form di onboarding) e affiancamento sono due cose diverse: si vedono entrambi -->
+                    @if (hasAddress(row.customer)) {
+                      <button class="addr-toggle" (click)="toggleExpand(row.customer.id)" [attr.aria-expanded]="expandedId() === row.customer.id">
                         <app-icon name="home" [size]="12" />
                         {{ row.customer.city || 'Indirizzo' }}{{ row.customer.province ? ' (' + row.customer.province + ')' : '' }}
-                      } @else {
+                      </button>
+                    }
+                    @if (row.customer.sale?.affiancamenti?.length) {
+                      <button class="addr-toggle" (click)="toggleExpand(row.customer.id)" [attr.aria-expanded]="expandedId() === row.customer.id">
                         <app-icon name="calendar" [size]="12" />
                         Affiancamento
-                      }
-                    </button>
+                      </button>
+                    }
                   }
                 </div>
 
@@ -212,7 +216,8 @@ export class CustomersListComponent {
     const submissions = this.submissionsResource.value() ?? [];
     return customers.map(c => ({
       customer: c,
-      submission: submissions.find(s => s.customer?.id === Number(c.id)) ?? null,
+      // gli ID bigint arrivano come stringa: confronto sempre tra numeri
+      submission: submissions.find(s => Number(s.customer?.id) === Number(c.id)) ?? null,
     }));
   });
 
