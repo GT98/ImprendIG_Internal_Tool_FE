@@ -9,8 +9,9 @@ type View = PublicBookingView & { videoUrl: string | null };
 
 const DEFAULT_TITLE = 'Ci siamo! Il tuo percorso inizia adesso';
 const PLAYER_ORIGIN = 'https://iframe.mediadelivery.net';
-// la riga in evidenza prende il posto del teaser alla fine del video (ultimi secondi o evento "ended")
-const REVEAL_BEFORE_END_SECONDS = 3;
+// la riga in evidenza prende il posto del teaser al secondo scelto nelle impostazioni, altrimenti
+// 22 secondi prima della fine (o alla fine, se si salta avanti)
+const REVEAL_BEFORE_END_SECONDS = 22;
 const DEFAULT_TEASER = 'Alla fine del video riceverai una sorpresa! 🎉';
 
 const DEFAULT_TEXT =
@@ -122,8 +123,9 @@ export class GrazieComponent {
       if (msg.context !== 'player.js') return;
       if (msg.event === 'ready') this.listen();
       const { seconds = 0, duration = 0 } = msg.value ?? {};
-      const nearEnd = duration > 0 && seconds >= duration - REVEAL_BEFORE_END_SECONDS;
-      if (msg.event === 'ended' || (msg.event === 'timeupdate' && nearEnd)) this.revealed.set(true);
+      const at = this.view()?.settings.brand.thankYou?.revealAt;
+      const reached = at != null ? seconds >= at : duration > 0 && seconds >= duration - REVEAL_BEFORE_END_SECONDS;
+      if (msg.event === 'ended' || (msg.event === 'timeupdate' && reached)) this.revealed.set(true);
     };
     window.addEventListener('message', onMessage);
     inject(DestroyRef).onDestroy(() => window.removeEventListener('message', onMessage));

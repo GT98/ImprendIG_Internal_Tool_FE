@@ -113,7 +113,8 @@ type BrandColor = 'color' | 'onColor' | 'accent' | 'soft' | 'background';
                 <label class="field span2"><span>Titolo</span><input type="text" [value]="s.brand.thankYou?.title ?? ''" placeholder="Ci siamo! Il tuo percorso inizia adesso" (input)="patchThankYou(si, { title: val($event) || undefined })" /></label>
                 <label class="field span2"><span>Testo sopra il video</span><textarea rows="2" [value]="s.brand.thankYou?.text ?? ''" placeholder="Hai appena fatto la cosa più difficile…" (input)="patchThankYou(si, { text: val($event) || undefined })"></textarea></label>
                 <label class="field span2"><span>Sotto il video, mentre lo guardano</span><input type="text" [value]="s.brand.thankYou?.teaser ?? ''" placeholder="Alla fine del video riceverai una sorpresa! 🎉" (input)="patchThankYou(si, { teaser: val($event) || undefined })" /></label>
-                <label class="field span2"><span>Al suo posto, alla fine del video</span><input type="text" [value]="s.brand.thankYou?.highlight ?? ''" placeholder="Chiedi alla tua consulente di sbloccarti le lezioni gratuite!" (input)="patchThankYou(si, { highlight: val($event) || undefined })" /></label>
+                <label class="field span2"><span>Al suo posto, verso la fine del video</span><input type="text" [value]="s.brand.thankYou?.highlight ?? ''" placeholder="Chiedi alla tua consulente di sbloccarti le lezioni gratuite!" (input)="patchThankYou(si, { highlight: val($event) || undefined })" /></label>
+                <label class="field"><span>Quando compare (minuto del video)</span><input type="text" inputmode="numeric" [value]="mmss(s.brand.thankYou?.revealAt)" placeholder="22 s prima della fine" (change)="patchThankYou(si, { revealAt: seconds(val($event)) })" /></label>
               </div>
             </fieldset>
 
@@ -350,6 +351,17 @@ export class PrenotazioniConfigComponent {
 
   patchBrand(si: number, key: BrandColor | 'logoUrl' | 'subtitle', value: string): void {
     this.update(si, s => ({ ...s, brand: { ...s.brand, [key]: value || undefined } }));
+  }
+
+  /** 122 → "2:02" */
+  mmss(sec: number | undefined): string {
+    return sec == null ? '' : `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  }
+
+  /** "2:02" o "122" → 122; vuoto o non valido → nessun valore (22 s prima della fine) */
+  seconds(v: string): number | undefined {
+    const m = v.trim().match(/^(?:(\d+):)?(\d{1,3})$/);
+    return m ? Number(m[1] ?? 0) * 60 + Number(m[2]) : undefined;
   }
 
   patchThankYou(si: number, p: Partial<NonNullable<BookingSettingsDto['brand']['thankYou']>>): void {

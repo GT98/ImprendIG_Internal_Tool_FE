@@ -45,8 +45,10 @@ export interface BookingThankYou {
   text?: string;
   /** sotto il video mentre lo si guarda */
   teaser?: string;
-  /** al posto del teaser, alla fine del video */
+  /** al posto del teaser, verso la fine del video */
   highlight?: string;
+  /** secondo del video in cui compare (vuoto = 22 s prima della fine) */
+  revealAt?: number;
 }
 
 export interface PublicBookingSettings {
