@@ -65,10 +65,10 @@ export interface Prospect {
 export interface SetterLinks {
   academy: string;
   slug: string;
-  /** venditrice a rotazione, setter lei */
-  organic: string;
-  /** solo i suoi orari: setter e venditrice lei */
-  ads: string;
+  /** venditrice a rotazione, setter lei; null = nessuna venditrice dell'academy ha orari */
+  organic: string | null;
+  /** solo i suoi orari: setter e venditrice lei; null = non abilitata all'academy o senza orari */
+  ads: string | null;
 }
 
 export interface ProspectFilters {
@@ -101,6 +101,8 @@ export interface ShiftBoard {
   /** Già assegnati ai turni successivi (es. arrivati di notte per il 2° turno) */
   upcoming: Prospect[];
   links: SetterLinks[];
+  /** è venditrice ma non ha inserito orari: niente link ADS finché non li inserisce */
+  missingHours?: boolean;
 }
 
 export interface ShiftAssignment {

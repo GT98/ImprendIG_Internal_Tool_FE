@@ -75,7 +75,13 @@ import { SetterApiService } from '../../setter/setter-api.service';
           }
         </section>
 
-        <!-- Link personali -->
+        <!-- Link personali: solo quelli che aprono un calendario con orari -->
+        @if (b.missingHours) {
+          <p class="hours-warn" role="status">
+            <app-icon name="clock" [size]="14" />
+            Non hai ancora inserito i tuoi orari: finché non li aggiungi in Disponibilità non puoi mandare i link ADS (il calendario sarebbe vuoto).
+          </p>
+        }
         @if (b.links.length) {
           <section class="card links" aria-labelledby="links-title">
             <h2 id="links-title"><app-icon name="copy" [size]="15" /> I tuoi link di prenotazione</h2>
@@ -87,8 +93,14 @@ import { SetterApiService } from '../../setter/setter-api.service';
               @for (l of b.links; track l.slug) {
                 <div class="link-row">
                   <span class="link-academy">{{ academyName(l.academy) }}</span>
-                  <button type="button" class="btn-ghost sm" (click)="copy(l.ads, 'Link ADS copiato: la call sarà con te')"><app-icon name="copy" [size]="13" /> ADS</button>
-                  <button type="button" class="btn-ghost sm" (click)="copy(l.organic, 'Link organico copiato: mandalo in DM')"><app-icon name="copy" [size]="13" /> Organico</button>
+                  @if (l.ads; as ads) {
+                    <button type="button" class="btn-ghost sm" (click)="copy(ads, 'Link ADS copiato: la call sarà con te')"><app-icon name="copy" [size]="13" /> ADS</button>
+                  } @else {
+                    <span class="link-off" title="Non sei abilitata a questo percorso o non hai orari inseriti">ADS non disponibile</span>
+                  }
+                  @if (l.organic; as organic) {
+                    <button type="button" class="btn-ghost sm" (click)="copy(organic, 'Link organico copiato: mandalo in DM')"><app-icon name="copy" [size]="13" /> Organico</button>
+                  }
                 </div>
               }
             </div>
