@@ -72,7 +72,7 @@ const DEFAULT_TEXT =
                 </div>
                 <a class="ty-manage" [href]="'/gestisci/' + token">Sposta o annulla</a>
               </section>
-              <p class="muted ty-mail">Ti abbiamo mandato un'email con il link della videochiamata e l'invito per il calendario. Se non la trovi, guarda in spam o promozioni.</p>
+              <p class="muted ty-mail">Ti abbiamo mandato un'email di conferma con l'invito per il calendario: il link della videochiamata ti arriva prima della call. Se non trovi l'email, guarda in spam o promozioni.</p>
             }
           }
         }

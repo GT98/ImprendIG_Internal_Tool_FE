@@ -158,7 +158,7 @@ import { brandVars, cachedBrand, rememberBrand } from './brand';
               <div class="done-icon" aria-hidden="true">✓</div>
               <h2>La tua call è confermata</h2>
               <p class="done-when">{{ label(selectedSlot()!) }}</p>
-              <p>Ti abbiamo inviato un'email a <strong>{{ email() }}</strong> con il link della videochiamata e l'invito da aggiungere al calendario.</p>
+              <p>Ti abbiamo inviato un'email a <strong>{{ email() }}</strong> con la conferma e l'invito da aggiungere al calendario. Il link della videochiamata ti arriva prima della call.</p>
               <p class="muted">Se non la trovi, controlla nella cartella spam o promozioni.</p>
             </div>
           }
