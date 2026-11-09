@@ -77,7 +77,7 @@ const dateIt = (iso: string | null | undefined, withTime = false) =>
     }
     .modal {
       width: 100%; max-width: 560px; max-height: 100%; display: flex; flex-direction: column;
-      background: var(--surface); color: var(--ink); border-radius: 16px; border-top: 4px solid var(--accent);
+      background: var(--surface); color: var(--ink); border-radius: 16px; border: 1px solid var(--border);
       box-shadow: 0 24px 64px rgba(0, 0, 0, .22); overflow: hidden;
     }
     .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 18px 22px 14px; border-bottom: 1px solid var(--border); }
