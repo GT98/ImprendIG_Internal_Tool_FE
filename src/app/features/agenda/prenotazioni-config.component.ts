@@ -112,7 +112,8 @@ type BrandColor = 'color' | 'onColor' | 'accent' | 'soft' | 'background';
                 <label class="field span2"><span>ID video Bunny</span><input type="text" [value]="s.brand.thankYou?.videoId ?? ''" placeholder="es. 637d7214-7e60-4dab-98a3-cc2ecae33bd1" (input)="patchThankYou(si, { videoId: val($event).trim() || undefined })" /></label>
                 <label class="field span2"><span>Titolo</span><input type="text" [value]="s.brand.thankYou?.title ?? ''" placeholder="Ci siamo! Il tuo percorso inizia adesso" (input)="patchThankYou(si, { title: val($event) || undefined })" /></label>
                 <label class="field span2"><span>Testo sopra il video</span><textarea rows="2" [value]="s.brand.thankYou?.text ?? ''" placeholder="Hai appena fatto la cosa più difficile…" (input)="patchThankYou(si, { text: val($event) || undefined })"></textarea></label>
-                <label class="field span2"><span>Riga in evidenza sotto il video</span><input type="text" [value]="s.brand.thankYou?.highlight ?? ''" placeholder="Tra un minuto avrai una sorpresa! 🎉" (input)="patchThankYou(si, { highlight: val($event) || undefined })" /></label>
+                <label class="field span2"><span>Sotto il video, mentre lo guardano</span><input type="text" [value]="s.brand.thankYou?.teaser ?? ''" placeholder="Alla fine del video riceverai una sorpresa! 🎉" (input)="patchThankYou(si, { teaser: val($event) || undefined })" /></label>
+                <label class="field span2"><span>Al suo posto, alla fine del video</span><input type="text" [value]="s.brand.thankYou?.highlight ?? ''" placeholder="Chiedi alla tua consulente di sbloccarti le lezioni gratuite!" (input)="patchThankYou(si, { highlight: val($event) || undefined })" /></label>
               </div>
             </fieldset>
 

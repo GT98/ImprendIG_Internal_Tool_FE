@@ -9,8 +9,9 @@ type View = PublicBookingView & { videoUrl: string | null };
 
 const DEFAULT_TITLE = 'Ci siamo! Il tuo percorso inizia adesso';
 const PLAYER_ORIGIN = 'https://iframe.mediadelivery.net';
-// la riga in evidenza compare dopo 1 minuto di video visto (o alla fine, se si salta avanti)
-const REVEAL_AFTER_SECONDS = 60;
+// la riga in evidenza prende il posto del teaser alla fine del video (ultimi secondi o evento "ended")
+const REVEAL_BEFORE_END_SECONDS = 3;
+const DEFAULT_TEASER = 'Alla fine del video riceverai una sorpresa! 🎉';
 
 const DEFAULT_TEXT =
   'Hai appena fatto la cosa più difficile: smettere di andare a tentativi e chiedere un metodo. Prima della call, guarda il video qui sotto.';
@@ -52,8 +53,12 @@ const DEFAULT_TEXT =
                 </div>
               }
 
-              @if (copy().highlight && revealed()) {
-                <p class="ty-highlight" role="status">{{ copy().highlight }}</p>
+              @if (copy().highlight) {
+                @if (revealed()) {
+                  <p class="ty-highlight" role="status">{{ copy().highlight }}</p>
+                } @else {
+                  <p class="ty-teaser">{{ copy().teaser }}</p>
+                }
               }
 
               <section class="ty-call" aria-label="La tua call">
@@ -92,6 +97,7 @@ export class GrazieComponent {
     return {
       title: t?.title?.trim() || DEFAULT_TITLE,
       text: t?.text?.trim() || DEFAULT_TEXT,
+      teaser: t?.teaser?.trim() || DEFAULT_TEASER,
       highlight: t?.highlight?.trim() || '',
     };
   });
@@ -115,8 +121,9 @@ export class GrazieComponent {
       }
       if (msg.context !== 'player.js') return;
       if (msg.event === 'ready') this.listen();
-      const seconds = msg.value?.seconds ?? 0;
-      if (msg.event === 'ended' || (msg.event === 'timeupdate' && seconds >= REVEAL_AFTER_SECONDS)) this.revealed.set(true);
+      const { seconds = 0, duration = 0 } = msg.value ?? {};
+      const nearEnd = duration > 0 && seconds >= duration - REVEAL_BEFORE_END_SECONDS;
+      if (msg.event === 'ended' || (msg.event === 'timeupdate' && nearEnd)) this.revealed.set(true);
     };
     window.addEventListener('message', onMessage);
     inject(DestroyRef).onDestroy(() => window.removeEventListener('message', onMessage));

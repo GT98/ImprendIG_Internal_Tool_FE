@@ -43,6 +43,9 @@ export interface BookingThankYou {
   videoId?: string;
   title?: string;
   text?: string;
+  /** sotto il video mentre lo si guarda */
+  teaser?: string;
+  /** al posto del teaser, alla fine del video */
   highlight?: string;
 }
 
