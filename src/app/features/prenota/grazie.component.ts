@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { PublicBookingApiService, PublicBookingView } from '../../booking/booking-api.service';
@@ -8,6 +8,10 @@ import { brandVars } from './brand';
 type View = PublicBookingView & { videoUrl: string | null };
 
 const DEFAULT_TITLE = 'Ci siamo! Il tuo percorso inizia adesso';
+const PLAYER_ORIGIN = 'https://iframe.mediadelivery.net';
+// la riga in evidenza compare dopo 1 minuto di video visto (o alla fine, se si salta avanti)
+const REVEAL_AFTER_SECONDS = 60;
+
 const DEFAULT_TEXT =
   'Hai appena fatto la cosa più difficile: smettere di andare a tentativi e chiedere un metodo. Prima della call, guarda il video qui sotto.';
 
@@ -42,14 +46,14 @@ const DEFAULT_TEXT =
 
               @if (video(); as src) {
                 <div class="ty-video">
-                  <iframe [src]="src" title="Video prima della call" loading="eager"
+                  <iframe #player [src]="src" (load)="listen()" title="Video prima della call" loading="eager"
                           allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
                           allowfullscreen></iframe>
                 </div>
               }
 
-              @if (copy().highlight) {
-                <p class="ty-highlight">{{ copy().highlight }}</p>
+              @if (copy().highlight && revealed()) {
+                <p class="ty-highlight" role="status">{{ copy().highlight }}</p>
               }
 
               <section class="ty-call" aria-label="La tua call">
@@ -78,6 +82,9 @@ export class GrazieComponent {
   readonly state = signal<'loading' | 'ready' | 'error'>('loading');
   readonly view = signal<View | null>(null);
   readonly label = romeLabel;
+  /** riga in evidenza visibile (senza video: subito) */
+  readonly revealed = signal(false);
+  private readonly player = viewChild<ElementRef<HTMLIFrameElement>>('player');
 
   readonly brand = computed(() => brandVars(this.view()?.settings.brand));
   readonly copy = computed(() => {
@@ -97,16 +104,42 @@ export class GrazieComponent {
   });
 
   constructor() {
+    // eventi del player Bunny (protocollo player.js): tempo di visione e fine del video
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== PLAYER_ORIGIN || typeof e.data !== 'string') return;
+      let msg: { context?: string; event?: string; value?: { seconds?: number; duration?: number } };
+      try {
+        msg = JSON.parse(e.data);
+      } catch {
+        return;
+      }
+      if (msg.context !== 'player.js') return;
+      if (msg.event === 'ready') this.listen();
+      const seconds = msg.value?.seconds ?? 0;
+      if (msg.event === 'ended' || (msg.event === 'timeupdate' && seconds >= REVEAL_AFTER_SECONDS)) this.revealed.set(true);
+    };
+    window.addEventListener('message', onMessage);
+    inject(DestroyRef).onDestroy(() => window.removeEventListener('message', onMessage));
+
     this.api.thankYou(this.token).subscribe({
       next: v => {
         if (v.status === 'cancelled') {
           this.state.set('error');
           return;
         }
+        if (!v.videoUrl) this.revealed.set(true);
         this.view.set(v);
         this.state.set('ready');
       },
       error: () => this.state.set('error'),
     });
+  }
+
+  /** Chiede al player di avvisarci del tempo di visione (si ripete a ogni "ready": non fa danni) */
+  listen(): void {
+    const w = this.player()?.nativeElement.contentWindow;
+    if (!w) return;
+    for (const event of ['timeupdate', 'ended'])
+      w.postMessage(JSON.stringify({ context: 'player.js', version: '0.0.11', method: 'addEventListener', value: event, listener: event }), PLAYER_ORIGIN);
   }
 }

@@ -30,3 +30,6 @@
 .ty-manage { color: var(--brand-ink); font-weight: 700; font-size: 14px; text-decoration: none; }
 .ty-manage:hover, .ty-manage:focus-visible { text-decoration: underline; }
 .ty-mail { margin: -8px 0 0; text-align: center; }
+.ty-highlight { animation: ty-reveal .5s ease-out both; }
+@keyframes ty-reveal { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ty-highlight { animation: none; } }
