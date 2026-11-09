@@ -302,8 +302,9 @@ export class PrenotaComponent {
     }).subscribe({
       next: res => {
         this.sending.set(false);
-        // pagina di ringraziamento col video: raggiungibile solo col codice della prenotazione
-        if (res.manageToken) {
+        // pagina di ringraziamento col video (solo le academy con un video, es. UGC): raggiungibile solo col
+        // codice della prenotazione; le altre restano sulla conferma qui sotto
+        if (res.manageToken && this.settings()?.brand.thankYou?.videoId) {
           void this.router.navigate(['/grazie', res.manageToken]);
           return;
         }
