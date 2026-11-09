@@ -11,6 +11,7 @@ import {
 } from '../../customers/customer-api.service';
 import { IconComponent } from '../../shared/icon.component';
 import { AffiancamentiEditorComponent } from '../../shared/affiancamenti-editor.component';
+import { OnboardingFormModalComponent } from '../../shared/onboarding-form-modal.component';
 import { AuthService } from '../../auth/auth.service';
 
 interface CustomerRow {
@@ -20,7 +21,7 @@ interface CustomerRow {
 
 @Component({
   selector: 'app-customers-list',
-  imports: [IconComponent, AffiancamentiEditorComponent],
+  imports: [IconComponent, AffiancamentiEditorComponent, OnboardingFormModalComponent],
   styleUrl: './customers-list.component.css',
   template: `
     <div class="page">
@@ -83,9 +84,6 @@ interface CustomerRow {
                   <div class="client-mono" aria-hidden="true">{{ initials(row.customer) }}</div>
                   <div class="client-info">
                     <span class="td-strong">{{ fullName(row.customer) }}</span>
-                    @if (row.customer.codiceFiscale) {
-                      <span class="td-sub">CF: {{ row.customer.codiceFiscale }}</span>
-                    }
                   </div>
                 </div>
 
@@ -93,21 +91,12 @@ interface CustomerRow {
                 <div class="td-contacts">
                   <span class="td-contact">{{ row.customer.email || '—' }}</span>
                   <span class="td-sub">{{ row.customer.phone || '—' }}</span>
-                  <!-- Niente da espandere se non c'è indirizzo e il piano non prevede l'affiancamento -->
-                  @if (hasAddress(row.customer) || row.customer.sale?.affiancamenti?.length) {
-                    <!-- Indirizzo (dal form di onboarding) e affiancamento sono due cose diverse: si vedono entrambi -->
-                    @if (hasAddress(row.customer)) {
-                      <button class="addr-toggle" (click)="toggleExpand(row.customer.id)" [attr.aria-expanded]="expandedId() === row.customer.id">
-                        <app-icon name="home" [size]="12" />
-                        {{ row.customer.city || 'Indirizzo' }}{{ row.customer.province ? ' (' + row.customer.province + ')' : '' }}
-                      </button>
-                    }
-                    @if (row.customer.sale?.affiancamenti?.length) {
-                      <button class="addr-toggle" (click)="toggleExpand(row.customer.id)" [attr.aria-expanded]="expandedId() === row.customer.id">
-                        <app-icon name="calendar" [size]="12" />
-                        Affiancamento
-                      </button>
-                    }
+                  <!-- Righe tutte uguali: i dati del form (CF, indirizzo…) si vedono con "Vedi form" -->
+                  @if (row.customer.sale?.affiancamenti?.length) {
+                    <button class="addr-toggle" (click)="toggleExpand(row.customer.id)" [attr.aria-expanded]="expandedId() === row.customer.id">
+                      <app-icon name="calendar" [size]="12" />
+                      Affiancamento
+                    </button>
                   }
                 </div>
 
@@ -140,7 +129,12 @@ interface CustomerRow {
                     >{{ onboardingBadge(row.submission.status).label }}</span>
                     @if (row.submission.submittedAt) {
                       <span class="td-sub">{{ formatDate(row.submission.submittedAt) }}</span>
-                    } @else if (row.submission.formLinkSentAt) {
+                    }
+                    @if (row.submission.status === 'completed') {
+                      <button class="addr-toggle" (click)="formOf.set(row)">
+                        <app-icon name="eye" [size]="12" /> Vedi form
+                      </button>
+                    } @else if (row.submission.formLinkSentAt && !row.submission.submittedAt) {
                       <span class="td-sub">inviato {{ formatDate(row.submission.formLinkSentAt) }}</span>
                     }
                   } @else {
@@ -150,15 +144,9 @@ interface CustomerRow {
 
               </div>
 
-              <!-- Expansion row: address + startDate editing -->
+              <!-- Riga espansa: date di affiancamento -->
               @if (expandedId() === row.customer.id) {
                 <div class="addr-row" role="row">
-                  @if (hasAddress(row.customer)) {
-                    <div class="addr-content">
-                      <app-icon name="home" [size]="13" />
-                      <span>{{ addrStr(row.customer) }}</span>
-                    </div>
-                  }
                   @if (row.customer.sale?.affiancamenti?.length) {
                     <div class="start-date-edit">
                       <span class="start-date-label">Affiancamento 1:1</span>
@@ -178,6 +166,10 @@ interface CustomerRow {
         </div>
       }
     </div>
+
+    @if (formOf(); as f) {
+      <app-onboarding-form-modal [customer]="f.customer" [submission]="f.submission!" (closed)="formOf.set(null)" />
+    }
   `,
 })
 export class CustomersListComponent {
@@ -189,6 +181,8 @@ export class CustomersListComponent {
   readonly statusFilter = signal('');
   readonly expandedId = signal<number | null>(null);
 
+  /** riga di cui si guarda il form compilato */
+  readonly formOf = signal<CustomerRow | null>(null);
   readonly isAdmin = computed(() => this.auth.currentUser()?.role === 'admin');
 
   /** Date di affiancamento: l'admin sempre, la venditrice sulle proprie vendite */
@@ -265,14 +259,6 @@ export class CustomersListComponent {
     const variant = c.sale?.pricePlan?.serviceVariant?.name;
     if (!svc) return '—';
     return variant ? `${svc} · ${variant}` : svc;
-  }
-
-  addrStr(c: CustomerDto): string {
-    return [c.address, c.city, c.province, c.cap].filter(v => !!v).join(', ');
-  }
-
-  hasAddress(c: CustomerDto): boolean {
-    return !!(c.address || c.city || c.province || c.cap);
   }
 
   formatDate(iso: string): string {

@@ -82,6 +82,11 @@ export interface OnboardingSubmissionDto {
   formLinkSentAt: string | null;
   submittedAt: string | null;
   createdAt: string;
+  termsAccepted?: boolean;
+  whatsapp?: string | null;
+  billingEmail?: string | null;
+  /** Bundle: academy (client id) nell'ordine scelto dalla cliente */
+  academyOrder?: number[] | null;
   customer: { id: number; name: string | null; surname: string | null; email: string | null } | null;
   installment: {
     id: number;
