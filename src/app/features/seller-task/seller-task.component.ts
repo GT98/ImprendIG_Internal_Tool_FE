@@ -207,7 +207,7 @@ export class SellerTaskComponent {
   }
 
   waUrl(phone: string, text: string): string {
-    return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+    return `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`;
   }
 
   async copy(i: number, text: string): Promise<void> {
