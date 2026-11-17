@@ -179,6 +179,7 @@ const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#3b82f6', '#8b5cf6'
               <span class="col-person">Setter</span>
               <span class="col-pct">%</span>
               <span class="col-telegram">Telegram</span>
+              <span class="col-wa">WhatsApp</span>
               <span class="col-actions"></span>
             </div>
 
@@ -206,6 +207,13 @@ const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#3b82f6', '#8b5cf6'
                   </div>
                   <div class="col-pct pct-cell">{{ s.percentage ?? '—' }}{{ s.percentage ? '%' : '' }}</div>
                   <div class="col-telegram meta-cell">{{ s.telegramId ?? '—' }}</div>
+                  <div class="col-wa meta-cell">
+                    @if (s.whatsapp) {
+                      {{ s.whatsapp }}
+                    } @else {
+                      <span class="wa-missing" title="Senza numero i lead che scrivono al numero aziendale non ricevono il link della sua chat">Manca</span>
+                    }
+                  </div>
                   <div class="col-actions row-actions">
                     <button class="icon-btn" title="Modifica" (click)="openEditSetter(s)">
                       <app-icon name="edit" [size]="14" />
@@ -257,14 +265,12 @@ const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#3b82f6', '#8b5cf6'
                  placeholder="@username"
                  (input)="patch('telegramId', $any($event.target).value)" />
         </label>
-        @if (activeTab() === 'venditori') {
-          <label class="ef-field ef-full">
-            <span>WhatsApp per le notifiche</span>
-            <input type="tel" [value]="editState()!.whatsapp"
-                   placeholder="+39 333 123 4567" autocomplete="tel"
-                   (input)="patch('whatsapp', $any($event.target).value)" />
-          </label>
-        }
+        <label class="ef-field ef-full">
+          <span>{{ activeTab() === 'venditori' ? 'WhatsApp per le notifiche' : 'WhatsApp per i lead dalla landing' }}</span>
+          <input type="tel" [value]="editState()!.whatsapp"
+                 placeholder="+39 333 123 4567" autocomplete="tel"
+                 (input)="patch('whatsapp', $any($event.target).value)" />
+        </label>
       </div>
       <div class="ef-actions">
         <button class="btn-ghost" (click)="cancelEdit()">Annulla</button>
@@ -427,7 +433,7 @@ export class TeamComponent {
     this.editState.set({
       name: s.name ?? '', lastName: s.lastName ?? '',
       email: s.email ?? '', percentage: Number(s.percentage ?? 3),
-      telegramId: s.telegramId ?? '', whatsapp: '',
+      telegramId: s.telegramId ?? '', whatsapp: s.whatsapp ?? '',
     });
   }
 
@@ -449,8 +455,8 @@ export class TeamComponent {
       // dal DB (bigint/numeric) arriva come stringa: il backend vuole un numero
       percentage: Number(s.percentage) || undefined,
       telegramId: s.telegramId || undefined,
-      // vuoto = toglie il numero (solo venditrici)
-      ...(this.activeTab() === 'venditori' ? { whatsapp: s.whatsapp.trim() || null } : {}),
+      // vuoto = toglie il numero
+      whatsapp: s.whatsapp.trim() || null,
     };
   }
 

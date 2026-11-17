@@ -64,6 +64,13 @@ type Channel = 'call' | 'whatsapp';
         </div>
       }
 
+      @if (p.video || p.waChatAt) {
+        <div class="kv call">
+          <span><app-icon name="send" [size]="13" /> Landing</span>
+          <strong>{{ p.video ? 'Video ' + p.video : 'Video non indicato' }}{{ p.waChatAt ? ' · ha scritto su WhatsApp ' + label(p.waChatAt) : '' }}</strong>
+        </div>
+      }
+
       @if (p.call) {
         <div class="kv call" [class.cancelled]="p.call.status === 'cancelled'">
           <span><app-icon name="calendar" [size]="13" /> Call {{ p.call.status === 'cancelled' ? 'annullata' : 'prenotata' }}</span>

@@ -59,6 +59,12 @@ export interface Prospect {
   handledBy: { id: number; name: string } | null;
   firstContactAt: string | null;
   notes: string | null;
+  /** 'meta' (form ADS) | 'whatsapp' (ha scritto al numero aziendale senza form) | 'manuale' */
+  source: string;
+  /** Video della landing che ha visto ("1", "2", "3") */
+  video: string | null;
+  /** Quando ha scritto al numero aziendale dalla landing */
+  waChatAt: string | null;
   call: { startsAt: string; status: string; outcome: string | null } | null;
 }
 

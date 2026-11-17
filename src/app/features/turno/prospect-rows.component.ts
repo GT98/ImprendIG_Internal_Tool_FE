@@ -18,7 +18,7 @@ import { ProspectCardComponent } from './prospect-card.component';
           <button type="button" class="pr-row" [attr.aria-expanded]="openId() === p.id" (click)="toggle(p.id)">
             <span class="pr-who">
               <strong>{{ p.name }}</strong>
-              <span>{{ p.client?.name ?? 'Academy n.d.' }} · arrivato {{ arrived(p.arrivedAt) }} · {{ p.shiftSlot }}° turno di {{ day(p.shiftDate) }}</span>
+              <span>{{ p.client?.name ?? 'Academy n.d.' }} · arrivato {{ arrived(p.arrivedAt) }} · {{ p.shiftSlot }}° turno di {{ day(p.shiftDate) }}{{ p.video ? ' · video ' + p.video : '' }}</span>
             </span>
             @if (showOwner()) {
               <span class="pr-owner">{{ p.owner?.name ?? 'Nessuna setter' }}</span>

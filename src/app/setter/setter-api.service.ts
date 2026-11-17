@@ -12,6 +12,7 @@ export interface SetterDto {
   email: string | null;
   percentage: number | null;
   telegramId: string | null;
+  whatsapp: string | null;
   createdAt: string;
 }
 

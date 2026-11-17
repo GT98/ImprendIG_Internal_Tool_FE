@@ -68,7 +68,7 @@ const PERIODS = [
                 <td class="nowrap">{{ arrived(p.arrivedAt) }}</td>
                 <td>
                   <button type="button" class="name" [attr.aria-expanded]="openId() === p.id" (click)="$event.stopPropagation(); toggle(p.id)">{{ p.name }}</button>
-                  @if (p.client) { <span class="sub">{{ p.client.name }}</span> }
+                  @if (p.client || p.video) { <span class="sub">{{ p.client?.name }}{{ p.client && p.video ? ' · ' : '' }}{{ p.video ? 'video ' + p.video : '' }}</span> }
                 </td>
                 <td class="nowrap">{{ p.phone ?? '—' }}</td>
                 <td class="nowrap">{{ p.shiftSlot }}° turno</td>

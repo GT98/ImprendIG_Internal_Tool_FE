@@ -64,9 +64,9 @@
   border-bottom: 1px solid var(--border);
 }
 
-/* setter tab has no account column */
+/* setter tab: no access/account columns */
 .team-list:has(.setter-av) .list-header {
-  grid-template-columns: 1fr 70px 150px 80px;
+  grid-template-columns: 1fr 70px 150px 150px 80px;
 }
 
 .team-row {
@@ -88,9 +88,9 @@
   background: color-mix(in srgb, var(--accent) 3%, var(--surface));
 }
 
-/* setter rows: no account column */
+/* setter rows: no access/account columns */
 .team-list:has(.setter-av) .team-row:not(.editing) {
-  grid-template-columns: 1fr 70px 150px 80px;
+  grid-template-columns: 1fr 70px 150px 150px 80px;
 }
 
 /* ── Columns ────────────────────────────────────────────────── */
