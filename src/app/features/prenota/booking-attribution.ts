@@ -2,7 +2,8 @@
 // così l'attribuzione resta anche se prenota in un secondo momento.
 const KEY = 'prenota_attr';
 const TTL_MS = 30 * 24 * 3600_000;
-const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid'];
+// videoID e src: dai link delle landing con i video (per le statistiche sui video)
+const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'videoID', 'src'];
 
 export interface Attribution {
   ref?: string;
