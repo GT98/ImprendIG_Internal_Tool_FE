@@ -123,7 +123,11 @@ type BrandColor = 'color' | 'onColor' | 'accent' | 'soft' | 'background';
               <p class="hint">Finiscono nei messaggi pronti che le venditrici mandano a lead e studentesse.</p>
               <div class="grid2">
                 <label class="field"><span>Coach</span><input type="text" [value]="s.whatsapp.coach ?? ''" [placeholder]="defaultCoach(s)" (input)="patchWa(si, { coach: val($event) || undefined })" /></label>
-                <label class="field"><span>Thank you page (video dopo la prenotazione)</span><input type="url" [value]="s.whatsapp.thankYouUrl ?? ''" placeholder="https://…" (input)="patchWa(si, { thankYouUrl: val($event) || undefined })" /></label>
+                @if (s.brand.thankYou?.videoId) {
+                  <div class="field"><span>Thank you page (video dopo la prenotazione)</span><p class="hint">Automatica: nei messaggi c'è il link della pagina di ogni prenotazione, con il video qui sopra.</p></div>
+                } @else {
+                  <label class="field"><span>Thank you page (video dopo la prenotazione)</span><input type="url" [value]="s.whatsapp.thankYouUrl ?? ''" placeholder="https://…" (input)="patchWa(si, { thankYouUrl: val($event) || undefined })" /></label>
+                }
                 <label class="field"><span>Chat di gruppo · base</span><input type="url" [value]="s.whatsapp.groupLinks?.base ?? ''" placeholder="https://chat.whatsapp.com/…" (input)="patchGroup(si, 'base', val($event))" /></label>
                 <label class="field"><span>Chat di gruppo · avanzato</span><input type="url" [value]="s.whatsapp.groupLinks?.advanced ?? ''" placeholder="https://chat.whatsapp.com/…" (input)="patchGroup(si, 'advanced', val($event))" /></label>
                 <label class="field span2"><span>Immagine della ruota di autovalutazione (URL)</span><input type="url" [value]="s.whatsapp.wheelImageUrl ?? ''" placeholder="https://…" (input)="patchWa(si, { wheelImageUrl: val($event) || undefined })" /></label>
