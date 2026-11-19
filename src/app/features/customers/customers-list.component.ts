@@ -1,6 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { of } from 'rxjs';
 import {
   CustomerApiService,
   CustomerDto,
@@ -196,9 +195,9 @@ export class CustomersListComponent {
     stream: () => this.api.getAll(),
   });
 
+  /** il BE restituisce alla venditrice solo i form dei suoi clienti */
   readonly submissionsResource = rxResource({
-    params: () => this.isAdmin(),
-    stream: ({ params: isAdmin }) => isAdmin ? this.onboardingApi.getSubmissions() : of([]),
+    stream: () => this.onboardingApi.getSubmissions(),
   });
 
   readonly isLoading = computed(
