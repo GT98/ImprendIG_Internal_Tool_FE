@@ -1,3 +1,4 @@
+import { OnboardingSubmissionDto } from '../../customers/customer-api.service';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
@@ -40,6 +41,11 @@ export interface ClientSaleDto {
     email: string | null;
     phone: string | null;
     startDate: string | null;
+    codiceFiscale?: string | null;
+    address?: string | null;
+    city?: string | null;
+    province?: string | null;
+    cap?: string | null;
   } | null;
   pricePlan: {
     id: number;
@@ -50,6 +56,8 @@ export interface ClientSaleDto {
   } | null;
   seller: { id: number; name: string | null; lastName: string | null } | null;
   affiancamenti?: AffiancamentoDto[];
+  /** form di iscrizione (dati di fatturazione); null = non inviato */
+  onboarding?: Omit<OnboardingSubmissionDto, 'token' | 'customer' | 'installment'> | null;
   installments: { id: number; amount: string | null; installmentNumber: number; status: string; type: string; dueDate: string | null; paymentDate: string | null }[];
 }
 

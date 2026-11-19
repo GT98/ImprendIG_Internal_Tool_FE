@@ -4,6 +4,8 @@ import { AreaClienteApiService, ClientSaleDto } from './area-cliente-api.service
 import { IconComponent } from '../../shared/icon.component';
 import { SegmentedComponent, SegOption } from '../../shared/segmented.component';
 import { formatEuro } from '../../shared/format';
+import { OnboardingFormModalComponent } from '../../shared/onboarding-form-modal.component';
+import { CustomerDto, OnboardingSubmissionDto } from '../../customers/customer-api.service';
 
 function todayIso(): string {
   const d = new Date();
@@ -58,7 +60,7 @@ type SortKey = 'start' | 'purchase' | 'name';
 
 @Component({
   selector: 'app-area-cliente-clienti',
-  imports: [IconComponent, SegmentedComponent],
+  imports: [IconComponent, SegmentedComponent, OnboardingFormModalComponent],
   template: `
     <div class="page">
       <div class="page-header">
@@ -180,6 +182,9 @@ type SortKey = 'start' | 'purchase' | 'name';
                       } @else {
                         <span class="pill">{{ row.sale.status }}</span>
                       }
+                      @if (row.sale.onboarding; as f) {
+                        <span class="sub">{{ f.status === 'completed' ? 'Form compilato' : 'Form in attesa' }}</span>
+                      }
                     </td>
                   </tr>
                   @if (openId() === row.sale.id) {
@@ -194,10 +199,29 @@ type SortKey = 'start' | 'purchase' | 'name';
                             <div><dt>Metodo di pagamento</dt><dd>{{ row.sale.paymentMethod }}</dd></div>
                             @if (row.hasAffiancamento) {
                             <div><dt>Inizio affiancamento</dt><dd>{{ row.startDate ? fmtDate(row.startDate) : (row.unlockInstallment ? 'Al pagamento della rata ' + row.unlockInstallment : 'Da definire') }}</dd></div>
-                            <div><dt>Fine affiancamento</dt><dd>{{ row.endDate ? fmtDate(row.endDate) : (row.durationMonths ? row.durationMonths + ' mesi dall\'inizio' : '—') }}</dd></div>
+                            <div><dt>Fine affiancamento</dt><dd>{{ endLabel(row) }}</dd></div>
                             } @else {
                             <div><dt>Affiancamento</dt><dd>Non incluso nel piano</dd></div>
                             }
+                            <div>
+                              <dt>Form di iscrizione</dt>
+                              <dd>
+                                @if (row.sale.onboarding; as f) {
+                                  @if (f.status === 'completed') {
+                                    <span class="pill paid">Compilato</span>
+                                    <span class="sub">il {{ fmtDate(f.submittedAt) }}</span>
+                                    <button type="button" class="link-btn" (click)="formOf.set(row)">Vedi dati di fatturazione</button>
+                                  } @else {
+                                    <span class="pill pending">In attesa</span>
+                                    @if (f.formLinkSentAt) {
+                                      <span class="sub">inviato il {{ fmtDate(f.formLinkSentAt) }}</span>
+                                    }
+                                  }
+                                } @else {
+                                  <span class="muted">Non inviato</span>
+                                }
+                              </dd>
+                            </div>
                           </dl>
 
                           @if (row.sale.installments.length) {
@@ -241,6 +265,9 @@ type SortKey = 'start' | 'purchase' | 'name';
         }
       }
     </div>
+    @if (formOf(); as r) {
+      <app-onboarding-form-modal [customer]="formCustomer(r)" [submission]="formSubmission(r)" (closed)="formOf.set(null)" />
+    }
   `,
   styles: [`
     .page-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 20px 24px 0; }
@@ -297,6 +324,8 @@ type SortKey = 'start' | 'purchase' | 'name';
     .inst-table td { padding: 7px 10px; border-top: 1px solid var(--border); }
 
     .muted { color: var(--ink-2); }
+    .link-btn { display: block; margin-top: 4px; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-size: 0.8rem; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+    .link-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .mono { font-variant-numeric: tabular-nums; }
     .strong { font-weight: 700; }
     .nowrap { white-space: nowrap; }
@@ -327,6 +356,8 @@ export class AreaClienteClientiComponent {
   readonly dateFilter = signal<DateFilter>('all');
   readonly sortKey = signal<SortKey>('start');
   readonly openId = signal<number | null>(null);
+  /** riga di cui si guardano i dati del form di iscrizione */
+  readonly formOf = signal<CustomerRow | null>(null);
 
   readonly filterOptions: SegOption[] = [
     { value: 'all', label: 'Tutte' },
@@ -393,6 +424,34 @@ export class AreaClienteClientiComponent {
 
   toggle(id: number): void {
     this.openId.update((cur) => (cur === id ? null : id));
+  }
+
+  endLabel(row: CustomerRow): string {
+    if (row.endDate) return fmtDate(row.endDate);
+    return row.durationMonths ? `${row.durationMonths} mesi dall'inizio` : '—';
+  }
+
+  /** Il modale del form lavora sui DTO del portale admin: qui ci sono solo i campi che mostra */
+  formCustomer(row: CustomerRow): CustomerDto {
+    const c = row.sale.customer;
+    return {
+      id: c?.id ?? 0,
+      name: c?.name ?? null,
+      surname: c?.surname ?? null,
+      email: c?.email ?? null,
+      phone: c?.phone ?? null,
+      codiceFiscale: c?.codiceFiscale ?? null,
+      address: c?.address ?? null,
+      city: c?.city ?? null,
+      province: c?.province ?? null,
+      cap: c?.cap ?? null,
+      startDate: c?.startDate ?? null,
+      sale: null,
+    };
+  }
+
+  formSubmission(row: CustomerRow): OnboardingSubmissionDto {
+    return { ...row.sale.onboarding!, token: '', customer: null, installment: null };
   }
 
   sortedInstallments(sale: ClientSaleDto) {
