@@ -85,6 +85,7 @@ function toRows(windows: AvailabilityWindow[]): DayRow[] {
                     <tr tabindex="0" [class.on-leave]="currentOff(s)" (click)="pickSeller(s.id)" (keydown.enter)="pickSeller(s.id)">
                       <th scope="row">
                         <span class="ov-name">{{ s.name }}</span>
+                        <span class="ov-updated">{{ s.availabilityUpdatedAt ? 'Aggiornato il ' + label(s.availabilityUpdatedAt) : 'Aggiornamento non registrato' }}</span>
                         @if (currentOff(s); as off) {
                           <span class="leave-badge">
                             <app-icon name="calendar" [size]="13" />

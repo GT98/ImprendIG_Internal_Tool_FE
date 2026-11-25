@@ -125,6 +125,8 @@ export interface AvailabilityWindow {
 export interface SellerOverview {
   id: number;
   name: string;
+  /** Ultimo salvataggio degli orari (anche se svuotati); null = mai salvati da quando esiste il dato */
+  availabilityUpdatedAt: string | null;
   windows: AvailabilityWindow[];
   academies: { id: number; title: string }[];
   /** Blocchi/ferie da lunedì di questa settimana in poi; current = in corso adesso */
